@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Jan 25 16:24:32 UTC 2021 - jason.record@suse.com
+
+- Added gvc
+- Included the /opt/patdev/forks directory
+
+-------------------------------------------------------------------
 Tue Dec 15 12:48:10 UTC 2020 - jason.record@suse.com
 
 - initial package

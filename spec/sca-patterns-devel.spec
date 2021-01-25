@@ -15,7 +15,7 @@
 %define basedir /opt/%{base}
 
 Name:         sca-patterns-devel
-Version:      1.0.1
+Version:      1.0.2
 Release:      0
 Summary:      Supportconfig Analysis Pattern Development Tools
 License:      GPL-2.0-only
