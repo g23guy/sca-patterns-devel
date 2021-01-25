@@ -1,6 +1,6 @@
 #!/bin/bash
 SVER='1.0.1'
-EMAIL='jason.record@suse.com'
+EMAIL=''
 
 ##############################################################################
 # gvc - GitHub change log and spec file editor
