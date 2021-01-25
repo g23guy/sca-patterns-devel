@@ -30,9 +30,9 @@ SVER='1.0.12'
 LCONF='/etc/opt/patdev/patdev.conf'
 [[ -s $LCONF ]] && . $LCONF || { echo "ERROR: File not found, $LCONF"; echo; exit 1; }
 
-: ${SCA_LIBRARY_PATH:="/opt/patdev/patterns/sca-patterns-base/libraries"}
-: ${SCA_PATTERN_PATH:="/opt/patdev/patterns"}
-: ${DEFAULT_ARCHDIR:="/var/opt/patdev"}
+: ${SCA_LIBRARY_PATH:="${PATDEV_BASE}/sca-patterns-base/libraries"}
+: ${SCA_PATTERN_PATH:="${PATDEV_BASE}"}
+: ${DEFAULT_ARCHDIR:="${PATDEV_REPO_DIR}"}
 BASHLIB="${SCA_LIBRARY_PATH}/bash"
 PERL5LIB="${PERL5LIB}:${SCA_LIBRARY_PATH}/perl/"
 PYTHONPATH="${PYTHONPATH}:${SCA_LIBRARY_PATH}/python/"
