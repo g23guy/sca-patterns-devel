@@ -1,0 +1,20 @@
+#!/bin/bash
+
+REPO_DIR="/opt/patdev/patterns"
+REPOS="sca-server-report sca-patterns-base sca-patterns-sle11 sca-patterns-sle12 sca-patterns-sle15 sca-patterns-hae sca-patterns-suma"
+
+cd $REPO_DIR
+for i in $REPOS
+do
+	if [[ -d $i ]]; then
+		echo "Updating $i Repo..."
+		cd $i
+		git pull
+		cd ..
+	else
+		echo "Cloning $i Repo..."
+		git clone https://github.com/g23guy/${i}.git
+	fi
+	echo
+done
+

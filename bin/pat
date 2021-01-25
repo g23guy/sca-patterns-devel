@@ -1,0 +1,216 @@
+#!/bin/bash
+SVER='1.0.11'
+
+##############################################################################
+#  pat - Pattern Tester Tool
+#  Copyright (C) 2014-2020 SUSE LLC
+#
+# Description:  Tests one pattern against several supportconfig archives.
+# Modified:     2020 Dec 14
+#
+##############################################################################
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; version 2 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, see <http://www.gnu.org/licenses/>.
+#
+#  Authors/Contributors:
+#     Jason Record (jason.record@suse.com)
+#
+##############################################################################
+
+: ${SCA_LIBRARY_PATH:="/opt/patdev/patterns/sca-patterns-base/libraries"}
+: ${SCA_PATTERN_PATH:="/opt/patdev/patterns"}
+: ${DEFAULT_ARCHDIR:="/var/opt/patdev"}
+BASHLIB="${SCA_LIBRARY_PATH}/bash"
+PERL5LIB="${PERL5LIB}:${SCA_LIBRARY_PATH}/perl/"
+PYTHONPATH="${PYTHONPATH}:${SCA_LIBRARY_PATH}/python/"
+export SCA_LIBRARY_PATH SCA_PATTERN_PATH BASHLIB PERL5LIB PYTHONPATH
+
+title() {
+	echo "##########################################################################"
+	echo "# PAT - SCA Pattern Tester v$SVER"
+	echo "##########################################################################"
+}
+
+CMDLINE=$*
+ARCHIVES=0
+ERR_MODE=0
+ERR_BIN=0
+ERR_OUT=0
+ERR_HPL=0
+ERR_DOS=0
+RET_FAT=0
+
+RET_TMP=0
+RET_PAR=0
+RET_GRN=0
+RET_REC=0
+RET_PRO=0
+RET_YEL=0
+RET_RED=0
+RET_ERR=0
+RET_IGN=0
+
+usage() {
+	echo "Usage:"
+	echo "  $(basename $0) pattern [pattern options]"
+	echo
+	echo "Set ARCHDIR in your environment to overide the default archive"
+	echo "directory. The ARCHDIR directory should contain all of the"
+	echo "extracted supportconfig tar balls you wish to test against."
+	echo
+}
+
+count_rc() {
+	PRC=$1
+	case $PRC in
+	6) ((RET_IGN++)) ;;
+	5) ((RET_ERR++)) ;;
+	4) ((RET_RED++)) ;;
+	3) ((RET_YEL++)) ;;
+	2) ((RET_PRO++)) ;;
+	1) ((RET_REC++)) ;;
+	0) ((RET_GRN++)) ;;
+	-1) ((RET_PAR++)) ;;
+	-2) ((RET_TMP++)) ;;
+	esac
+}
+
+validateOutput() {
+	echo "$PATOUT"
+	if echo $PATOUT | grep '^META_CLASS=.*|META_CATEGORY=.*|META_COMPONENT=.*|PATTERN_ID=.*|PRIMARY_LINK=META_LINK_.*|OVERALL=.*|OVERALL_INFO=.*|META_LINK_' &>/dev/null
+	then
+		OVERALL=$(echo $PATOUT | grep 'OVERALL=' | cut -d\| -f6 | cut -d= -f2)
+		count_rc $OVERALL
+	else
+		((RET_FAT++))
+		((ERR_OUT++))
+		(( DEBUG )) && OVERALL="Debug" || OVERALL="Failed"
+	fi
+}
+
+########################################
+# main
+########################################
+
+clear
+title
+[[ -z "$ARCHDIR" ]] && ARCHDIR="$DEFAULT_ARCHDIR"
+printf "Archive Directory:      "
+if [ -d ${ARCHDIR} ]; then
+	echo "$ARCHDIR"
+else
+	echo "$ARCHDIR"
+	printf "ERROR: Missing or invalid directory\n\n"
+	usage
+	exit 2
+fi
+echo "Pattern Directory:      $SCA_PATTERN_PATH"
+echo "SCA Library Directory:  $SCA_LIBRARY_PATH"
+
+if echo $CMDLINE | grep ' -d' &>/dev/null; then
+	DEBUG=1
+else
+	DEBUG=0
+fi
+if [ "$1" == "" ]; then
+	echo
+	printf "ERROR: Missing pattern to test\n\n"
+	usage
+	exit 1
+elif [ "$1" == "-h" ]; then
+	echo
+	usage
+	exit 0
+elif [ ! -s $1 ]; then
+	echo
+	printf "ERROR: Cannot open pattern: $1\n\n"
+	usage
+	exit 3
+fi
+PATFULL=$(readlink -f $1)
+shift
+if head -1 $PATFULL | grep -v '#!/' &>/dev/null; then
+	((RET_FAT++))
+	((ERR_HPL++))
+else
+	HASH_PLING=$(head -1 $PATFULL)
+	if echo $HASH_PLING | grep -i python &>/dev/null
+	then
+		echo "Python Libraries:       $PYTHONPATH"
+	elif echo $HASH_PLING | grep -i perl &>/dev/null
+	then
+		echo "Perl Libraries:         $PERL5LIB"
+	elif echo $HASH_PLING | grep -i bash &>/dev/null
+	then
+		echo "Bash Libraries:         $BASHLIB"
+	fi
+fi
+echo
+if head -1 $PATFULL | grep '^ ' &>/dev/null; then
+	((RET_FAT++))
+	((ERR_HPL++))
+fi
+[[ ! -x $PATFULL ]] && { ((ERR_MODE++)); ((RET_FAT++)); }
+if grep  $PATFULL &>/dev/null
+then
+	((RET_FAT++))
+	((ERR_DOS++))
+fi
+
+if [[ -s $ARCHDIR/basic-environment.txt ]]; then
+	echo "Running: $PATFULL $@ -p $ARCHDIR"
+	PATOUT=$($PATFULL $@ -p ${ARCHDIR}/)
+	RC=$?
+	test $RC -gt 0 && { ((ERR_BIN++)); ((RET_FAT++)); }
+	validateOutput # sets OVERALL
+	echo "Returns: $RC, Overall: $OVERALL"
+	((ARCHIVES++))
+else
+	for i in $(find -L ${ARCHDIR}/ -maxdepth 1 -type d | egrep "nts_|scc_")
+	do
+		echo "Running: $PATFULL $@ -p $i"
+		PATOUT=$(perl $PATFULL $@ -p $i)
+		RC=$?
+		test $RC -gt 0 && { ((ERR_BIN++)); ((RET_FAT++)); }
+		validateOutput # sets OVERALL
+		echo "Returns: $RC, Overall: $OVERALL"
+		((ARCHIVES++))
+		echo "--------------------------------------------------------------------------"
+		echo
+	done
+fi
+echo
+echo "##[ Summary ]#############################################################"
+echo
+echo "Archive Directory:     $ARCHDIR"
+echo "SCA Library Directory: $SCA_LIBRARY_PATH"
+echo "Archive(s) Tested:     $ARCHIVES"
+echo "Pattern Tested:        $PATFULL"
+echo "  Fatal: $RET_FAT, Err: $RET_ERR, Ign: $RET_IGN, Cri: $RET_RED, Wrn: $RET_YEL, Pro: $RET_PRO, Rec: $RET_REC, Good: $RET_GRN"
+echo
+echo "##########################################################################"
+echo
+if (( RET_FAT )); then
+	echo "WARNING:"
+	echo "You have fatal errors, refer to the pat documentation."
+	echo
+	(( ERR_DOS )) && echo "- Detected DOS file format, use 'dos2unix ${PATFULL}' to convert"
+	(( ERR_BIN )) && echo "- Pattern execution error, pattern returned non-zero"
+	(( ERR_MODE )) && echo "- Missing execute permission"
+	(( ERR_OUT )) && echo "- Invalid pattern output string, review Pattern Requirements"
+	(( ERR_HPL )) && echo "- Missing or invalid hash pling"
+	echo "##########################################################################"
+	echo
+fi
+exit 0
+

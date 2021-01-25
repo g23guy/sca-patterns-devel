@@ -1,2 +1,5 @@
-# sca-patterns-devel
-Set of tools to help develop and test Supportconfig Analysis Patterns
+sca-patterns-devel
+=================
+
+Command line tools used to create and test Supportconfig Analysis patterns with the SCA Tool.
+

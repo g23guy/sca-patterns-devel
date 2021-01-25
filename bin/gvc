@@ -1,0 +1,77 @@
+#!/bin/bash
+SVER='1.0.1'
+EMAIL='jason.record@suse.com'
+
+##############################################################################
+# gvc - GitHub change log and spec file editor
+# Copyright (C) 2021 SUSE LLC
+#
+# Description:  Creates a new entry in the .changes file of the current local
+#               GitHub repository. If no changes are needed to the spec file,
+#               just quit the editor to proceed.
+# Modified:     2021 Jan 25
+#
+##############################################################################
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; version 2 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, see <http://www.gnu.org/licenses/>.
+#
+#  Authors/Contributors:
+#     Jason Record (jason.record@suse.com)
+#
+##############################################################################
+
+if [[ -z $EMAIL ]]; then
+	echo "ERROR: Missing EMAIL variable. Edit this script and add your"
+	echo "       valid email address."
+	exit 1
+fi
+if [[ -d .osc ]]
+then
+	echo "ABORT: Attempting to modify OBS change log"
+	echo "       Modify the upstream change log"
+else
+	PKG_NAME=$(basename $PWD)
+	TMP_CHANGELOG=$(mktemp /tmp/gvc.${USER}.XXXXXXXXXX)
+	if [[ -d .git ]]
+	then
+		CHANGELOG="${PWD}/spec/${PKG_NAME}.changes"
+		SPECFILE="${PWD}/spec/${PKG_NAME}.spec"
+	else
+		PKG_NAME=$(dirname $PWD)
+		PKG_NAME=$(basename $PKG_NAME)
+		CHANGELOG="${PWD}/${PKG_NAME}.changes"
+		SPECFILE="${PWD}/${PKG_NAME}.spec"
+	fi
+	if [[ -s $CHANGELOG ]]
+	then
+		echo '-------------------------------------------------------------------' > $TMP_CHANGELOG
+		echo "$(date -u) - $EMAIL" >> $TMP_CHANGELOG
+		echo >> $TMP_CHANGELOG
+		echo "- " >> $TMP_CHANGELOG
+		echo >> $TMP_CHANGELOG
+		cat $CHANGELOG >> $TMP_CHANGELOG
+		EDIT_BEFORE=$(cksum $TMP_CHANGELOG | cut -d' ' -f1)
+		vi +4 $TMP_CHANGELOG
+		EDIT_AFTER=$(cksum $TMP_CHANGELOG | cut -d' ' -f1)
+		if (( EDIT_BEFORE != EDIT_AFTER ))
+		then
+			cp $TMP_CHANGELOG $CHANGELOG
+			vi $SPECFILE
+		fi
+	else
+		echo "ERROR: Cannot find change log: $CHANGELOG"
+	fi
+	rm -f $TMP_CHANGELOG
+fi
+echo
+
