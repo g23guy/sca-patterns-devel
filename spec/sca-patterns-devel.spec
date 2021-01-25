@@ -13,12 +13,12 @@
 
 %define patdevbase patdev
 %define patdevbasedir /opt/%{patdevbase}
-%define patdevconfigdir %{_sysconfdir}/opt/%{patdevbase}
+%define patdevconfdir %{_sysconfdir}/opt/%{patdevbase}
 
 Name:         sca-patterns-devel
-Version:      1.0.2
+Version:      1.0.3
 Release:      0
-Summary:      Supportconfig Analysis Pattern Development Tools
+Summary:      Supportconf Analysis Pattern Development Tools
 License:      GPL-2.0-only
 URL:          https://github.com/g23guy/sca-patterns-devel
 Group:        System/Monitoring
@@ -29,7 +29,7 @@ Requires:     /usr/bin/w3m
 BuildArch:    noarch
 
 %description
-Tools used in the creation and testing of Supportconfig analysis patterns for the SCA Tool.
+Tools used in the creation and testing of Supportconf analysis patterns for the SCA Tool.
 
 %prep
 %setup -q
@@ -44,6 +44,7 @@ mkdir -p %{buildroot}%{patdevbasedir}/bin
 mkdir -p %{buildroot}%{patdevbasedir}/patterns
 mkdir -p %{buildroot}%{patdevbasedir}/forks
 mkdir -p %{buildroot}%{_localstatedir}%{patdevbasedir}
+mkdir -p %{buildroot}%{patdevconfdir}
 install -m 555 bin/* %{buildroot}%{patdevbasedir}/bin
 install -m 664 conf/* %{buildroot}%{patdevconfdir}
 
@@ -54,7 +55,7 @@ install -m 664 conf/* %{buildroot}%{patdevconfdir}
 %dir %{patdevconfdir}
 %{patdevbasedir}/*
 %attr(775,root,users) %{patdevbasedir}/forks
-%config(664,root,users) %{patdevconfdir}/*
+%config %attr(664,root,users) %{patdevconfdir}/*
 
 %post
 ln -s -f %{patdevbasedir}/bin/pat /usr/local/bin
