@@ -1,12 +1,12 @@
 #!/bin/bash
-SVER='1.0.11'
+SVER='1.0.12'
 
 ##############################################################################
 #  pat - Pattern Tester Tool
-#  Copyright (C) 2014-2020 SUSE LLC
+#  Copyright (C) 2014-2021 SUSE LLC
 #
 # Description:  Tests one pattern against several supportconfig archives.
-# Modified:     2020 Dec 14
+# Modified:     2021 Jan 25
 #
 ##############################################################################
 #
@@ -23,9 +23,12 @@ SVER='1.0.11'
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #  Authors/Contributors:
-#     Jason Record (jason.record@suse.com)
+#     Jason Record <jason.record@suse.com>
 #
 ##############################################################################
+
+LCONF='/etc/opt/patdev/patdev.conf'
+[[ -s $LCONF ]] && . $LCONF || { echo "ERROR: File not found, $LCONF"; echo; exit 1; }
 
 : ${SCA_LIBRARY_PATH:="/opt/patdev/patterns/sca-patterns-base/libraries"}
 : ${SCA_PATTERN_PATH:="/opt/patdev/patterns"}
@@ -161,7 +164,8 @@ if head -1 $PATFULL | grep '^ ' &>/dev/null; then
 	((ERR_HPL++))
 fi
 [[ ! -x $PATFULL ]] && { ((ERR_MODE++)); ((RET_FAT++)); }
-if grep  $PATFULL &>/dev/null
+if grep 
+ $PATFULL &>/dev/null
 then
 	((RET_FAT++))
 	((ERR_DOS++))

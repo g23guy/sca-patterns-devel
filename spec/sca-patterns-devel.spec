@@ -1,6 +1,6 @@
 # spec file for package sca-patterns-devel
 #
-# Copyright (c) 2020 SUSE LINUX GmbH, Nuernberg, Germany.
+# Copyright (c) 2020-2021 SUSE LINUX GmbH, Nuernberg, Germany.
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -11,8 +11,9 @@
 # license that conforms to the Open Source Definition (Version 1.9)
 # published by the Open Source Initiative.
 
-%define base patdev
-%define basedir /opt/%{base}
+%define patdevbase patdev
+%define patdevbasedir /opt/%{patdevbase}
+%define patdevconfigdir %{_sysconfdir}/opt/%{patdevbase}
 
 Name:         sca-patterns-devel
 Version:      1.0.2
@@ -34,35 +35,32 @@ Tools used in the creation and testing of Supportconfig analysis patterns for th
 %setup -q
 
 %build
-#gzip -9f man/*5
-#gzip -9f man/*8
 
 %install
 pwd;ls -la
 #install -d %{buildroot}%{_mandir}/man5
 #install -d %{buildroot}%{_mandir}/man8
-mkdir -p %{buildroot}%{basedir}/bin
-mkdir -p %{buildroot}%{basedir}/patterns
-mkdir -p %{buildroot}%{basedir}/forks
-mkdir -p %{buildroot}%{_localstatedir}%{basedir}
-install -m 555 bin/* %{buildroot}%{basedir}/bin
-#install -m 644 man/*.5.gz %{buildroot}%{_mandir}/man5
-#install -m 644 man/*.8.gz %{buildroot}%{_mandir}/man8
+mkdir -p %{buildroot}%{patdevbasedir}/bin
+mkdir -p %{buildroot}%{patdevbasedir}/patterns
+mkdir -p %{buildroot}%{patdevbasedir}/forks
+mkdir -p %{buildroot}%{_localstatedir}%{patdevbasedir}
+install -m 555 bin/* %{buildroot}%{patdevbasedir}/bin
+install -m 664 conf/* %{buildroot}%{patdevconfdir}
 
 %files
 %defattr(-,root,root,-)
-%dir %{basedir}
-%dir %{_localstatedir}%{basedir}
-%{basedir}/*
-%attr(775,root,users) %{basedir}/forks
-#%doc %{_mandir}/man5/*
-#%doc %{_mandir}/man8/*
+%dir %{patdevbasedir}
+%dir %{_localstatedir}%{patdevbasedir}
+%dir %{patdevconfdir}
+%{patdevbasedir}/*
+%attr(775,root,users) %{patdevbasedir}/forks
+%config(664,root,users) %{patdevconfdir}/*
 
 %post
-ln -s -f %{basedir}/bin/pat /usr/local/bin
-ln -s -f %{basedir}/bin/gitpatterns /usr/local/bin
-ln -s -f %{basedir}/bin/chktid /usr/local/bin
-ln -s -f %{basedir}/bin/gvc /usr/local/bin
+ln -s -f %{patdevbasedir}/bin/pat /usr/local/bin
+ln -s -f %{patdevbasedir}/bin/gitpatterns /usr/local/bin
+ln -s -f %{patdevbasedir}/bin/chktid /usr/local/bin
+ln -s -f %{patdevbasedir}/bin/gvc /usr/local/bin
 
 %postun
 rm -f /usr/local/bin/pat

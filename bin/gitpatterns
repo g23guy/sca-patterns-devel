@@ -1,10 +1,38 @@
 #!/bin/bash
+SVER='1.0.1'
 
-REPO_DIR="/opt/patdev/patterns"
-REPOS="sca-server-report sca-patterns-base sca-patterns-sle11 sca-patterns-sle12 sca-patterns-sle15 sca-patterns-hae sca-patterns-suma"
+##############################################################################
+#  chktid - TID Checker
+#  Copyright (C) 2020-2021 SUSE LLC
+#
+# Description:  Checks existing patterns for the string given, usually a TID
+#               number.
+# Modified:     2021 Jan 25
+#
+##############################################################################
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; version 2 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, see <http://www.gnu.org/licenses/>.
+#
+#  Authors/Contributors:
+#     Jason Record <jason.record@suse.com>
+#
+##############################################################################
 
-cd $REPO_DIR
-for i in $REPOS
+LCONF='/etc/opt/patdev/patdev.conf'
+[[ -s $LCONF ]] && . $LCONF || { echo "ERROR: File not found, $LCONF"; echo; exit 1; }
+
+cd $PATDEV_REPO_DIR
+for i in $PATDEV_REPOS
 do
 	if [[ -d $i ]]; then
 		echo "Updating $i Repo..."
