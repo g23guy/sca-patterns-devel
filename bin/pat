@@ -1,12 +1,12 @@
 #!/bin/bash
-SVER='1.0.12'
+SVER='1.0.13'
 
 ##############################################################################
 #  pat - Pattern Tester Tool
 #  Copyright (C) 2014-2021 SUSE LLC
 #
 # Description:  Tests one pattern against several supportconfig archives.
-# Modified:     2021 Jan 25
+# Modified:     2021 Jan 26
 #
 ##############################################################################
 #
@@ -32,7 +32,7 @@ LCONF='/etc/opt/patdev/patdev.conf'
 
 : ${SCA_LIBRARY_PATH:="${PATDEV_BASE}/sca-patterns-base/libraries"}
 : ${SCA_PATTERN_PATH:="${PATDEV_BASE}"}
-: ${DEFAULT_ARCHDIR:="${PATDEV_REPO_DIR}"}
+: ${DEFAULT_ARCHDIR:="${PATDEV_ARCH_DIR}"}
 BASHLIB="${SCA_LIBRARY_PATH}/bash"
 PERL5LIB="${PERL5LIB}:${SCA_LIBRARY_PATH}/perl/"
 PYTHONPATH="${PYTHONPATH}:${SCA_LIBRARY_PATH}/python/"
@@ -164,8 +164,7 @@ if head -1 $PATFULL | grep '^ ' &>/dev/null; then
 	((ERR_HPL++))
 fi
 [[ ! -x $PATFULL ]] && { ((ERR_MODE++)); ((RET_FAT++)); }
-if grep 
- $PATFULL &>/dev/null
+if grep  $PATFULL &>/dev/null
 then
 	((RET_FAT++))
 	((ERR_DOS++))
