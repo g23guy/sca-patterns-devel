@@ -16,7 +16,7 @@
 %define patdevconfdir %{_sysconfdir}/opt/%{patdevbase}
 
 Name:         sca-patterns-devel
-Version:      1.0.4
+Version:      1.0.5
 Release:      0
 Summary:      Supportconf Analysis Pattern Development Tools
 License:      GPL-2.0-only
@@ -40,12 +40,12 @@ Tools used in the creation and testing of Supportconf analysis patterns for the 
 pwd;ls -la
 #install -d %{buildroot}%{_mandir}/man5
 #install -d %{buildroot}%{_mandir}/man8
-mkdir -p %{buildroot}%{patdevbasedir}/bin
+mkdir -p %{buildroot}/usr/local/bin
 mkdir -p %{buildroot}%{patdevbasedir}/patterns
 mkdir -p %{buildroot}%{patdevbasedir}/forks
 mkdir -p %{buildroot}%{_localstatedir}%{patdevbasedir}
 mkdir -p %{buildroot}%{patdevconfdir}
-install -m 555 bin/* %{buildroot}%{patdevbasedir}/bin
+install -m 555 bin/* %{buildroot}/usr/local/bin
 install -m 664 conf/* %{buildroot}%{patdevconfdir}
 
 %files
@@ -54,20 +54,13 @@ install -m 664 conf/* %{buildroot}%{patdevconfdir}
 %dir %{_localstatedir}%{patdevbasedir}
 %dir %{patdevconfdir}
 %{patdevbasedir}/*
+/usr/local/bin/*
 %attr(775,root,users) %{patdevbasedir}/forks
 %config %attr(664,root,users) %{patdevconfdir}/*
 
 %post
-ln -s -f %{patdevbasedir}/bin/pat /usr/local/bin
-ln -s -f %{patdevbasedir}/bin/gitpatterns /usr/local/bin
-ln -s -f %{patdevbasedir}/bin/chktid /usr/local/bin
-ln -s -f %{patdevbasedir}/bin/gvc /usr/local/bin
 
 %postun
-rm -f /usr/local/bin/pat
-rm -f /usr/local/bin/gitpatterns
-rm -f /usr/local/bin/chktid
-rm -f /usr/local/bin/gvc
 
 %changelog
 
