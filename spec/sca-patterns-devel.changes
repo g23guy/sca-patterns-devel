@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Mar 30 15:56:12 UTC 2021 - jason.record@suse.com
+
+- New files added version 1.0.4
+  + base.py Creates a basic pattern template
+  + patgvc Creates a .changes template for newly added patterns
+  + pkgver.py Creates a pattern template based on package versions
+
+-------------------------------------------------------------------
 Mon Jan 25 16:24:32 UTC 2021 - jason.record@suse.com
 
 - Added gvc

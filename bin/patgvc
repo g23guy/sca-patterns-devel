@@ -1,0 +1,78 @@
+#!/bin/bash
+SVER='0.0.10'
+##############################################################################
+# patgvc - Regular Patterns Change Log Generator
+# Copyright (C) 2021 SUSE LLC
+#
+# Description:  Creates a list of new regular patterns entry for
+#               the change log
+# Modified:     2021 Mar 26
+#
+##############################################################################
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; version 2 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, see <http://www.gnu.org/licenses/>.
+#
+#  Authors/Contributors:
+#     Jason Record <jason.record@suse.com>
+#
+##############################################################################
+
+echo "##############################################################"
+echo "# New Pattern Change Log Generator v$SVER"
+echo "##############################################################"
+echo
+
+SPEC=$(ls -1 spec/*.spec 2>/dev/null | wc -l)
+if (( $SPEC < 1 )); then
+	echo "ERROR: Missing spec file"
+	exit
+fi
+VER=$(grep -i version\: spec/*.spec | awk '{print $NF}')
+SAIDS=''
+SA_COUNT=0
+COMP_TIDSTR='META_LINK_TID='
+COMP_BUGSTR='META_LINK_BUG='
+COMMITTED=$(for i in $(git log origin/master..master | grep commit | awk '{print $NF}'); do git diff-tree --no-commit-id --name-only -r $i; done | grep 'patterns/')
+LOCAL=$(git status | grep 'patterns/' | sed -e "s/new file:[[:space:]]*//;s/^[[:space:]]//")
+for i in $LOCAL $COMMITTED
+do
+	(( SA_COUNT++ ))
+	TITLE=$(grep 'Description:' ${i} | awk -F\: '{print $NF}')
+	META=$(grep 'OTHER_LINKS =' ${i} | awk -F\" '{print $2}')
+	for LINK in $(tr "|" " " <<< $META)
+	do
+		if [[ $LINK =~ $COMP_TIDSTR ]]; then
+			TID="TID$(awk -F= '{print $NF}' <<< $LINK)"
+		elif [[ $LINK =~ $COMP_BUGSTR ]]; then
+			BUG="bsc#$(awk -F= '{print $NF}' <<< $LINK)"
+		fi
+	done
+	PATFILEBASE=$(basename ${i})
+	PATDIRBASE=$(dirname ${i})
+	PATDIR=$(basename $PATDIRBASE)
+	PATFILE="${PATDIR}/${PATFILEBASE}"
+	if [[ -n $BUG ]]; then
+		SAIDS=$(printf "  + ${PATFILE}:${TITLE} (${BUG})\n${SAIDS}")
+	elif [[ -n $TID ]]; then
+		SAIDS=$(printf "  + ${PATFILE}:${TITLE} (${TID})\n${SAIDS}")
+	else
+		SAIDS=$(printf "  + ${PATFILE}:${TITLE}\n${SAIDS}")
+	fi
+done
+echo "- New regular patterns (${SA_COUNT}) for version ${VER}"
+echo "$SAIDS" | sort
+echo
+echo "New Regular Patterns $SA_COUNT"
+echo
+echo
+
