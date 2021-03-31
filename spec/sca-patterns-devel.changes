@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Mar 31 21:50:30 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Fixed base.py when SERVICE_INFO is missing
+
+-------------------------------------------------------------------
 Tue Mar 30 15:56:12 UTC 2021 - jason.record@suse.com
 
 - New files added version 1.0.4

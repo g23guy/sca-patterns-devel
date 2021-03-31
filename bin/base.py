@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '0.3.1'
+SVER = '0.3.3'
 ##############################################################################
 # base.py - Basic Python Pattern Template
 # Copyright (C) 2021 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs where a specific package
 #               and version contain a break and a fix.
-# Modified:     2021 Mar 26
+# Modified:     2021 Mar 31
 #
 ##############################################################################
 #
@@ -199,7 +199,6 @@ def patternMain():
 		CONTENT += "PACKAGE = \"nameofpackage\"\n"
 	if( MD['service'] ):
 		CONTENT += "SERVICE_NAME = 'nameof.service'\n"
-		CONTENT += "SERVICE_INFO = SUSE.getServiceDInfo(SERVICE_NAME)\n"
 
 	if( int(MD['package']) == 1 ):
 		if( VERBOSE ):
@@ -209,13 +208,17 @@ def patternMain():
 				print(DISPLAY.format('Service', "Check"))
 			# Checks if the affected package is installed and validates the systemd service
 			CONTENT += "\nif( SUSE.packageInstalled(PACKAGE) ):\n"
-			CONTENT += "\tif( SERVICE_INFO['UnitFileState'] == 'enabled' ):\n"
-			CONTENT += "\t\tif( SERVICE_INFO['SubState'] == 'failed' ):\n"
-			getConditions(3)
+			CONTENT += "\tSERVICE_INFO = SUSE.getServiceDInfo(SERVICE_NAME)\n"
+			CONTENT += "\tif( SERVICE_INFO ):\n"
+			CONTENT += "\t\tif( SERVICE_INFO['UnitFileState'] == 'enabled' ):\n"
+			CONTENT += "\t\t\tif( SERVICE_INFO['SubState'] == 'failed' ):\n"
+			getConditions(4)
+			CONTENT += "\t\t\telse:\n"
+			CONTENT += "\t\t\t\tCore.updateStatus(Core.ERROR, \"Service did not fail: \" + str(SERVICE_NAME))\n"
 			CONTENT += "\t\telse:\n"
-			CONTENT += "\t\t\tCore.updateStatus(Core.ERROR, \"Service did not fail: \" + str(SERVICE_NAME))\n"
+			CONTENT += "\t\t\tCore.updateStatus(Core.ERROR, \"Service is disabled: \" + str(SERVICE_NAME))\n"
 			CONTENT += "\telse:\n"
-			CONTENT += "\t\tCore.updateStatus(Core.ERROR, \"Service is disabled: \" + str(SERVICE_NAME))\n"
+			CONTENT += "\t\tCore.updateStatus(Core.ERROR, \"Service details not found: \" + str(SERVICE_NAME))\n"
 			CONTENT += "else:\n"
 			CONTENT += "\tCore.updateStatus(Core.ERROR, \"ERROR: RPM package \" + PACKAGE + \" not installed\")\n"
 		else:
@@ -236,13 +239,17 @@ def patternMain():
 			if( VERBOSE ):
 				print(DISPLAY.format('Service', "Check"))
 			# Checks for systemd service if the package is not installed
-			CONTENT += "\tif( SERVICE_INFO['UnitFileState'] == 'enabled' ):\n"
-			CONTENT += "\t\tif( SERVICE_INFO['SubState'] == 'failed' ):\n"
-			getConditions(3)
+			CONTENT += "\tSERVICE_INFO = SUSE.getServiceDInfo(SERVICE_NAME)\n"
+			CONTENT += "\tif( SERVICE_INFO ):\n"
+			CONTENT += "\t\tif( SERVICE_INFO['UnitFileState'] == 'enabled' ):\n"
+			CONTENT += "\t\t\tif( SERVICE_INFO['SubState'] == 'failed' ):\n"
+			getConditions(4)
+			CONTENT += "\t\t\telse:\n"
+			CONTENT += "\t\t\t\tCore.updateStatus(Core.ERROR, \"Service did not fail: \" + str(SERVICE_NAME))\n"
 			CONTENT += "\t\telse:\n"
-			CONTENT += "\t\t\tCore.updateStatus(Core.ERROR, \"Service did not fail: \" + str(SERVICE_NAME))\n"
+			CONTENT += "\t\t\tCore.updateStatus(Core.ERROR, \"Service is disabled: \" + str(SERVICE_NAME))\n"
 			CONTENT += "\telse:\n"
-			CONTENT += "\t\tCore.updateStatus(Core.ERROR, \"Service is disabled: \" + str(SERVICE_NAME))\n"
+			CONTENT += "\t\tCore.updateStatus(Core.ERROR, \"Service details not found: \" + str(SERVICE_NAME))\n"
 		else:
 			if( VERBOSE ):
 				print(DISPLAY.format('Service', "Ignored"))
@@ -255,13 +262,17 @@ def patternMain():
 			if( VERBOSE ):
 				print(DISPLAY.format('Service', "Check"))
 			# Only check if a systemd service has failed
-			CONTENT += "if( SERVICE_INFO['UnitFileState'] == 'enabled' ):\n"
-			CONTENT += "\tif( SERVICE_INFO['SubState'] == 'failed' ):\n"
-			getConditions(2)
+			CONTENT += "SERVICE_INFO = SUSE.getServiceDInfo(SERVICE_NAME)\n"
+			CONTENT += "if( SERVICE_INFO ):\n"
+			CONTENT += "\tif( SERVICE_INFO['UnitFileState'] == 'enabled' ):\n"
+			CONTENT += "\t\tif( SERVICE_INFO['SubState'] == 'failed' ):\n"
+			getConditions(3)
+			CONTENT += "\t\telse:\n"
+			CONTENT += "\t\t\tCore.updateStatus(Core.ERROR, \"Service did not fail: \" + str(SERVICE_NAME))\n"
 			CONTENT += "\telse:\n"
-			CONTENT += "\t\tCore.updateStatus(Core.ERROR, \"Service did not fail: \" + str(SERVICE_NAME))\n"
+			CONTENT += "\t\tCore.updateStatus(Core.ERROR, \"Service is disabled: \" + str(SERVICE_NAME))\n"
 			CONTENT += "else:\n"
-			CONTENT += "\tCore.updateStatus(Core.ERROR, \"Service is disabled: \" + str(SERVICE_NAME))\n"
+			CONTENT += "\tCore.updateStatus(Core.ERROR, \"Service details not found: \" + str(SERVICE_NAME))\n"
 		else:
 			if( VERBOSE ):
 				print(DISPLAY.format('Service', "Ignored"))
