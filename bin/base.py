@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '0.3.3'
+SVER = '0.3.4'
 ##############################################################################
 # base.py - Basic Python Pattern Template
 # Copyright (C) 2021 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs where a specific package
 #               and version contain a break and a fix.
-# Modified:     2021 Mar 31
+# Modified:     2021 Apr 26
 #
 ##############################################################################
 #
@@ -93,7 +93,7 @@ def patternHeader(OPT):
 	CONTENT = "#!/usr/bin/python\n#\n"
 	CONTENT += "# Title:       Pattern for TID" + MD['tid'] + "\n"
 	CONTENT += "# Description: " + MD['title'] + "\n"
-	CONTENT += "# Source:      Package Version Pattern Template v" + str(SVER) + "\n"
+	CONTENT += "# Source:      Basic Python Pattern Template v" + str(SVER) + "\n"
 	CONTENT += "# Options:     " + str(OPT) + "\n"
 	CONTENT += "# Modified:    " + str(TODAY.strftime("%Y %b %d")) + "\n"
 	CONTENT += "#\n##############################################################################\n"

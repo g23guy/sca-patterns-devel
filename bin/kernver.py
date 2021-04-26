@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '0.3.8'
+SVER = '0.1.2'
 ##############################################################################
-# pkgver - Package Version Pattern Template
+# kernver.py - Kernel Package Version Pattern Template
 # Copyright (C) 2021 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs where a specific package
 #               and version contain a break and a fix.
-# Modified:     2021 Apr 07
+# Modified:     2021 Apr 23
 #
 ##############################################################################
 #
@@ -49,9 +49,8 @@ MD = {
 	'links': '',
 	'patfile': '',
 	'name': '',
-	'rpm': '',
-	'rpmvbroke': '',
-	'rpmvfixed': '',
+	'kernvbroke': '',
+	'kernvfixed': '',
 	'confirmed': 1,
 	'msgcrit': 'Critical Message',
 	'msgwarn': 'Warning Message'
@@ -60,17 +59,17 @@ CONTENT = ''
 DISPLAY = "{0:15} = {1}"
 VERBOSE = True
 RCODE = 0
-OPTIONS_REQ = 10
+OPTIONS_REQ = 9
 
 def title():
 	print("\n##################################################")
-	print("# Package Version Pattern Template, v" + str(SVER))
+	print("# Kernel Package Version Pattern Template, v" + str(SVER))
 	print("##################################################")
 
 def createMetadata(IDENTITY_CODE):
 	global MD
 #	print(IDENTITY_CODE)
-	(MD['class'], MD['category'], MD['component'], MD['name'], MD['tid'], MD['bug'], MD['rpm'], MD['rpmvfixed'], MD['rpmvbroke'], MD['confirmed'] ) = IDENTITY_CODE.split(',')
+	(MD['class'], MD['category'], MD['component'], MD['name'], MD['tid'], MD['bug'], MD['kernvfixed'], MD['kernvbroke'], MD['confirmed'] ) = IDENTITY_CODE.split(',')
 	MD['tidurl'] = "https://www.suse.com/support/kb/doc/?id=" + str(MD['tid'])
 	if( int(MD['bug']) > 0 ):
 		MD['bugurl'] = "https://bugzilla.suse.com/show_bug.cgi?id=" + str(MD['bug'])
@@ -94,7 +93,7 @@ def patternHeader(OPT):
 	CONTENT = "#!/usr/bin/python\n#\n"
 	CONTENT += "# Title:       Pattern for TID" + MD['tid'] + "\n"
 	CONTENT += "# Description: " + MD['title'] + "\n"
-	CONTENT += "# Source:      Package Version Pattern Template v" + str(SVER) + "\n"
+	CONTENT += "# Source:      Kernel Package Version Pattern Template v" + str(SVER) + "\n"
 	CONTENT += "# Options:     " + str(OPT) + "\n"
 	CONTENT += "# Modified:    " + str(TODAY.strftime("%Y %b %d")) + "\n"
 	CONTENT += "#\n##############################################################################\n"
@@ -124,6 +123,7 @@ def patternHeader(OPT):
 	CONTENT += "OVERALL = Core.TEMP\n"
 	CONTENT += "OVERALL_INFO = \"NOT SET\"\n"
 	CONTENT += "OTHER_LINKS = \"" + MD['links'] + "\"\n"
+
 	CONTENT += "\nCore.init(META_CLASS, META_CATEGORY, META_COMPONENT, PATTERN_ID, PRIMARY_LINK, OVERALL, OVERALL_INFO, OTHER_LINKS)\n\n"
 
 def patternConfirmed():
@@ -151,42 +151,35 @@ def patternConfirmed():
 	CONTENT += "# Main Program Execution\n"
 	CONTENT += "##############################################################################\n\n"
 
-	CONTENT += "RPM_NAME = '" + MD['rpm'] + "'\n"
-	CONTENT += "RPM_VERSION_FIXED = '" + MD['rpmvfixed'] + "'\n"
+	CONTENT += "KERNEL_VERSION_FIXED = '" + MD['kernvfixed'] + "'\n"
 
-	if( str(MD['rpmvbroke']) == "0" ):
+	if( str(MD['kernvbroke']) == "0" ):
 		if( VERBOSE ):
 			print(DISPLAY.format('RPM Depth', "Fixed Only"))
-		CONTENT += "if( SUSE.packageInstalled(RPM_NAME) ):\n"
-		CONTENT += "\tINSTALLED_VERSION = SUSE.compareRPM(RPM_NAME, RPM_VERSION_FIXED)\n"
-		CONTENT += "\tif( INSTALLED_VERSION >= 0 ):\n"
-		CONTENT += "\t\tCore.updateStatus(Core.IGNORE, \"Bug fixes applied for \" + RPM_NAME + \"\")\n"
+		CONTENT += "\nINSTALLED_VERSION = SUSE.compareKernel(KERNEL_VERSION_FIXED)\n"
+		CONTENT += "if( INSTALLED_VERSION >= 0 ):\n"
+		CONTENT += "\tCore.updateStatus(Core.IGNORE, \"Bug fixes applied in kernel version \" + KERNEL_VERSION_FIXED + \" or higher\")\n"
+		CONTENT += "else:\n"
+		CONTENT += "\tif( conditionConfirmed() ):\n"
+		CONTENT += "\t\tCore.updateStatus(Core.CRIT, \"" + MD['msgcrit'] + "\")\n"
 		CONTENT += "\telse:\n"
+		CONTENT += "\t\tCore.updateStatus(Core.WARN, \"" + MD['msgwarn'] + "\")\n"
+	else:
+		if( VERBOSE ):
+			print(DISPLAY.format('RPM Depth', "Broken and Fixed"))
+		CONTENT += "KERNEL_VERSION_BROKE = '" + MD['kernvbroke'] + "'\n"
+		CONTENT += "\nINSTALLED_VERSION = SUSE.compareKernel(KERNEL_VERSION_FIXED)\n"
+		CONTENT += "if( INSTALLED_VERSION >= 0 ):\n"
+		CONTENT += "\tCore.updateStatus(Core.IGNORE, \"Bug fixes applied in kernel version \" + KERNEL_VERSION_FIXED + \" or higher\")\n"
+		CONTENT += "else:\n"
+		CONTENT += "\tINSTALLED_VERSION = SUSE.compareKernel(KERNEL_VERSION_BROKE)\n"
+		CONTENT += "\tif( INSTALLED_VERSION == 0 ):\n"
 		CONTENT += "\t\tif( conditionConfirmed() ):\n"
 		CONTENT += "\t\t\tCore.updateStatus(Core.CRIT, \"" + MD['msgcrit'] + "\")\n"
 		CONTENT += "\t\telse:\n"
 		CONTENT += "\t\t\tCore.updateStatus(Core.WARN, \"" + MD['msgwarn'] + "\")\n"
-		CONTENT += "else:\n"
-		CONTENT += "\tCore.updateStatus(Core.ERROR, \"ERROR: \" + RPM_NAME + \" not installed\")\n\n"
-	else:
-		if( VERBOSE ):
-			print(DISPLAY.format('RPM Depth', "Broken and Fixed"))
-		CONTENT += "RPM_VERSION_BROKE = '" + MD['rpmvbroke'] + "'\n"
-		CONTENT += "if( SUSE.packageInstalled(RPM_NAME) ):\n"
-		CONTENT += "\tINSTALLED_VERSION = SUSE.compareRPM(RPM_NAME, RPM_VERSION_FIXED)\n"
-		CONTENT += "\tif( INSTALLED_VERSION >= 0 ):\n"
-		CONTENT += "\t\tCore.updateStatus(Core.IGNORE, \"Bug fixes applied for \" + RPM_NAME + \"\")\n"
 		CONTENT += "\telse:\n"
-		CONTENT += "\t\tINSTALLED_VERSION = SUSE.compareRPM(RPM_NAME, RPM_VERSION_BROKE)\n"
-		CONTENT += "\t\tif( INSTALLED_VERSION == 0 ):\n"
-		CONTENT += "\t\t\tif( conditionConfirmed() ):\n"
-		CONTENT += "\t\t\t\tCore.updateStatus(Core.CRIT, \"" + MD['msgcrit'] + "\")\n"
-		CONTENT += "\t\t\telse:\n"
-		CONTENT += "\t\t\t\tCore.updateStatus(Core.WARN, \"" + MD['msgwarn'] + "\")\n"
-		CONTENT += "\t\telse:\n"
-		CONTENT += "\t\t\tCore.updateStatus(Core.IGNORE, \"Previously unaffected version of \" + RPM_NAME + \" installed\")\n"
-		CONTENT += "else:\n"
-		CONTENT += "\tCore.updateStatus(Core.ERROR, \"ERROR: \" + RPM_NAME + \" not installed\")\n\n"
+		CONTENT += "\t\tCore.updateStatus(Core.IGNORE, \"Previously unaffected version of the kernel installed\")\n"
 
 	CONTENT += "\nCore.printPatternResults()\n\n"
 
@@ -201,35 +194,28 @@ def patternBasic():
 	CONTENT += "# Main Program Execution\n"
 	CONTENT += "##############################################################################\n\n"
 
-	CONTENT += "RPM_NAME = '" + MD['rpm'] + "'\n"
-	CONTENT += "RPM_VERSION_FIXED = '" + MD['rpmvfixed'] + "'\n"
-	if( str(MD['rpmvbroke']) == "0" ):
+	CONTENT += "KERNEL_VERSION_FIXED = '" + MD['kernvfixed'] + "'\n"
+	if( str(MD['kernvbroke']) == "0" ):
 		if( VERBOSE ):
 			print(DISPLAY.format('RPM Depth', "Fixed Only"))
-		CONTENT += "if( SUSE.packageInstalled(RPM_NAME) ):\n"
-		CONTENT += "\tINSTALLED_VERSION = SUSE.compareRPM(RPM_NAME, RPM_VERSION_FIXED)\n"
-		CONTENT += "\tif( INSTALLED_VERSION >= 0 ):\n"
-		CONTENT += "\t\tCore.updateStatus(Core.IGNORE, \"Bug fixes applied for \" + RPM_NAME + \"\")\n"
-		CONTENT += "\telse:\n"
-		CONTENT += "\t\tCore.updateStatus(Core.WARN, \"Warning Message\")\n"
+		CONTENT += "\nINSTALLED_VERSION = SUSE.compareKernel(KERNEL_VERSION_FIXED)\n"
+		CONTENT += "if( INSTALLED_VERSION >= 0 ):\n"
+		CONTENT += "\tCore.updateStatus(Core.IGNORE, \"Bug fixes applied in kernel version \" + KERNEL_VERSION_FIXED + \" or higher\")\n"
 		CONTENT += "else:\n"
-		CONTENT += "\tCore.updateStatus(Core.ERROR, \"ERROR: \" + RPM_NAME + \" not installed\")\n\n"
+		CONTENT += "\tCore.updateStatus(Core.WARN, \"Warning Message\")\n"
 	else:
 		if( VERBOSE ):
 			print(DISPLAY.format('RPM Depth', "Broken and Fixed"))
-		CONTENT += "RPM_VERSION_BROKE = '" + MD['rpmvbroke'] + "'\n"
-		CONTENT += "if( SUSE.packageInstalled(RPM_NAME) ):\n"
-		CONTENT += "\tINSTALLED_VERSION = SUSE.compareRPM(RPM_NAME, RPM_VERSION_FIXED)\n"
-		CONTENT += "\tif( INSTALLED_VERSION >= 0 ):\n"
-		CONTENT += "\t\tCore.updateStatus(Core.IGNORE, \"Bug fixes applied for \" + RPM_NAME + \"\")\n"
-		CONTENT += "\telse:\n"
-		CONTENT += "\t\tINSTALLED_VERSION = SUSE.compareRPM(RPM_NAME, RPM_VERSION_BROKE)\n"
-		CONTENT += "\t\tif( INSTALLED_VERSION == 0 ):\n"
-		CONTENT += "\t\t\tCore.updateStatus(Core.WARN, \"Warning Message\")\n"
-		CONTENT += "\t\telse:\n"
-		CONTENT += "\t\t\tCore.updateStatus(Core.IGNORE, \"Previously unaffected version of \" + RPM_NAME + \" installed\")\n"
+		CONTENT += "KERNEL_VERSION_BROKE = '" + MD['kernvbroke'] + "'\n"
+		CONTENT += "\nINSTALLED_VERSION = SUSE.compareKernel(KERNEL_VERSION_FIXED)\n"
+		CONTENT += "if( INSTALLED_VERSION >= 0 ):\n"
+		CONTENT += "\tCore.updateStatus(Core.IGNORE, \"Bug fixes applied in kernel version \" + KERNEL_VERSION_FIXED + \" or higher\")\n"
 		CONTENT += "else:\n"
-		CONTENT += "\tCore.updateStatus(Core.ERROR, \"ERROR: \" + RPM_NAME + \" not installed\")\n\n"
+		CONTENT += "\tINSTALLED_VERSION = SUSE.compareKernel(KERNEL_VERSION_BROKE)\n"
+		CONTENT += "\tif( INSTALLED_VERSION == 0 ):\n"
+		CONTENT += "\t\tCore.updateStatus(Core.WARN, \"Warning Message\")\n"
+		CONTENT += "\telse:\n"
+		CONTENT += "\t\tCore.updateStatus(Core.IGNORE, \"Previously unaffected version of the kernel installed\")\n"
 
 	CONTENT += "\nCore.printPatternResults()\n\n"
 
@@ -270,7 +256,7 @@ def savePattern():
 
 def usage():
 	print("Usage:")
-	print("pkgver <class,category,component,name,tid#,bug#,rpm,fixed,broke,confirm>")
+	print("kernver.py <class,category,component,name,tid#,bug#,fixed,broke,confirm>")
 	print()
 	print("  class:      SLE,HAE,SUMA,Security,Custom")
 	print("  category:   Category name")
@@ -278,9 +264,8 @@ def usage():
 	print("  name:       Pattern name")
 	print("  tid#:       TID number only")
 	print("  bug#:       Bug number only")
-	print("  rpm:        Affected RPM package name")
-	print("  fixed:      RPM package version that fixes the issue")
-	print("  broke:      RPM package version that is broke. 0 = Any version less than the fixed version")
+	print("  fixed:      Kernel version that fixes the issue")
+	print("  broke:      Kernel version that is broke. 0 = Any version less than the fixed version")
 	print("  confirm:    0 = no confirmation condition available, 1 = add confirmation condition code")
 	print()
 
