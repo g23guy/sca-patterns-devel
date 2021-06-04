@@ -1,12 +1,12 @@
 #!/bin/bash
-SVER='0.0.10'
+SVER='0.0.10_dev2'
 ##############################################################################
 # patgvc - Regular Patterns Change Log Generator
 # Copyright (C) 2021 SUSE LLC
 #
 # Description:  Creates a list of new regular patterns entry for
 #               the change log
-# Modified:     2021 Mar 26
+# Modified:     2021 May 18
 #
 ##############################################################################
 #
@@ -38,41 +38,108 @@ if (( $SPEC < 1 )); then
 	exit
 fi
 VER=$(grep -i version\: spec/*.spec | awk '{print $NF}')
-SAIDS=''
-SA_COUNT=0
+SAIDS_NEW=''
+SAIDS_MOD=''
+SAIDS_DEL=''
+PAT_COUNT_NEW=0
+PAT_COUNT_MOD=0
+PAT_COUNT_DEL=0
+PAT_COUNT=0
 COMP_TIDSTR='META_LINK_TID='
 COMP_BUGSTR='META_LINK_BUG='
-COMMITTED=$(for i in $(git log origin/master..master | grep commit | awk '{print $NF}'); do git diff-tree --no-commit-id --name-only -r $i; done | grep 'patterns/')
-LOCAL=$(git status | grep 'patterns/' | sed -e "s/new file:[[:space:]]*//;s/^[[:space:]]//")
-for i in $LOCAL $COMMITTED
+echo "Getting committed changes"
+#COMMITTED=$(for i in $(git log origin/master..master | grep commit | awk '{print $NF}'); do git diff-tree --no-commit-id --name-only -r $i; done | grep 'patterns/')
+COMMITTED=$(for i in $(git log origin/master..master | grep commit | awk '{print $NF}'); do git diff-tree --no-commit-id --name-status -r $i; done | grep 'patterns/' | sed -e "s/[[:space:]]/:/g")
+echo "Getting local changes"
+echo
+LOCAL=$(git status | grep 'patterns/' | sed -e "s/^[[:space:]]*new file:[[:space:]]*//;s/^[[:space:]]*/A:/;s/^[[:space:]]*deleted:[[:space:]]*/D:/;s/^[[:space:]]*modified:[[:space:]]*/M:/")
+for PATTERN in $LOCAL $COMMITTED
 do
-	(( SA_COUNT++ ))
-	TITLE=$(grep 'Description:' ${i} | awk -F\: '{print $NF}')
-	META=$(grep 'OTHER_LINKS =' ${i} | awk -F\" '{print $2}')
-	for LINK in $(tr "|" " " <<< $META)
-	do
-		if [[ $LINK =~ $COMP_TIDSTR ]]; then
-			TID="TID$(awk -F= '{print $NF}' <<< $LINK)"
-		elif [[ $LINK =~ $COMP_BUGSTR ]]; then
-			BUG="bsc#$(awk -F= '{print $NF}' <<< $LINK)"
-		fi
-	done
+#	echo $PATTERN
+	TYPE=$(cut -d\: -f1 <<< $PATTERN)
+	i=$(cut -d\: -f2 <<< $PATTERN)
+	BUG=''
+	TID=''
+	case $TYPE in
+	D)
+		TITLE=" Pattern removed"
+		;;
+	M)
+		TITLE=$(grep 'Description:' ${i} | awk -F\: '{print $NF}')
+		META=$(grep 'OTHER_LINKS =' ${i} | awk -F\" '{print $2}')
+		for LINK in $(tr "|" " " <<< $META)
+		do
+			if [[ $LINK =~ $COMP_TIDSTR ]]; then
+				TID="TID$(awk -F= '{print $NF}' <<< $LINK)"
+			elif [[ $LINK =~ $COMP_BUGSTR ]]; then
+				BUG="bsc#$(awk -F= '{print $NF}' <<< $LINK)"
+			fi
+		done
+		;;
+	A)
+		TITLE=$(grep 'Description:' ${i} | awk -F\: '{print $NF}')
+		META=$(grep 'OTHER_LINKS =' ${i} | awk -F\" '{print $2}')
+		for LINK in $(tr "|" " " <<< $META)
+		do
+			if [[ $LINK =~ $COMP_TIDSTR ]]; then
+				TID="TID$(awk -F= '{print $NF}' <<< $LINK)"
+			elif [[ $LINK =~ $COMP_BUGSTR ]]; then
+				BUG="bsc#$(awk -F= '{print $NF}' <<< $LINK)"
+			fi
+		done
+
+		;;
+	esac
 	PATFILEBASE=$(basename ${i})
 	PATDIRBASE=$(dirname ${i})
 	PATDIR=$(basename $PATDIRBASE)
 	PATFILE="${PATDIR}/${PATFILEBASE}"
-	if [[ -n $BUG ]]; then
-		SAIDS=$(printf "  + ${PATFILE}:${TITLE} (${BUG})\n${SAIDS}")
-	elif [[ -n $TID ]]; then
-		SAIDS=$(printf "  + ${PATFILE}:${TITLE} (${TID})\n${SAIDS}")
-	else
-		SAIDS=$(printf "  + ${PATFILE}:${TITLE}\n${SAIDS}")
-	fi
+	case $TYPE in
+	M)
+		(( PAT_COUNT_MOD++ ))
+		if [[ -n $BUG ]]; then
+			SAIDS_MOD=$(printf "    + ${PATFILE}:${TITLE} (${BUG})\n${SAIDS_MOD}")
+		elif [[ -n $TID ]]; then
+			SAIDS_MOD=$(printf "    + ${PATFILE}:${TITLE} (${TID})\n${SAIDS_MOD}")
+		else
+			SAIDS_MOD=$(printf "    + ${PATFILE}:${TITLE}\n${SAIDS_MOD}")
+		fi
+		;;
+	D)
+		(( PAT_COUNT_DEL++ ))
+		SAIDS_DEL=$(printf "    + ${PATFILE}:${TITLE}\n${SAIDS_DEL}")
+		;;
+	A)
+		(( PAT_COUNT_NEW++ ))
+		if [[ -n $BUG ]]; then
+			SAIDS_NEW=$(printf "    + ${PATFILE}:${TITLE} (${BUG})\n${SAIDS_NEW}")
+		elif [[ -n $TID ]]; then
+			SAIDS_NEW=$(printf "    + ${PATFILE}:${TITLE} (${TID})\n${SAIDS_NEW}")
+		else
+			SAIDS_NEW=$(printf "    + ${PATFILE}:${TITLE}\n${SAIDS_NEW}")
+		fi
+		;;
+	esac
 done
-echo "- New regular patterns (${SA_COUNT}) for version ${VER}"
-echo "$SAIDS" | sort
+PAT_COUNT=$((PAT_COUNT_NEW + PAT_COUNT_MOD + PAT_COUNT_DEL))
+if (( $PAT_COUNT )); then
+	echo "- Changes in version ${VER}"
+fi
+if (( $PAT_COUNT_NEW )); then
+	echo "  - New regular patterns (${PAT_COUNT_NEW})"
+	echo "$SAIDS_NEW" | sort
+fi
+if (( $PAT_COUNT_MOD )); then
+	echo "  - Updated regular patterns (${PAT_COUNT_MOD})"
+	echo "$SAIDS_MOD" | sort
+fi
+if (( $PAT_COUNT_DEL )); then
+	echo "  - Deleted regular patterns (${PAT_COUNT_DEL})"
+	echo "$SAIDS_DEL" | sort
+fi
+
 echo
-echo "New Regular Patterns $SA_COUNT"
+echo "Affected Patterns $PAT_COUNT"
 echo
 echo
 
