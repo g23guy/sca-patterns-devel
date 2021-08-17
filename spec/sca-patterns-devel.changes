@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Aug 17 15:03:55 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Updated gitpatterns with base dir and repos
+
+-------------------------------------------------------------------
 Wed Mar 31 21:50:30 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - Fixed base.py when SERVICE_INFO is missing
