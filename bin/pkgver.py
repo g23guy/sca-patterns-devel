@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '0.3.8'
+SVER = '1.0.0'
 ##############################################################################
 # pkgver - Package Version Pattern Template
-# Copyright (C) 2021 SUSE LLC
+# Copyright (C) 2022 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs where a specific package
 #               and version contain a break and a fix.
-# Modified:     2021 Apr 07
+# Modified:     2022 Mar 30
 #
 ##############################################################################
 #
@@ -64,7 +64,7 @@ OPTIONS_REQ = 10
 
 def title():
 	print("\n##################################################")
-	print("# Package Version Pattern Template, v" + str(SVER))
+	print(("# Package Version Pattern Template, v" + str(SVER)))
 	print("##################################################")
 
 def createMetadata(IDENTITY_CODE):
@@ -91,7 +91,7 @@ def patternHeader(OPT):
 
 	TODAY = datetime.date.today()
 	# Build pattern file content
-	CONTENT = "#!/usr/bin/python\n#\n"
+	CONTENT = "#!/usr/bin/python3\n#\n"
 	CONTENT += "# Title:       Pattern for TID" + MD['tid'] + "\n"
 	CONTENT += "# Description: " + MD['title'] + "\n"
 	CONTENT += "# Source:      Package Version Pattern Template v" + str(SVER) + "\n"
@@ -131,7 +131,7 @@ def patternConfirmed():
 	global CONTENT
 
 	if( VERBOSE ):
-		print(DISPLAY.format('Confirmation', "True"))
+		print((DISPLAY.format('Confirmation', "True")))
 
 	CONTENT += "##############################################################################\n"
 	CONTENT += "# Local Function Definitions\n"
@@ -156,7 +156,7 @@ def patternConfirmed():
 
 	if( str(MD['rpmvbroke']) == "0" ):
 		if( VERBOSE ):
-			print(DISPLAY.format('RPM Depth', "Fixed Only"))
+			print((DISPLAY.format('RPM Depth', "Fixed Only")))
 		CONTENT += "if( SUSE.packageInstalled(RPM_NAME) ):\n"
 		CONTENT += "\tINSTALLED_VERSION = SUSE.compareRPM(RPM_NAME, RPM_VERSION_FIXED)\n"
 		CONTENT += "\tif( INSTALLED_VERSION >= 0 ):\n"
@@ -170,7 +170,7 @@ def patternConfirmed():
 		CONTENT += "\tCore.updateStatus(Core.ERROR, \"ERROR: \" + RPM_NAME + \" not installed\")\n\n"
 	else:
 		if( VERBOSE ):
-			print(DISPLAY.format('RPM Depth', "Broken and Fixed"))
+			print((DISPLAY.format('RPM Depth', "Broken and Fixed")))
 		CONTENT += "RPM_VERSION_BROKE = '" + MD['rpmvbroke'] + "'\n"
 		CONTENT += "if( SUSE.packageInstalled(RPM_NAME) ):\n"
 		CONTENT += "\tINSTALLED_VERSION = SUSE.compareRPM(RPM_NAME, RPM_VERSION_FIXED)\n"
@@ -195,7 +195,7 @@ def patternBasic():
 	global CONTENT
 
 	if( VERBOSE ):
-		print(DISPLAY.format('Confirmation', "False"))
+		print((DISPLAY.format('Confirmation', "False")))
 
 	CONTENT += "##############################################################################\n"
 	CONTENT += "# Main Program Execution\n"
@@ -205,7 +205,7 @@ def patternBasic():
 	CONTENT += "RPM_VERSION_FIXED = '" + MD['rpmvfixed'] + "'\n"
 	if( str(MD['rpmvbroke']) == "0" ):
 		if( VERBOSE ):
-			print(DISPLAY.format('RPM Depth', "Fixed Only"))
+			print((DISPLAY.format('RPM Depth', "Fixed Only")))
 		CONTENT += "if( SUSE.packageInstalled(RPM_NAME) ):\n"
 		CONTENT += "\tINSTALLED_VERSION = SUSE.compareRPM(RPM_NAME, RPM_VERSION_FIXED)\n"
 		CONTENT += "\tif( INSTALLED_VERSION >= 0 ):\n"
@@ -216,7 +216,7 @@ def patternBasic():
 		CONTENT += "\tCore.updateStatus(Core.ERROR, \"ERROR: \" + RPM_NAME + \" not installed\")\n\n"
 	else:
 		if( VERBOSE ):
-			print(DISPLAY.format('RPM Depth', "Broken and Fixed"))
+			print((DISPLAY.format('RPM Depth', "Broken and Fixed")))
 		CONTENT += "RPM_VERSION_BROKE = '" + MD['rpmvbroke'] + "'\n"
 		CONTENT += "if( SUSE.packageInstalled(RPM_NAME) ):\n"
 		CONTENT += "\tINSTALLED_VERSION = SUSE.compareRPM(RPM_NAME, RPM_VERSION_FIXED)\n"
@@ -237,7 +237,7 @@ def fetchTitle():
 	global MD
 
 	if( VERBOSE ):
-		print(DISPLAY.format('Reading URL ', str(MD['tidurl'])))
+		print((DISPLAY.format('Reading URL ', str(MD['tidurl']))))
 
 	req = Request(MD['tidurl'])
 	try:
@@ -251,7 +251,7 @@ def fetchTitle():
 		MD['title'] = str(html).split('<title>')[1].split('</title>')[0].replace(' | Support | SUSE', '')
 
 	if( VERBOSE ):
-		print(DISPLAY.format('Title', str(MD['title'])))
+		print((DISPLAY.format('Title', str(MD['title']))))
 
 def savePattern():
 	global MD
@@ -266,7 +266,7 @@ def savePattern():
 #		os.chmod(PATFILE, 0755)
 		os.chmod(PATFILE, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
 	except OSError:
-		print(" ERROR: Cannot create " + str(PATFILE) + ": " + str(error))
+		print((" ERROR: Cannot create " + str(PATFILE) + ": " + str(error)))
 
 def usage():
 	print("Usage:")
@@ -286,7 +286,7 @@ def usage():
 
 def showSummary():
 	global MD
-	print("Pattern: ./" + MD['patfile'])
+	print(("Pattern: ./" + MD['patfile']))
 
 ###########################################################################
 # MAIN
@@ -300,7 +300,7 @@ if( len(sys.argv[1:]) > 0 ):
 		# print help information and exit:
 		title()
 		usage()
-		print("ERROR: " + str(err)) # will print something like "option -b not recognized"
+		print(("ERROR: " + str(err))) # will print something like "option -b not recognized"
 		print()
 		sys.exit(2)
 else:
@@ -345,7 +345,7 @@ createMetadata(OPTIONS)
 fetchTitle()
 
 if( VERBOSE ):
-	print(DISPLAY.format('Pattern ', "./" +str(MD['patfile'])))
+	print((DISPLAY.format('Pattern ', "./" +str(MD['patfile']))))
 
 patternHeader(OPTIONS)
 if( MD['confirmed'] ):

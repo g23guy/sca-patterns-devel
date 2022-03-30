@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '0.3.4'
+SVER = '1.0.0'
 ##############################################################################
 # base.py - Basic Python Pattern Template
-# Copyright (C) 2021 SUSE LLC
+# Copyright (C) 2022 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs where a specific package
 #               and version contain a break and a fix.
-# Modified:     2021 Apr 26
+# Modified:     2022 Mar 30
 #
 ##############################################################################
 #
@@ -62,7 +62,7 @@ OPTIONS_REQ = 9
 
 def title():
 	print("\n##################################################")
-	print("# Python Basic Pattern Template, v" + str(SVER))
+	print(("# Python Basic Pattern Template, v" + str(SVER)))
 	print("##################################################")
 
 def createMetadata(IDENTITY_CODE):
@@ -90,7 +90,7 @@ def patternHeader(OPT):
 
 	TODAY = datetime.date.today()
 	# Build pattern file content
-	CONTENT = "#!/usr/bin/python\n#\n"
+	CONTENT = "#!/usr/bin/python3\n#\n"
 	CONTENT += "# Title:       Pattern for TID" + MD['tid'] + "\n"
 	CONTENT += "# Description: " + MD['title'] + "\n"
 	CONTENT += "# Source:      Basic Python Pattern Template v" + str(SVER) + "\n"
@@ -131,7 +131,7 @@ def patternConditions():
 	global CONTENT
 
 	if( VERBOSE ):
-		print(DISPLAY.format('Conditions', MD['conditions']))
+		print((DISPLAY.format('Conditions', MD['conditions'])))
 
 	if( int(MD['conditions']) > 0 ):
 		LIMIT = int(MD['conditions']) + 1
@@ -202,10 +202,10 @@ def patternMain():
 
 	if( int(MD['package']) == 1 ):
 		if( VERBOSE ):
-			print(DISPLAY.format('Package', "Affects Issue"))
+			print((DISPLAY.format('Package', "Affects Issue")))
 		if( MD['service'] ):
 			if( VERBOSE ):
-				print(DISPLAY.format('Service', "Check"))
+				print((DISPLAY.format('Service', "Check")))
 			# Checks if the affected package is installed and validates the systemd service
 			CONTENT += "\nif( SUSE.packageInstalled(PACKAGE) ):\n"
 			CONTENT += "\tSERVICE_INFO = SUSE.getServiceDInfo(SERVICE_NAME)\n"
@@ -223,7 +223,7 @@ def patternMain():
 			CONTENT += "\tCore.updateStatus(Core.ERROR, \"ERROR: RPM package \" + PACKAGE + \" not installed\")\n"
 		else:
 			if( VERBOSE ):
-				print(DISPLAY.format('Service', "Ignored"))
+				print((DISPLAY.format('Service', "Ignored")))
 			# Checks if the affected package is installed and does not check any systemd services
 			CONTENT += "\nif( SUSE.packageInstalled(PACKAGE) ):\n"
 			getConditions(1)
@@ -231,13 +231,13 @@ def patternMain():
 			CONTENT += "\tCore.updateStatus(Core.ERROR, \"ERROR: RPM package \" + PACKAGE + \" not installed\")\n"
 	elif( int(MD['package']) == 2 ):
 		if( VERBOSE ):
-			print(DISPLAY.format('Package', "Fixes Issue"))
+			print((DISPLAY.format('Package', "Fixes Issue")))
 		CONTENT += "\nif( SUSE.packageInstalled(PACKAGE) ):\n"
 		CONTENT += "\tCore.updateStatus(Core.IGNORE, \"The \" + PACKAGE + \" package is installed\")\n"
 		CONTENT += "else:\n"
 		if( MD['service'] ):
 			if( VERBOSE ):
-				print(DISPLAY.format('Service', "Check"))
+				print((DISPLAY.format('Service', "Check")))
 			# Checks for systemd service if the package is not installed
 			CONTENT += "\tSERVICE_INFO = SUSE.getServiceDInfo(SERVICE_NAME)\n"
 			CONTENT += "\tif( SERVICE_INFO ):\n"
@@ -252,15 +252,15 @@ def patternMain():
 			CONTENT += "\t\tCore.updateStatus(Core.ERROR, \"Service details not found: \" + str(SERVICE_NAME))\n"
 		else:
 			if( VERBOSE ):
-				print(DISPLAY.format('Service', "Ignored"))
+				print((DISPLAY.format('Service', "Ignored")))
 			# Checks if the package is not installed
 			getConditions(1)
 	else:
 		if( VERBOSE ):
-			print(DISPLAY.format('Package', "Ignored"))
+			print((DISPLAY.format('Package', "Ignored")))
 		if( MD['service'] ):
 			if( VERBOSE ):
-				print(DISPLAY.format('Service', "Check"))
+				print((DISPLAY.format('Service', "Check")))
 			# Only check if a systemd service has failed
 			CONTENT += "SERVICE_INFO = SUSE.getServiceDInfo(SERVICE_NAME)\n"
 			CONTENT += "if( SERVICE_INFO ):\n"
@@ -275,7 +275,7 @@ def patternMain():
 			CONTENT += "\tCore.updateStatus(Core.ERROR, \"Service details not found: \" + str(SERVICE_NAME))\n"
 		else:
 			if( VERBOSE ):
-				print(DISPLAY.format('Service', "Ignored"))
+				print((DISPLAY.format('Service', "Ignored")))
 			# Check for at least one condition
 			getConditions(0)
 
@@ -285,7 +285,7 @@ def fetchTitle():
 	global MD
 
 	if( VERBOSE ):
-		print(DISPLAY.format('Reading URL ', str(MD['tidurl'])))
+		print((DISPLAY.format('Reading URL ', str(MD['tidurl']))))
 
 	req = Request(MD['tidurl'])
 	try:
@@ -299,7 +299,7 @@ def fetchTitle():
 		MD['title'] = str(html).split('<title>')[1].split('</title>')[0].replace(' | Support | SUSE', '')
 
 	if( VERBOSE ):
-		print(DISPLAY.format('Title', str(MD['title'])))
+		print((DISPLAY.format('Title', str(MD['title']))))
 
 def savePattern():
 	global MD
@@ -314,7 +314,7 @@ def savePattern():
 #		os.chmod(PATFILE, 0755)
 		os.chmod(PATFILE, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
 	except OSError:
-		print(" ERROR: Cannot create " + str(PATFILE) + ": " + str(error))
+		print((" ERROR: Cannot create " + str(PATFILE) + ": " + str(error)))
 
 def usage():
 	print("Usage:")
@@ -333,7 +333,7 @@ def usage():
 
 def showSummary():
 	global MD
-	print("Pattern: ./" + MD['patfile'])
+	print(("Pattern: ./" + MD['patfile']))
 
 ###########################################################################
 # MAIN
@@ -347,7 +347,7 @@ if( len(sys.argv[1:]) > 0 ):
 		# print help information and exit:
 		title()
 		usage()
-		print("ERROR: " + str(err)) # will print something like "option -b not recognized"
+		print(("ERROR: " + str(err))) # will print something like "option -b not recognized"
 		print()
 		sys.exit(2)
 else:
@@ -406,13 +406,13 @@ if( ERRORS ):
 
 if( int(MD['package']) == 0 and int(MD['conditions']) == 0 and not MD['service']):
 	if VERBOSE:
-		print(DISPLAY.format('Override', 'Conditions'))
+		print((DISPLAY.format('Override', 'Conditions')))
 	MD['conditions'] = 1
 
 fetchTitle()
 
 if( VERBOSE ):
-	print(DISPLAY.format('Pattern ', "./" +str(MD['patfile'])))
+	print((DISPLAY.format('Pattern ', "./" +str(MD['patfile']))))
 
 patternHeader(OPTIONS)
 patternConditions()
