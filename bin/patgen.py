@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '0.0.4'
+SVER = '0.0.5'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2022 Sep 19
+# Modified:     2022 Sep 26
 #
 ##############################################################################
 #
@@ -307,6 +307,10 @@ self.title
 
 	def __create_pattern_main(self):
 		number_of_tests = 0
+		indent_kernel = 0
+		indent_package = 0
+		indent_service = 0
+		indent_conditions = 0
 
 		self.content += "##############################################################################\n"
 		self.content += "# Main\n"
@@ -340,22 +344,25 @@ self.title
 				self.content += self.__create_conditions_indented(0, self.conditions)
 		else:
 			if( self.kernel_version != "0" ):
-				self.__test_kernel(0)
-				indent_package = 1
+				indent_kernel = 0
+				self.__test_kernel(indent_kernel)
+				indent_package = indent_kernel + 1
+				indent_conditions = indent_package + 1
 				if( self.package_name != ''):
-					self.__test_package_start(1)
+					self.__test_package_start(indent_package)
 					if( self.package_version != "0" ):
 						if( self.service_name != "" ):
-#%%% Working on indentation variables
 							indent_service = indent_package + 2
-							self.__test_service_start(3)
-							self.content += self.__create_conditions_indented(indent_service + 3, self.conditions)
-							self.__test_service_finish(3)
+							indent_conditions = indent_service + 3
+							self.__test_service_start(indent_service)
+							self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+							self.__test_service_finish(indent_service)
 						else:
-							self.content += self.__create_conditions_indented(3, self.conditions)
+							indent_conditions = indent_package + 2
+							self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
 					else:
-						self.content += self.__create_conditions_indented(2, self.conditions)
-					self.__test_package_finish(1)
+						self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+					self.__test_package_finish(indent_package)
 				elif( self.service_name != "" ):
 					self.__test_service_start(0)
 					self.content += self.__create_conditions_indented(3, self.conditions)
