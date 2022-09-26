@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '0.0.5'
+SVER = '0.0.6'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
@@ -149,7 +149,7 @@ self.title
 		self.content = "#!/usr/bin/python3\n#\n"
 		self.content += "# Title:       " + self.title + "\n"
 		self.content += "# Description: Pattern for TID" + self.tid_number + "\n"
-		self.content += "# Source:      " + self.script_name + " v" + str(SVER) + "\n"
+		self.content += "# Template:    " + self.script_name + " v" + str(SVER) + "\n"
 		self.content += "# Modified:    " + str(today.strftime("%Y %b %d")) + "\n"
 		self.content += "#\n##############################################################################\n"
 		self.content += "# Copyright (C) " + str(today.year) + " SUSE LLC\n"
@@ -344,36 +344,54 @@ self.title
 				self.content += self.__create_conditions_indented(0, self.conditions)
 		else:
 			if( self.kernel_version != "0" ):
+				# Priority order: kernel > package > service > conditions
 				indent_kernel = 0
-				self.__test_kernel(indent_kernel)
 				indent_package = indent_kernel + 1
 				indent_conditions = indent_package + 1
+				self.__test_kernel(indent_kernel)
 				if( self.package_name != ''):
 					self.__test_package_start(indent_package)
 					if( self.package_version != "0" ):
-						if( self.service_name != "" ):
-							indent_service = indent_package + 2
-							indent_conditions = indent_service + 3
-							self.__test_service_start(indent_service)
-							self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
-							self.__test_service_finish(indent_service)
-						else:
-							indent_conditions = indent_package + 2
-							self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+						indent_service = indent_package + 2
 					else:
+						indent_service = indent_package + 1
+
+					if( self.service_name != "" ):
+						indent_conditions = indent_service + 3
+						self.__test_service_start(indent_service)
+						self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+						self.__test_service_finish(indent_service)
+					else:
+						indent_conditions = indent_package + 2
 						self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
 					self.__test_package_finish(indent_package)
 				elif( self.service_name != "" ):
-					self.__test_service_start(0)
-					self.content += self.__create_conditions_indented(3, self.conditions)
-					self.__test_service_finish(0)
+					indent_service = indent_kernel + 1
+					indent_conditions = indent_service + 3
+					self.__test_service_start(indent_service)
+					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+					self.__test_service_finish(indent_service)
 				else:
 					self.content += self.__create_conditions_indented(1, self.conditions)
 			elif( self.package_name != ''):
-				self.__test_package(0)
+				indent_package = 0
+				self.__test_package_start(indent_package)
+				if( self.package_version != "0" ):
+					indent_service = indent_package + 2
+					indent_conditions = indent_package + 2
+				else:
+					indent_service = indent_package + 1
+					indent_conditions = indent_package + 1
+
 				if( self.service_name != "" ):
-					self.__test_service(1)
-				self.__create_conditions_indented(2)
+					indent_conditions = indent_service + 3
+					self.__test_service_start(indent_service)
+					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+					self.__test_service_finish(indent_service)
+				else:
+					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+				self.__test_package_finish(indent_package)
+
 			elif( self.service_name != "" ):
 				self.__test_service(0)
 				self.__create_conditions_indented(1)
