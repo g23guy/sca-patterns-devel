@@ -89,7 +89,6 @@ class PatternTemplate():
 		self.tid_number = '0'
 		self.bug_number = '0'
 		self.conditions = 0
-		self.conditions_distributed = True
 		self.flat = False
 		self.basic = True
 		self.kernel_version = '0'
@@ -104,7 +103,7 @@ class PatternTemplate():
 		self.links = ''
 
 	def __str__ (self):
-		return "class %s(\n  meta_class=%r, \n  meta_category=%r, \n  meta_component=%r, \n  pattern_base=%r, \n  tid_number=%r, \n  bug_number=%r, \n  conditions=%r, \n  conditions_distributed=%r, \n  flat=%r, \n  kernel_version=%r, \n  package_name=%r, \n  package_version=%r, \n  service_name=%r, \n  tid_url=%r,\n  bug_url=%r,\n  primary_link=%r,\n  links=%r,\n  pattern_filename=%r,\n  title=%r\n)" % \
+		return "class %s(\n  meta_class=%r, \n  meta_category=%r, \n  meta_component=%r, \n  pattern_base=%r, \n  tid_number=%r, \n  bug_number=%r, \n  conditions=%r, \n  flat=%r, \n  kernel_version=%r, \n  package_name=%r, \n  package_version=%r, \n  service_name=%r, \n  tid_url=%r,\n  bug_url=%r,\n  primary_link=%r,\n  links=%r,\n  pattern_filename=%r,\n  title=%r\n)" % \
 (self.__class__.__name__, 
 self.meta_class, 
 self.meta_category, 
@@ -113,7 +112,6 @@ self.pattern_base,
 self.tid_number, 
 self.bug_number, 
 self.conditions, 
-self.conditions_distributed, 
 self.flat,
 self.kernel_version, 
 self.package_name, 
@@ -468,7 +466,8 @@ self.title
 				self.set_conditions(1)
 		self.__create_condition_functions()
 		self.__create_pattern_main()
-		self.__save_pattern()
+		#self.__save_pattern()
+		print(self.content)
 		
 	def show_summary(self):
 		"Show a summary of the pattern created"
