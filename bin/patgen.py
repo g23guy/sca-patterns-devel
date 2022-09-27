@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '0.0.9'
+SVER = '0.10.0-beta1'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
@@ -402,8 +402,7 @@ self.title
 					self.__test_service_finish(indent_service)
 			else:
 				self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
-
-		print(self.content)
+		self.content += "\n"
 
 	def __save_pattern(self):
 		try:
@@ -469,7 +468,7 @@ self.title
 				self.set_conditions(1)
 		self.__create_condition_functions()
 		self.__create_pattern_main()
-		#self.__save_pattern()
+		self.__save_pattern()
 		
 	def show_summary(self):
 		"Show a summary of the pattern created"
