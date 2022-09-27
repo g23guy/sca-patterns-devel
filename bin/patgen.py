@@ -308,7 +308,6 @@ self.title
 		self.content += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Service details not found: \" + str(service_name))\n"
 
 	def __create_pattern_main(self):
-		number_of_tests = 0
 		indent_kernel = 0
 		indent_package = 0
 		indent_service = 0
@@ -321,29 +320,31 @@ self.title
 
 		if( self.flat ):
 			if( self.kernel_version != "0" ):
-				number_of_tests += 1
-				self.__test_kernel(0)
-				self.content += self.__create_conditions_indented(1, self.conditions)
+				indent_conditions = indent_kernel + 1
+				self.__test_kernel(indent_kernel)
+				self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
 				self.content += "\n"
+
 			if( self.package_name != ''):
-				number_of_tests += 1
-				self.__test_package_start(0)
+				self.__test_package_start(indent_package)
 				if( self.package_version != "0" ):
-					self.content += self.__create_conditions_indented(2, self.conditions)
+					indent_conditions = indent_package + 2
+					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
 				else:
-					self.content += self.__create_conditions_indented(1, self.conditions)
-				self.__test_package_finish(0)
+					indent_conditions = indent_package + 1
+					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+				self.__test_package_finish(indent_package)
 				self.content += "\n"
+
 			if( self.service_name != "" ):
-				number_of_tests += 1
-				self.__test_service_start(0)
-				self.content += self.__create_conditions_indented(3, self.conditions)
-				self.__test_service_finish(0)
+				indent_conditions = indent_service + 3
+				self.__test_service_start(indent_service)
+				self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+				self.__test_service_finish(indent_service)
 				self.content += "\n"
-			if( number_of_tests < 1 ):
-				if( self.conditions < 1 ):
-					self.conditions = 1
-				self.content += self.__create_conditions_indented(0, self.conditions)
+
+			if( self.basic ):
+				self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
 		else:
 			if( self.kernel_version != "0" ):
 				# Priority order: kernel > package > service > conditions
