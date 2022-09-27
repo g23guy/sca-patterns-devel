@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '0.10.0-beta2'
+SVER = '1.0.0'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
