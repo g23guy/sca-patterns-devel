@@ -91,6 +91,7 @@ class PatternTemplate():
 		self.conditions = 0
 		self.conditions_distributed = True
 		self.flat = False
+		self.basic = True
 		self.kernel_version = '0'
 		self.package_name = ''
 		self.package_version = '0'
@@ -444,19 +445,27 @@ self.title
 	def set_flat(self, status):
 		self.flat = status
 
+	def set_kernel(self, kernel_version):
+		self.kernel_version = kernel_version
+		if( self.kernel_version != "0" ):
+			self.basic = False
+
 	def set_package(self, package_name, package_version):
 		self.package_name = package_name
 		self.package_version = package_version
-
-	def set_kernel(self, kernel_version):
-		self.kernel_version = kernel_version
+		if( self.package_name != ''):
+			self.basic = False
 
 	def set_service(self, service_name):
 		self.service_name = service_name
+		if( self.service_name != "" ):
+			self.basic = False
 
 	def create_pattern(self):
 		"Create and save the pattern. Requires set_metadata to be called first."
 		self.__create_header()
+		if( self.basic ):
+			self.set_conditions(1)
 		self.__create_condition_functions()
 		self.__create_pattern_main()
 		#self.__save_pattern()
@@ -468,6 +477,7 @@ self.title
 		print()
 		print(DISPLAY.format("Title", self.title))
 		print(DISPLAY.format("Pattern", self.pattern_filename))
+		print(DISPLAY.format("Basic", self.basic))
 		print()
 
 def option_error(msg):
