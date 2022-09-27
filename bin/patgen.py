@@ -248,7 +248,8 @@ self.title
 			self.content += "package_version_fixed = '" + self.package_version + "'\n"
 		if( self.service_name != "" ):
 			self.content += "service_name = '" + self.service_name + "'\n"
-		self.content += "\n"
+		if not self.basic:
+			self.content += "\n"
 
 	def __test_kernel(self, indent_to_level):
 		indent = ''
@@ -394,15 +395,13 @@ self.title
 				else:
 					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
 				self.__test_package_finish(indent_package)
-
 			elif( self.service_name != "" ):
-				self.__test_service(0)
-				self.__create_conditions_indented(1)
+					indent_conditions = indent_service + 3
+					self.__test_service_start(indent_service)
+					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+					self.__test_service_finish(indent_service)
 			else:
-				if( self.conditions < 1 ):
-					print("Override conditions and set to 1")
-					self.conditions = 1
-				print("Basic test with " + str(self.conditions) + " condition(s)")
+				self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
 
 		print(self.content)
 
@@ -466,7 +465,8 @@ self.title
 		"Create and save the pattern. Requires set_metadata to be called first."
 		self.__create_header()
 		if( self.basic ):
-			self.set_conditions(1)
+			if( self.conditions < 1 ):
+				self.set_conditions(1)
 		self.__create_condition_functions()
 		self.__create_pattern_main()
 		#self.__save_pattern()
