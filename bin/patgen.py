@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '0.0.7'
+SVER = '0.0.8'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2022 Sep 26
+# Modified:     2022 Sep 27
 #
 ##############################################################################
 #
@@ -479,6 +479,27 @@ self.title
 		print(DISPLAY.format("Title", self.title))
 		print(DISPLAY.format("Pattern", self.pattern_filename))
 		print(DISPLAY.format("Basic", self.basic))
+		if( self.flat ):
+			print(DISPLAY.format("Ordering", "Flat"))
+		else:
+			print(DISPLAY.format("Ordering", "Stacked"))
+		if( self.kernel_version != "0" ):
+			print(DISPLAY.format("Kernel Version", self.kernel_version))
+		else:
+			print(DISPLAY.format("Kernel Version", "None"))
+		if( self.package_name != ''):
+			print(DISPLAY.format("Package Name", self.package_name))
+		else:
+			print(DISPLAY.format("Package Name", "None"))
+		if( self.package_version != "0"):
+			print(DISPLAY.format("Package Version", self.package_version))
+		else:
+			print(DISPLAY.format("Package Version", "None"))
+		if( self.service_name != "" ):
+			print(DISPLAY.format("Service Name", self.service_name))
+		else:
+			print(DISPLAY.format("Service Name", "None"))
+		print(DISPLAY.format("Conditions", self.conditions))
 		print()
 
 def option_error(msg):
