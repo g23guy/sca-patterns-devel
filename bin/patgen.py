@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '0.0.6'
+SVER = '0.0.7'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
@@ -47,8 +47,8 @@ def title():
 
 def usage():
 	print("Description:")
-	print("  Priority order: kernel > package > service > basic condition")
-	print("  Flat order:     kernel   package   service   basic condition")
+	print("  Ordering, Stacked: kernel > package > service > conditions")
+	print("  Ordering, Flat:    kernel   package   service   conditions")
 	print()
 	print("Usage:")
 	print("  " + str(os.path.basename(__file__)) + " [OPTIONS] <class,category,component,filename,tid#,bug#>")
@@ -84,6 +84,7 @@ class PatternTemplate():
 		self.meta_category = ''
 		self.meta_component = ''
 		self.pattern_base = ''
+		self.pattern_dir = os.getcwd()
 		self.pattern_filename = ''
 		self.tid_number = '0'
 		self.bug_number = '0'
@@ -428,7 +429,7 @@ self.title
 		self.pattern_base = mdlist[IDX_FILENAME]
 		self.tid_number = str(mdlist[IDX_TID])
 		self.tid_url = self.TID_BASE_URL + self.tid_number
-		self.pattern_filename = self.pattern_base + "-" + self.tid_number + ".py"
+		self.pattern_filename = self.pattern_dir + "/" + self.pattern_base + "-" + self.tid_number + ".py"
 		self.links = "META_LINK_TID=" + self.tid_url
 		if( len(mdlist) > mdcount_min ):
 			self.bug_number = str(mdlist[IDX_BUG])
