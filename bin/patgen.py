@@ -487,7 +487,7 @@ self.title
 	def set_other_url(self, other_url):
 		url_parts = other_url.split("=")
 		if( len(url_parts) > 1 ):
-			url_tag = "META_LINK_" + str(url_parts[0].upper())
+			url_tag = "META_LINK_" + str(url_parts[0])
 			url_body = url_parts[1]
 		else:
 			url_body = url_parts[0]
