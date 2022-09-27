@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '1.0.0'
+SVER = '1.0.1'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
@@ -128,22 +128,35 @@ self.title
 )
 
 	def __validate_links(self):
+		"Validate URLs built from user inputs"
+		print("Validating Solution Links")
+		DISPLAY = "{0:21} {1:25} {2}"
 		invalid = False
 		link_list = self.links.split("|")
 		for link in link_list:
 			check_tag, check_url = link.split("=", 1)
-			print("Validating " + check_tag + " " + check_url)
+			status = "+ Confirmed"
 			try:
 				x = requests.get(check_url)
 			except Exception as error:
-				print(" + Warning: Couldn't connect to the TID URL, manually enter the title.")
+				status = "- Invalid Connection"
 
 			if( x.status_code != 200 ):
-				print("+ Invalid")
+				status = "- Invalid URL"
 				invalid = True
+			else:
+				data = x.text.split('\n')
+				badlink = re.compile('Invalid Bug ID')
+				for line in data:
+					if badlink.search(line):
+						status = "- Invalid Content"
+						invalid = True
+						break
+			print(DISPLAY.format(status, check_tag, check_url))
+
 		if( invalid ):
 			print()
-			print("Error: One of the links is not valid, please check the link and rerun")
+			print("Error: Invalid link(s) found, please check and resubmit")
 			print()
 			sys.exit(2)
 
