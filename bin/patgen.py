@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '0.0.8'
+SVER = '0.0.9'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
@@ -51,7 +51,7 @@ def usage():
 	print("  Ordering, Flat:    kernel   package   service   conditions")
 	print()
 	print("Usage:")
-	print("  " + str(os.path.basename(__file__)) + " [OPTIONS] <class,category,component,filename,tid#,bug#>")
+	print("  " + str(os.path.basename(__file__)) + " [OPTIONS] <class,category,component,filename,tid#[,bug#]>")
 	print()
 	print("OPTIONS")
 	print("  -c <0-3>, --conditions=<0-3>       Number of conditional functions to include, default=0")
@@ -67,7 +67,7 @@ def usage():
 	print("  component:    Component name string")
 	print("  filename:     Pattern filename (TID number will be added automatically)")
 	print("  tid#:         TID number only")
-	print("  bug#:         Bug number only, 0=no bug")
+	print("  bug#:         Bug number only (optional)")
 	print()
 
 class PatternTemplate():
@@ -356,16 +356,16 @@ self.title
 					self.__test_package_start(indent_package)
 					if( self.package_version != "0" ):
 						indent_service = indent_package + 2
+						indent_conditions = indent_package + 2
 					else:
 						indent_service = indent_package + 1
+						indent_conditions = indent_package + 1
 
 					if( self.service_name != "" ):
-						indent_conditions = indent_service + 3
 						self.__test_service_start(indent_service)
 						self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
 						self.__test_service_finish(indent_service)
 					else:
-						indent_conditions = indent_package + 2
 						self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
 					self.__test_package_finish(indent_package)
 				elif( self.service_name != "" ):
