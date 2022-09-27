@@ -409,7 +409,7 @@ self.title
 			file_open = open(self.pattern_filename, "w")
 			file_open.write(self.content)
 			file_open.close()
-			os.chmod(pattern_filename, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+			os.chmod(self.pattern_filename, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
 		except OSError:
 			print((" ERROR: Cannot create " + str(self.pattern_filename) + ": " + str(error)))
 
@@ -459,11 +459,16 @@ self.title
 		self.__create_header()
 		self.__create_condition_functions()
 		self.__create_pattern_main()
-
-		print()
-#		print(self.content)
-		sys.exit(5)
 		#self.__save_pattern()
+		
+	def show_summary(self):
+		"Show a summary of the pattern created"
+		DISPLAY = "{0:18} = {1}"
+		
+		print()
+		print(DISPLAY.format("Title", self.title))
+		print(DISPLAY.format("Pattern", self.pattern_filename))
+		print()
 
 def option_error(msg):
 	print(msg)
@@ -539,11 +544,8 @@ def main(argv):
 		option_error("Error: Missing pattern metadata")
 
 	pat.set_metadata(given_metadata)
-	print()
-	print(pat)
-	print()
 	pat.create_pattern()
-
+	pat.show_summary()
 
 # Entry point
 if __name__ == "__main__":
