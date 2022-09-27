@@ -24,7 +24,7 @@ URL:          https://github.com/g23guy/sca-patterns-devel
 Group:        System/Monitoring
 Source:       %{name}-%{version}.tar.gz
 Requires:     /usr/bin/git
-Requires:     /usr/bin/python
+Requires:     /usr/bin/python3
 Requires:     /usr/bin/w3m
 BuildArch:    noarch
 
