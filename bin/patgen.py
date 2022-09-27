@@ -59,7 +59,7 @@ def usage():
 	print("  -r <name>, --rpm=<name>            The affected RPM package name")
 	print("  -p <ver>, --package-version=<ver>  The package's version where the issue is fixed")
 	print("  -s <name>, --service=<name>        The systemd service name affected")
-	print("  -f, --flat                         All requested conditions are tested independently and not included in the priority order")
+	print("  -f, --flat                         All requested conditions are tested independently and not included in stacked order")
 	print()
 	print("METADATA")
 	print("  class:        SLE,HAE,SUMA,Security,Custom")
@@ -97,13 +97,14 @@ class PatternTemplate():
 		self.service_name = ''
 		self.tid_url = ''
 		self.bug_url = ''
+		self.other_url = ''
 		self.primary_link = "META_LINK_TID"
 		self.title = ''
 		self.script_name = script_name
 		self.links = ''
 
 	def __str__ (self):
-		return "class %s(\n  meta_class=%r, \n  meta_category=%r, \n  meta_component=%r, \n  pattern_base=%r, \n  tid_number=%r, \n  bug_number=%r, \n  conditions=%r, \n  flat=%r, \n  kernel_version=%r, \n  package_name=%r, \n  package_version=%r, \n  service_name=%r, \n  tid_url=%r,\n  bug_url=%r,\n  primary_link=%r,\n  links=%r,\n  pattern_filename=%r,\n  title=%r\n)" % \
+		return "class %s(\n  meta_class=%r, \n  meta_category=%r, \n  meta_component=%r, \n  pattern_base=%r, \n  tid_number=%r, \n  bug_number=%r, \n  conditions=%r, \n  flat=%r, \n  kernel_version=%r, \n  package_name=%r, \n  package_version=%r, \n  service_name=%r, \n  tid_url=%r,\n  bug_url=%r,\n  other_url=%r,\n  primary_link=%r,\n  links=%r,\n  pattern_filename=%r,\n  title=%r\n)" % \
 (self.__class__.__name__, 
 self.meta_class, 
 self.meta_category, 
@@ -119,14 +120,35 @@ self.package_version,
 self.service_name, 
 self.tid_url, 
 self.bug_url, 
+self.other_url, 
 self.primary_link,
 self.links,
 self.pattern_filename,
 self.title
 )
 
+	def __validate_links(self):
+		invalid = False
+		link_list = self.links.split("|")
+		for link in link_list:
+			check_tag, check_url = link.split("=", 1)
+			print("Validating " + check_tag + " " + check_url)
+			try:
+				x = requests.get(check_url)
+			except Exception as error:
+				print(" + Warning: Couldn't connect to the TID URL, manually enter the title.")
+
+			if( x.status_code != 200 ):
+				print("+ Invalid")
+				invalid = True
+		if( invalid ):
+			print()
+			print("Error: One of the links is not valid, please check the link and rerun")
+			print()
+			sys.exit(2)
+
 	def __get_tid_title(self):
-		print("Evaluating TID" + self.tid_number + " at " + self.tid_url)
+		print("Evaluating TID" + self.tid_number)
 		this_title = "Manually enter the title"
 		try:
 			x = requests.get(self.tid_url)
@@ -402,7 +424,7 @@ self.title
 			else:
 				self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
 		self.content += "\n"
-
+		
 	def __save_pattern(self):
 		try:
 			file_open = open(self.pattern_filename, "w")
@@ -435,6 +457,9 @@ self.title
 			if( len(self.bug_number) > 1 ):
 				self.bug_url = self.BUG_BASE_URL + self.bug_number
 				self.links = self.links + "|META_LINK_BUG=" + self.bug_url
+		if( len(self.other_url) > 0 ):
+			self.links = self.links + "|" + self.other_url
+		self.__validate_links()
 		self.title = self.__get_tid_title()
 
 	def set_conditions(self, conditions):
@@ -459,6 +484,25 @@ self.title
 		if( self.service_name != "" ):
 			self.basic = False
 
+	def set_other_url(self, other_url):
+		url_parts = other_url.split("=")
+		if( len(url_parts) > 1 ):
+			url_tag = "META_LINK_" + str(url_parts[0].upper())
+			url_body = url_parts[1]
+		else:
+			url_body = url_parts[0]
+			if( "documentation.suse.com" in url_body ):
+				url_tag = "META_LINK_DOC"
+			elif( "www.suse.com/support/kb" in url_body ):
+				url_tag = "META_LINK_TID2"
+			elif( url_body.startswith("CVE-") ):
+				url_tag = "META_LINK_" + str(url_body)
+				url_body = "https://www.suse.com/security/cve/" + url_body + "/"
+			else:
+				url_tag = "META_LINK_OTHER"
+
+		self.other_url = url_tag + "=" + url_body
+
 	def create_pattern(self):
 		"Create and save the pattern. Requires set_metadata to be called first."
 		self.__create_header()
@@ -468,7 +512,8 @@ self.title
 		self.__create_condition_functions()
 		self.__create_pattern_main()
 		self.__save_pattern()
-		#print(self.content)
+#		print(pat)
+#		print(self.content)
 		
 	def show_summary(self):
 		"Show a summary of the pattern created"
@@ -525,7 +570,7 @@ def main(argv):
 	package_version = '0'
 
 	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "hc:fk:r:p:s:", ["help", "conditions=", "flast", "kernel-version=", "rpm=", "package-version=", "service="])
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hc:fk:r:p:s:u:", ["help", "conditions=", "flast", "kernel-version=", "rpm=", "package-version=", "service=", "url="])
 	except getopt.GetoptError as exc:
 		title()
 		print("Error:", exc, file=sys.stderr)
@@ -556,6 +601,8 @@ def main(argv):
 			package_version = arguement
 		elif option in {"-s", "--service"}:
 			pat.set_service(arguement)
+		elif option in {"-u", "--url"}:
+			pat.set_other_url(arguement)
 
 	title()
 
