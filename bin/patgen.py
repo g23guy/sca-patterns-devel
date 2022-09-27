@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '1.0.1'
+SVER = '1.0.2'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
@@ -46,12 +46,15 @@ def title():
 	print("##################################################")
 
 def usage():
-	print("Description:")
-	print("  Ordering, Stacked: kernel > package > service > conditions")
-	print("  Ordering, Flat:    kernel   package   service   conditions")
-	print()
 	print("Usage:")
 	print("  " + str(os.path.basename(__file__)) + " [OPTIONS] <class,category,component,filename,tid#[,bug#]>")
+	print()
+	print("Description:")
+	print("  Used to create an initial python3 script template for an SCA pattern. Modify the template script")
+	print("  to accurately identify the issue and record it on the SCA Report as needed.")
+	print()
+	print("  Ordering, Stacked: kernel > package > service > conditions")
+	print("  Ordering, Flat:    kernel   package   service   conditions")
 	print()
 	print("OPTIONS")
 	print("  -c <0-3>, --conditions=<0-3>       Number of conditional functions to include, default=0")
@@ -59,6 +62,7 @@ def usage():
 	print("  -r <name>, --rpm=<name>            The affected RPM package name")
 	print("  -p <ver>, --package-version=<ver>  The package's version where the issue is fixed")
 	print("  -s <name>, --service=<name>        The systemd service name affected")
+	print("  -u <[tag=]url>, --url=<[tag=]url>  Additional solution link URL. You can also enter a CVE number like \"CVE-2022-23303\"")
 	print("  -f, --flat                         All requested conditions are tested independently and not included in stacked order")
 	print()
 	print("METADATA")
