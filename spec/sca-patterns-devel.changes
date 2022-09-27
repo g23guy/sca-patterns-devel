@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Tue Sep 27 15:30:00 UTC 2022 - Jason Record <jason.record@suse.com>
+
+- Changes to 1.2.0
+  + Spec file requires python3
+  + Consolidated all template versions in patgen.py
+  + Removed base.py, kernver.py and pkgver.py
+
+-------------------------------------------------------------------
 Wed Mar 30 18:55:08 UTC 2022 - Jason Record <jason.record@suse.com>
 
 - Ported for Python3
