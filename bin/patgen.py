@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '0.10.0-beta1'
+SVER = '0.10.0-beta2'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
@@ -467,8 +467,8 @@ self.title
 				self.set_conditions(1)
 		self.__create_condition_functions()
 		self.__create_pattern_main()
-		#self.__save_pattern()
-		print(self.content)
+		self.__save_pattern()
+		#print(self.content)
 		
 	def show_summary(self):
 		"Show a summary of the pattern created"
