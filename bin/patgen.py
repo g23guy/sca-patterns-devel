@@ -361,6 +361,7 @@ self.title
 						indent_conditions = indent_package + 1
 
 					if( self.service_name != "" ):
+						indent_conditions = indent_service + 3
 						self.__test_service_start(indent_service)
 						self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
 						self.__test_service_finish(indent_service)
