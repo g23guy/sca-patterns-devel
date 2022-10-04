@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.2'
+SVER = '1.0.3'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2022 Sep 27
+# Modified:     2022 Oct 04
 #
 ##############################################################################
 #
@@ -219,6 +219,9 @@ self.title
 		self.content += "overall_info = \"NOT SET\"\n"
 		self.content += "other_links = \"" + self.links + "\"\n"
 		self.content += "Core.init(meta_class, meta_category, meta_component, pattern_id, primary_link, overall, overall_info, other_links)\n\n"
+
+	def __create_footer(self):
+		self.content += "Core.printPatternResults()\n"
 
 	def __create_condition_functions(self):
 		if( self.conditions > 0 ):
@@ -528,6 +531,7 @@ self.title
 				self.set_conditions(1)
 		self.__create_condition_functions()
 		self.__create_pattern_main()
+		self.__create_footer()
 		self.__save_pattern()
 #		print(pat)
 #		print(self.content)

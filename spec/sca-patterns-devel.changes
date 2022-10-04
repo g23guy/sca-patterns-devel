@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Oct  4 12:37:16 UTC 2022 - Jason Record <jason.record@suse.com>
+
+- Added missing Core.printPatternResults
+
+-------------------------------------------------------------------
 Tue Sep 27 15:30:00 UTC 2022 - Jason Record <jason.record@suse.com>
 
 - Changes to 1.2.0
