@@ -55,7 +55,9 @@ install -m 664 conf/* %{buildroot}%{patdevconfdir}
 %dir %{patdevconfdir}
 %{patdevbasedir}/*
 /usr/local/bin/*
+%attr(775,root,users) %{_localstatedir}%{patdevbasedir}
 %attr(775,root,users) %{patdevbasedir}/forks
+%attr(775,root,users) %{patdevbasedir}/patterns
 %config %attr(664,root,users) %{patdevconfdir}/*
 
 %post

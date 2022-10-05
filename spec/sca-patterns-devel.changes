@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Oct  5 12:36:30 UTC 2022 - user@localhost
+
+- Enabled users group for github pattern installation
+- Enabled users group for supportconfig extraction
+
+-------------------------------------------------------------------
 Wed Oct  5 11:18:57 UTC 2022 - Jason Record <jason.record@suse.com>
 
 - Changes to 1.2.1
