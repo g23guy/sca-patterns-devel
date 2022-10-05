@@ -26,6 +26,9 @@ SVER = '1.0.3'
 #     Jason Record <jason.record@suse.com>
 #
 ##############################################################################
+# TODO
+# 1. Add a TID checker. Search github for pre-existing patterns for the same TID
+#
 
 import sys
 import os

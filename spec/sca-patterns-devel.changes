@@ -1,7 +1,9 @@
 -------------------------------------------------------------------
-Tue Oct  4 12:37:16 UTC 2022 - Jason Record <jason.record@suse.com>
+Wed Oct  5 11:18:57 UTC 2022 - Jason Record <jason.record@suse.com>
 
-- Added missing Core.printPatternResults
+- Changes to 1.2.1
+  + Added missing Core.printPatternResults
+  + Fixed patdev.conf installation
 
 -------------------------------------------------------------------
 Tue Sep 27 15:30:00 UTC 2022 - Jason Record <jason.record@suse.com>
