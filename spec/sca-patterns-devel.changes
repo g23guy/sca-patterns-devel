@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Wed Oct  5 12:36:30 UTC 2022 - user@localhost
+Wed Oct  5 14:02:30 UTC 2022 - jason.record@suse.com
 
+- patgen.py and gvc use PATDEV_EMAIL from the configuration file
 - Enabled users group for github pattern installation
 - Enabled users group for supportconfig extraction
 

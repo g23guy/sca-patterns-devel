@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.3'
+SVER = '1.0.4'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2022 Oct 04
+# Modified:     2022 Oct 05
 #
 ##############################################################################
 #
@@ -28,6 +28,7 @@ SVER = '1.0.3'
 ##############################################################################
 # TODO
 # 1. Add a TID checker. Search github for pre-existing patterns for the same TID
+# 2. Get author from patdev.conf PATDEV_EMAIL
 #
 
 import sys
@@ -40,6 +41,8 @@ import requests
 
 # Global Options
 script_name = "SCA Tool Python Pattern Generator"
+conf_file = "/etc/opt/patdev/patdev.conf"
+conf_file_dict = {}
 
 # Class and Function Definitions
 
@@ -80,13 +83,12 @@ def usage():
 class PatternTemplate():
 	TID_BASE_URL = "https://www.suse.com/support/kb/doc/?id="
 	BUG_BASE_URL = "https://bugzilla.suse.com/show_bug.cgi?id="
-	author = 'Jason Record <jason.record@suse.com>'
 	content = ''
 	content_kernel = ''
 	content_package = ''
 	content_service = ''
 
-	def __init__(self, script_name):
+	def __init__(self, script_name, author):
 		self.meta_class = ''
 		self.meta_category = ''
 		self.meta_component = ''
@@ -108,6 +110,7 @@ class PatternTemplate():
 		self.primary_link = "META_LINK_TID"
 		self.title = ''
 		self.script_name = script_name
+		self.author = author
 		self.links = ''
 
 	def __str__ (self):
@@ -651,7 +654,25 @@ def main(argv):
 
 # Entry point
 if __name__ == "__main__":
-	pat = PatternTemplate(script_name)
+	try:
+		f = open(conf_file, "r")
+	except Exception as error:
+		title()
+		print("ERROR: Missing configuration file: ", str(error))
+		print()
+		sys.exit(3)
+
+	skipped_line = re.compile("^#|^$", re.IGNORECASE)
+	for line in f.readlines():
+		line = line.strip("\n")
+		if skipped_line.search(line):
+			continue
+		key, value = line.split('=')
+		value = value.strip('"')
+		conf_file_dict[key] = value.strip('"\'')
+	f.close()
+
+	pat = PatternTemplate(script_name, conf_file_dict['PATDEV_EMAIL'])
 	main(sys.argv)
 
 
