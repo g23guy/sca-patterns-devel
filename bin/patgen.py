@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '1.0.4'
+SVER = '1.0.5'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
@@ -26,13 +26,10 @@ SVER = '1.0.4'
 #     Jason Record <jason.record@suse.com>
 #
 ##############################################################################
-# TODO
-# 1. Add a TID checker. Search github for pre-existing patterns for the same TID
-# 2. Get author from patdev.conf PATDEV_EMAIL
-#
 
 import sys
 import os
+import subprocess
 import stat
 import re
 import getopt
@@ -88,7 +85,7 @@ class PatternTemplate():
 	content_package = ''
 	content_service = ''
 
-	def __init__(self, script_name, author):
+	def __init__(self, script_name, config):
 		self.meta_class = ''
 		self.meta_category = ''
 		self.meta_component = ''
@@ -110,7 +107,9 @@ class PatternTemplate():
 		self.primary_link = "META_LINK_TID"
 		self.title = ''
 		self.script_name = script_name
-		self.author = author
+		self.config = config
+		self.author = self.config['PATDEV_EMAIL']
+		self.check_duplicates = True
 		self.links = ''
 
 	def __str__ (self):
@@ -136,6 +135,33 @@ self.links,
 self.pattern_filename,
 self.title
 )
+
+	def __check_for_duplicates(self):
+		"Checks for pre-existing patterns with the same TID and/or BUG number"
+		print("Checking for Duplicates")
+		these_duplicates = {}
+		output_string = ''
+		duplicate_tids = subprocess.getoutput("find " + self.config['PATDEV_BASE'] + " -type f -exec grep " + self.tid_number + " {} \+ | grep META_LINK_TID")
+		if len(self.bug_number) > 1:
+			duplicate_bugs = subprocess.getoutput("find " + self.config['PATDEV_BASE'] + " -type f -exec grep " + self.bug_number + " {} \+ | grep META_LINK_BUG")
+		else:
+			duplicate_bugs = ''
+
+		if len(duplicate_tids) > 0:
+			for dup in duplicate_tids.split("\n"):
+				these_duplicates[dup.split(':')[0]] = True
+		if len(duplicate_bugs) > 0:
+			for dup in duplicate_bugs.split("\n"):
+				these_duplicates[dup.split(':')[0]] = True
+
+		if len(these_duplicates) > 0:
+			if len(duplicate_bugs) > 0:
+				print("+ Duplicate(s) found using TID{0} or BUG{1}".format(self.tid_number, self.bug_number))
+			else:
+				print("+ Duplicate(s) found using TID{0}".format(self.tid_number))
+			for dup in these_duplicates.keys():
+				print("  - " + dup)
+			print()
 
 	def __validate_links(self):
 		"Validate URLs built from user inputs"
@@ -163,6 +189,7 @@ self.title
 						invalid = True
 						break
 			print(DISPLAY.format(status, check_tag, check_url))
+			print()
 
 		if( invalid ):
 			print()
@@ -485,6 +512,8 @@ self.title
 				self.links = self.links + "|META_LINK_BUG=" + self.bug_url
 		if( len(self.other_url) > 0 ):
 			self.links = self.links + "|" + self.other_url
+		if self.check_duplicates:
+			self.__check_for_duplicates()
 		self.__validate_links()
 		self.title = self.__get_tid_title()
 
@@ -579,7 +608,6 @@ def option_error(msg):
 	usage()
 	sys.exit(1)
 
-
 ##############################################################################
 # Main
 ##############################################################################
@@ -672,7 +700,7 @@ if __name__ == "__main__":
 		conf_file_dict[key] = value.strip('"\'')
 	f.close()
 
-	pat = PatternTemplate(script_name, conf_file_dict['PATDEV_EMAIL'])
+	pat = PatternTemplate(script_name, conf_file_dict)
 	main(sys.argv)
 
 

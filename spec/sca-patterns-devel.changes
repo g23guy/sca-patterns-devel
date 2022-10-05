@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Oct  5 16:45:57 UTC 2022 - Jason Record <jason.record@suse.com>
+
+- Changes to 1.2.2
+  + Added duplicate pattern checking
+
+-------------------------------------------------------------------
 Wed Oct  5 14:02:30 UTC 2022 - jason.record@suse.com
 
 - patgen.py and gvc use PATDEV_EMAIL from the configuration file
