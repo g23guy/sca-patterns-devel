@@ -1,7 +1,9 @@
 -------------------------------------------------------------------
-Wed Oct  5 16:45:57 UTC 2022 - Jason Record <jason.record@suse.com>
+Wed Oct  5 16:54:36 UTC 2022 - Jason Record <jason.record@suse.com>
 
 - Changes to 1.2.2
+  + Added updating github repositories
+  + Includes -d --no-duplicates option to disable duplicate checking
   + Added duplicate pattern checking
 
 -------------------------------------------------------------------

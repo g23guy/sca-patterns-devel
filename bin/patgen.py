@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '1.0.5'
+SVER = '1.0.6'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
@@ -67,6 +67,7 @@ def usage():
 	print("  -s <name>, --service=<name>        The systemd service name affected")
 	print("  -u <[tag=]url>, --url=<[tag=]url>  Additional solution link URL. You can also enter a CVE number like \"CVE-2022-23303\"")
 	print("  -f, --flat                         All requested conditions are tested independently and not included in stacked order")
+	print("  -d, --no-duplicates                Don't check for duplicate patterns")
 	print()
 	print("METADATA")
 	print("  class:        SLE,HAE,SUMA,Security,Custom")
@@ -138,6 +139,9 @@ self.title
 
 	def __check_for_duplicates(self):
 		"Checks for pre-existing patterns with the same TID and/or BUG number"
+		print("Updating Pattern Repositories")
+		repos = subprocess.getoutput("gitpatterns")
+
 		print("Checking for Duplicates")
 		these_duplicates = {}
 		output_string = ''
@@ -523,6 +527,9 @@ self.title
 	def set_flat(self, status):
 		self.flat = status
 
+	def set_check_duplicates(self, status):
+		self.check_duplicates = status
+
 	def set_kernel(self, kernel_version):
 		self.kernel_version = kernel_version
 		if( self.kernel_version != "0" ):
@@ -625,7 +632,7 @@ def main(argv):
 	package_version = '0'
 
 	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "hc:fk:r:p:s:u:", ["help", "conditions=", "flast", "kernel-version=", "rpm=", "package-version=", "service=", "url="])
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hc:dfk:r:p:s:u:", ["help", "conditions=", "no-duplicates", "flat", "kernel-version=", "rpm=", "package-version=", "service=", "url="])
 	except getopt.GetoptError as exc:
 		title()
 		print("Error:", exc, file=sys.stderr)
@@ -646,6 +653,8 @@ def main(argv):
 			else:
 				title()
 				option_error("Error: Integer required for conditions, range is 0-3")
+		elif option in {"-d", "--no-duplicates"}:
+			pat.set_check_duplicates(False)
 		elif option in {"-f", "--flat"}:
 			pat.set_flat(True)
 		elif option in {"-k", "--kernel-version"}:
