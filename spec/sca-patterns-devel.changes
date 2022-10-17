@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
-Wed Oct  5 16:54:36 UTC 2022 - Jason Record <jason.record@suse.com>
+Mon Oct 17 20:02:42 UTC 2022 - jason.record@suse.com
 
 - Changes to 1.2.2
+  + Added -o --no-validation to override solution link validation
   + Added updating github repositories
   + Includes -d --no-duplicates option to disable duplicate checking
   + Added duplicate pattern checking

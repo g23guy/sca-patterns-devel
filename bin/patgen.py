@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.6'
+SVER = '1.0.7'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2022 Oct 05
+# Modified:     2022 Oct 17
 #
 ##############################################################################
 #
@@ -63,6 +63,7 @@ def usage():
 	print("  -c <0-3>, --conditions=<0-3>       Number of conditional functions to include, default=0")
 	print("  -k <ver>, --kernel-version=<ver>   The kernel's version where the issue is fixed")
 	print("  -r <name>, --rpm=<name>            The affected RPM package name")
+	print("  -o, --no-validation                Ignore invalid solution links")
 	print("  -p <ver>, --package-version=<ver>  The package's version where the issue is fixed")
 	print("  -s <name>, --service=<name>        The systemd service name affected")
 	print("  -u <[tag=]url>, --url=<[tag=]url>  Additional solution link URL. You can also enter a CVE number like \"CVE-2022-23303\"")
@@ -98,6 +99,7 @@ class PatternTemplate():
 		self.conditions = 0
 		self.flat = False
 		self.basic = True
+		self.override_validation = False
 		self.kernel_version = '0'
 		self.package_name = ''
 		self.package_version = '0'
@@ -199,11 +201,12 @@ self.title
 			print()
 			print("Error: Invalid link(s) found, please check and resubmit")
 			print()
-			sys.exit(2)
+			if not ( self.override_validation ):
+				sys.exit(2)
 
 	def __get_tid_title(self):
 		print("Evaluating TID" + self.tid_number)
-		this_title = "Manually enter the title"
+		this_title = "Manually enter the TID title"
 		try:
 			x = requests.get(self.tid_url)
 		except Exception as error:
@@ -526,6 +529,9 @@ self.title
 
 	def set_flat(self, status):
 		self.flat = status
+		
+	def set_override_validation(self, status):
+		self.override_validation = status
 
 	def set_check_duplicates(self, status):
 		self.check_duplicates = status
@@ -632,7 +638,7 @@ def main(argv):
 	package_version = '0'
 
 	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "hc:dfk:r:p:s:u:", ["help", "conditions=", "no-duplicates", "flat", "kernel-version=", "rpm=", "package-version=", "service=", "url="])
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hc:dfk:r:p:s:u:o", ["help", "conditions=", "no-duplicates", "flat", "kernel-version=", "rpm=", "package-version=", "service=", "url=", "no-validation"])
 	except getopt.GetoptError as exc:
 		title()
 		print("Error:", exc, file=sys.stderr)
@@ -667,6 +673,8 @@ def main(argv):
 			pat.set_service(arguement)
 		elif option in {"-u", "--url"}:
 			pat.set_other_url(arguement)
+		elif option in {"-o", "--no-validation"}:
+			pat.set_override_validation(True)
 
 	title()
 
