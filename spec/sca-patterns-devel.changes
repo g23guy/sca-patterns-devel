@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Oct 20 01:06:56 UTC 2022 - jason.record@suse.com
+
+- Changes to 1.2.4
+  + Added linkchk.py to validate solution links in patterns
+
+-------------------------------------------------------------------
 Mon Oct 17 20:02:42 UTC 2022 - jason.record@suse.com
 
 - Changes to 1.2.2
