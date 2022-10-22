@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.0'
+SVER = '1.0.1'
 ##############################################################################
 # linkchk.py - SCA Pattern Link Verification Tool
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Validates META_LINK solution URLs to ensure they are valid.
 #               Supports python and perl patterns with *.py and *.pl extensions.
-# Modified:     2022 Oct 19
+# Modified:     2022 Oct 22
 #
 ##############################################################################
 #
@@ -33,6 +33,9 @@ import re
 import getopt
 import requests
 import signal
+import subprocess
+from datetime import timedelta
+from timeit import default_timer as timer
 
 ##############################################################################
 # Global Options
@@ -41,10 +44,13 @@ import signal
 recurse_directory = False
 given_file = ''
 pattern_list = []
-c_ = {'current': 0, 'pat_total': 0, 'link_total': 0, 'badconnection': 0, "badurl": 0, "bugid": 0, "active_pattern": '', "active_link": ''}
+c_ = {'current': 0, 'pat_total': 0, 'link_total': 0, 'badconnection': 0, "badurl": 0, "bugid": 0, "ping": 0, "active_pattern": '', "active_link": ''}
 progress_bar_width = 57
 invalid_links = {}
 verbose = False
+elapsed = -1
+start = 0
+end = 0
 
 ##############################################################################
 # Functions
@@ -147,16 +153,35 @@ def validate(link_list):
 		c_['active_link'] = link
 		try:
 			x = requests.get(link, timeout=10)
-		except Exception as error:
-			status = "- Invalid Connection"
-			c_['badconnection'] += 1
-			bad_links[link] = "Invalid Connection"
-
-		if( x.status_code != 200 ):
+			x.raise_for_status()
+		except requests.exceptions.HTTPError as errh:
 			status = "- Invalid URL"
 			c_['badurl'] += 1
 			bad_links[link] = "Invalid URL"
-		else:
+			continue
+		except requests.exceptions.ConnectionError as errc:
+			status = "- Invalid Connection"
+			c_['badconnection'] += 1
+			bad_links[link] = "Invalid Connection"
+			continue
+		except requests.exceptions.Timeout as errt:
+			status = "- Server Timeout"
+			c_['ping'] += 1
+			bad_links[link] = "Server Timeout"
+			continue
+		except requests.exceptions.RequestException as err:
+			status = "- Invalid URL"
+			c_['badurl'] += 1
+			bad_links[link] = "Invalid URL"
+			continue
+		except Exception as error:
+			status = "- Unknown Error"
+			c_['ping'] += 1
+			bad_links[link] = "Unknown Error"
+			continue
+
+
+		if( x.status_code == 200 ):
 			data = x.text.split('\n')
 			badlink = re.compile('Invalid Bug ID')
 			for line in data:
@@ -172,22 +197,25 @@ def validate(link_list):
 def show_summary():
 	display = "{0:25} {1}"
 	print("Summary")
-	print("--------------------------------")
+	print("----------------------------------")
+	print(display.format("Elsapsed Runtime", str(elapsed).split('.')[0]))
 	print(display.format("Total Patterns Checked", c_['pat_total']))
 	print(display.format("Total Links Evaluated", c_['link_total']))
 	print(display.format("Invalid Connection Links", c_['badconnection']))
 	print(display.format("Invalid URLs", c_['badurl']))
+	print(display.format("Servers Down", c_['ping']))
 	print(display.format("Invalid Bug Content", c_['bugid']))
 	print(display.format("Active Pattern", c_['active_pattern']))
 	print(display.format("Active Link", c_['active_link']))
 	print()
 	print("Invalid Links")
-	print("--------------------------------")
+	print("----------------------------------")
+	ldisplay = "  {0:24} {1}"
 	if len(invalid_links) > 0:
 		for pattern in invalid_links.keys():
 			print(pattern)
 			for key, value in invalid_links[pattern].items():
-				print("  {0} - {1}".format(value, key))
+				print(ldisplay.format(value, key))
 	else:
 		print("None")
 	print()
@@ -198,7 +226,8 @@ def show_summary():
 
 def main(argv):
 	"main entry point"
-	global SVER, pattern_list, recurse_directory, c_, invalid_links, verbose
+	global SVER, pattern_list, recurse_directory, c_, invalid_links, verbose, elapsed, start, end
+	start = timer()
 	
 	try:
 		(optlist, args) = getopt.gnu_getopt(argv[1:], "hrv", ["help", "recurse", "verbose"])
@@ -246,7 +275,7 @@ def main(argv):
 
 	c_['pat_total'] = len(pattern_list)
 	if not verbose:
-		bar = ProgressBar("Validating links: ", progress_bar_width, c_['pat_total'])
+		bar = ProgressBar(" Validating links: ", progress_bar_width, c_['pat_total'])
 	for pattern in pattern_list:
 		if verbose:
 			print("{0}/{1} {2}".format(c_['current'], c_['pat_total'], pattern))
@@ -263,10 +292,13 @@ def main(argv):
 		bar.finish()
 	c_['active_pattern'] = "None"
 	c_['active_link'] = "None"
+	end = timer()
+	elapsed = str(timedelta(seconds=end-start))
 	show_summary()
 		
 # Entry point
 if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
 	main(sys.argv)
+
 

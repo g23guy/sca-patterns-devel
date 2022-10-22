@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Sat Oct 22 18:13:18 UTC 2022 - jason.record@suse.com
+
+- Added elasped time
+- Fixed URL exception handling
+
+-------------------------------------------------------------------
 Thu Oct 20 01:06:56 UTC 2022 - jason.record@suse.com
 
 - Changes to 1.2.4
