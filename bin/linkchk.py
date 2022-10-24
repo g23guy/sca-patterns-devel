@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.1'
+SVER = '1.0.2'
 ##############################################################################
 # linkchk.py - SCA Pattern Link Verification Tool
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Validates META_LINK solution URLs to ensure they are valid.
 #               Supports python and perl patterns with *.py and *.pl extensions.
-# Modified:     2022 Oct 22
+# Modified:     2022 Oct 24
 #
 ##############################################################################
 #
@@ -44,7 +44,7 @@ from timeit import default_timer as timer
 recurse_directory = False
 given_file = ''
 pattern_list = []
-c_ = {'current': 0, 'pat_total': 0, 'link_total': 0, 'badconnection': 0, "badurl": 0, "bugid": 0, "ping": 0, "active_pattern": '', "active_link": ''}
+c_ = {'current': 0, 'pat_total': 0, 'link_total': 0, 'nosolutions': 0, 'badconnection': 0, "badurl": 0, "bugid": 0, "ping": 0, "active_pattern": '', "active_link": ''}
 progress_bar_width = 57
 invalid_links = {}
 verbose = False
@@ -195,12 +195,13 @@ def validate(link_list):
 	return bad_links
 
 def show_summary():
-	display = "{0:25} {1}"
+	display = "{0:26} {1}"
 	print("Summary")
 	print("----------------------------------")
 	print(display.format("Elsapsed Runtime", str(elapsed).split('.')[0]))
 	print(display.format("Total Patterns Checked", c_['pat_total']))
 	print(display.format("Total Links Evaluated", c_['link_total']))
+	print(display.format("Patterns without Solutions", c_['nosolutions']))
 	print(display.format("Invalid Connection Links", c_['badconnection']))
 	print(display.format("Invalid URLs", c_['badurl']))
 	print(display.format("Servers Down", c_['ping']))
@@ -210,10 +211,13 @@ def show_summary():
 	print()
 	print("Invalid Links")
 	print("----------------------------------")
-	ldisplay = "  {0:24} {1}"
+	ldisplay = "  {0:25} {1}"
 	if len(invalid_links) > 0:
 		for pattern in invalid_links.keys():
 			print(pattern)
+			if invalid_links[pattern]['nosolutions']:
+				print(ldisplay.format('> Invalid Pattern', 'No valid solution links found'))
+			del invalid_links[pattern]['nosolutions']
 			for key, value in invalid_links[pattern].items():
 				print(ldisplay.format(value, key))
 	else:
@@ -285,6 +289,11 @@ def main(argv):
 		bad_urls = validate(url_list)
 		if len(bad_urls) > 0:
 			invalid_links[pattern] = bad_urls
+			if( len(bad_urls) == len(url_list) ):
+				invalid_links[pattern]['nosolutions'] = True
+				c_['nosolutions'] += 1
+			else:
+				invalid_links[pattern]['nosolutions'] = False
 		c_['current'] += 1
 		if not verbose:
 			bar.update(c_['current'])
