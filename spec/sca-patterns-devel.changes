@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Oct 24 23:34:50 UTC 2022 - user@localhost
+
+- Changes to 1.2.5
+  + Added invalid pattern checking
+  + Updated version string
+
+-------------------------------------------------------------------
 Mon Oct 24 23:07:09 UTC 2022 - jason.record@suse.com
 
 - Added invalid pattern checking when no solution links are found
