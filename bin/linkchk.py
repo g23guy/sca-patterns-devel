@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '1.0.3'
+SVER = '1.0.4'
 ##############################################################################
 # linkchk.py - SCA Pattern Link Verification Tool
 # Copyright (C) 2022 SUSE LLC
@@ -44,7 +44,7 @@ from timeit import default_timer as timer
 recurse_directory = False
 given_file = ''
 pattern_list = []
-c_ = {'current': 1, 'pat_total': 0, 'link_total': 0, 'nosolutions': 0, 'badconnection': 0, "badurl": 0, "bugid": 0, "ping": 0, "active_pattern": '', "active_link": ''}
+c_ = {'current': 0, 'pat_total': 0, 'link_total': 0, 'nosolutions': 0, 'badconnection': 0, "badurl": 0, "bugid": 0, "ping": 0, "active_pattern": '', "active_link": ''}
 progress_bar_width = 57
 invalid_links = {}
 verbose = False
@@ -293,6 +293,7 @@ def main(argv):
 	if not verbose:
 		bar = ProgressBar(" Validating links: ", progress_bar_width, c_['pat_total'])
 	for pattern in pattern_list:
+		c_['current'] += 1
 		if verbose:
 			print(cdisplay.format(c_['current'], c_['pat_total'], pattern))
 		c_['active_pattern'] = pattern
@@ -309,7 +310,6 @@ def main(argv):
 					print(vdisplay.format(status, pattern))
 			else:
 				invalid_links[pattern]['nosolutions'] = False
-		c_['current'] += 1
 		if not verbose:
 			bar.update(c_['current'])
 	if not verbose:
