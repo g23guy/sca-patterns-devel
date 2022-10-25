@@ -1,12 +1,17 @@
 -------------------------------------------------------------------
-Tue Oct 25 00:14:19 UTC 2022 - user@localhost
+Tue Oct 25 13:17:57 UTC 2022 - jason.record@suse.com
+
+- Fixed display issues
+
+-------------------------------------------------------------------
+Tue Oct 25 00:14:19 UTC 2022 - jason.record@suse.com
 
 - More changes to 1.2.5
   + More exact search for links added to weed out files that are not
     patterns
 
 -------------------------------------------------------------------
-Mon Oct 24 23:34:50 UTC 2022 - user@localhost
+Mon Oct 24 23:34:50 UTC 2022 - jason.record@suse.com
 
 - Changes to 1.2.5
   + Added invalid pattern checking

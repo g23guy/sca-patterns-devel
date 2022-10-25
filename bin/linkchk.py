@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.2_dev1'
+SVER = '1.0.3'
 ##############################################################################
 # linkchk.py - SCA Pattern Link Verification Tool
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Validates META_LINK solution URLs to ensure they are valid.
 #               Supports python and perl patterns with *.py and *.pl extensions.
-# Modified:     2022 Oct 24
+# Modified:     2022 Oct 25
 #
 ##############################################################################
 #
@@ -44,7 +44,7 @@ from timeit import default_timer as timer
 recurse_directory = False
 given_file = ''
 pattern_list = []
-c_ = {'current': 0, 'pat_total': 0, 'link_total': 0, 'nosolutions': 0, 'badconnection': 0, "badurl": 0, "bugid": 0, "ping": 0, "active_pattern": '', "active_link": ''}
+c_ = {'current': 1, 'pat_total': 0, 'link_total': 0, 'nosolutions': 0, 'badconnection': 0, "badurl": 0, "bugid": 0, "ping": 0, "active_pattern": '', "active_link": ''}
 progress_bar_width = 57
 invalid_links = {}
 verbose = False
@@ -137,7 +137,7 @@ def get_url_list(this_pattern):
 				find_links = re.compile('^OTHER_LINKS = "', re.IGNORECASE)
 			elif "#!/usr/bin/perl" in line:
 				type_perl = True
-				find_links = re.compile('^[[:space:]].*"META_LINK_.*=', re.IGNORECASE)
+				find_links = re.compile('^.*"META_LINK_.*=', re.IGNORECASE)
 	f.close()
 #	print(these_urls)
 
@@ -145,9 +145,8 @@ def get_url_list(this_pattern):
 
 def validate(link_list):
 	bad_links = {}
+	vdisplay = "  {0:23} {1}"
 	for link in link_list:
-		if verbose:
-			print("  {0}".format(link))
 		c_['link_total'] += 1
 		status = "+ Confirmed"
 		c_['active_link'] = link
@@ -158,26 +157,36 @@ def validate(link_list):
 			status = "- Invalid URL"
 			c_['badurl'] += 1
 			bad_links[link] = "Invalid URL"
+			if verbose:
+				print(vdisplay.format(status, link))
 			continue
 		except requests.exceptions.ConnectionError as errc:
 			status = "- Invalid Connection"
 			c_['badconnection'] += 1
 			bad_links[link] = "Invalid Connection"
+			if verbose:
+				print(vdisplay.format(status, link))
 			continue
 		except requests.exceptions.Timeout as errt:
 			status = "- Server Timeout"
 			c_['ping'] += 1
 			bad_links[link] = "Server Timeout"
+			if verbose:
+				print(vdisplay.format(status, link))
 			continue
 		except requests.exceptions.RequestException as err:
 			status = "- Invalid URL"
 			c_['badurl'] += 1
 			bad_links[link] = "Invalid URL"
+			if verbose:
+				print(vdisplay.format(status, link))
 			continue
 		except Exception as error:
 			status = "- Unknown Error"
 			c_['ping'] += 1
 			bad_links[link] = "Unknown Error"
+			if verbose:
+				print(vdisplay.format(status, link))
 			continue
 
 
@@ -191,7 +200,7 @@ def validate(link_list):
 					bad_links[link] = "Invalid BUG"
 					break
 		if verbose:
-			print("    {0}".format(status))
+			print(vdisplay.format(status, link))
 	return bad_links
 
 def show_summary():
@@ -216,7 +225,7 @@ def show_summary():
 		for pattern in invalid_links.keys():
 			print(pattern)
 			if invalid_links[pattern]['nosolutions']:
-				print(ldisplay.format('> Invalid Pattern', 'No valid solution links found'))
+				print(ldisplay.format('! Invalid Pattern', 'No valid solution links found'))
 			del invalid_links[pattern]['nosolutions']
 			for key, value in invalid_links[pattern].items():
 				print(ldisplay.format(value, key))
@@ -278,11 +287,14 @@ def main(argv):
 		pattern_list = get_pattern_list(path)
 
 	c_['pat_total'] = len(pattern_list)
+	vdisplay = "  {0:23} {1}"
+	csize = len(str(c_['pat_total']))
+	cdisplay = "{0:0" + str(csize) + "d}/{1} {2}"
 	if not verbose:
 		bar = ProgressBar(" Validating links: ", progress_bar_width, c_['pat_total'])
 	for pattern in pattern_list:
 		if verbose:
-			print("{0}/{1} {2}".format(c_['current'], c_['pat_total'], pattern))
+			print(cdisplay.format(c_['current'], c_['pat_total'], pattern))
 		c_['active_pattern'] = pattern
 		bad_urls = []
 		url_list = get_url_list(pattern)
@@ -292,6 +304,9 @@ def main(argv):
 			if( len(bad_urls) == len(url_list) ):
 				invalid_links[pattern]['nosolutions'] = True
 				c_['nosolutions'] += 1
+				status = "! Invalid Pattern"
+				if verbose:
+					print(vdisplay.format(status, pattern))
 			else:
 				invalid_links[pattern]['nosolutions'] = False
 		c_['current'] += 1
@@ -303,6 +318,8 @@ def main(argv):
 	c_['active_link'] = "None"
 	end = timer()
 	elapsed = str(timedelta(seconds=end-start))
+	if verbose:
+		print()
 	show_summary()
 		
 # Entry point
