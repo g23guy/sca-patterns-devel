@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Oct 25 20:47:36 UTC 2022 - jason.record@suse.com
+
+- Added a check for old hosts in solution URLs
+
+-------------------------------------------------------------------
 Tue Oct 25 18:09:04 UTC 2022 - jason.record@suse.com
 
 - Fixed counters

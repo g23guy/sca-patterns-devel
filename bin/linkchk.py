@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '1.0.4'
+SVER = '1.0.5'
 ##############################################################################
 # linkchk.py - SCA Pattern Link Verification Tool
 # Copyright (C) 2022 SUSE LLC
@@ -44,7 +44,7 @@ from timeit import default_timer as timer
 recurse_directory = False
 given_file = ''
 pattern_list = []
-c_ = {'current': 0, 'pat_total': 0, 'link_total': 0, 'nosolutions': 0, 'badconnection': 0, "badurl": 0, "bugid": 0, "ping": 0, "active_pattern": '', "active_link": ''}
+c_ = {'current': 0, 'pat_total': 0, 'link_total': 0, 'nosolutions': 0, 'badconnection': 0, "badurl": 0, "bugid": 0, "ping": 0, "oldhosts": 0, "active_pattern": '', "active_link": ''}
 progress_bar_width = 57
 invalid_links = {}
 verbose = False
@@ -146,6 +146,7 @@ def get_url_list(this_pattern):
 def validate(link_list):
 	bad_links = {}
 	vdisplay = "  {0:23} {1}"
+	oldhosts = re.compile("novell.com|microfocus.com", re.IGNORECASE)
 	for link in link_list:
 		c_['link_total'] += 1
 		status = "+ Confirmed"
@@ -190,6 +191,15 @@ def validate(link_list):
 			continue
 
 
+		urlhost = link.split('/')[2]
+		if oldhosts.search(urlhost):
+			status = "- Old Host"
+			c_['oldhosts'] += 1
+			bad_links[link] = "Old Host"
+			if verbose:
+				print(vdisplay.format(status, link))
+			continue
+
 		if( x.status_code == 200 ):
 			data = x.text.split('\n')
 			badlink = re.compile('Invalid Bug ID')
@@ -215,6 +225,7 @@ def show_summary():
 	print(display.format("Invalid URLs", c_['badurl']))
 	print(display.format("Servers Down", c_['ping']))
 	print(display.format("Invalid Bug Content", c_['bugid']))
+	print(display.format("Old Host Domains", c_['oldhosts']))
 	print(display.format("Active Pattern", c_['active_pattern']))
 	print(display.format("Active Link", c_['active_link']))
 	print()
