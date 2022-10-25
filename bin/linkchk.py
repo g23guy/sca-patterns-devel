@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '1.0.2'
+SVER = '1.0.2_dev1'
 ##############################################################################
 # linkchk.py - SCA Pattern Link Verification Tool
 # Copyright (C) 2022 SUSE LLC
@@ -134,10 +134,10 @@ def get_url_list(this_pattern):
 		else:
 			if "#!/usr/bin/python" in line:
 				type_python = True
-				find_links = re.compile('OTHER_LINKS = "', re.IGNORECASE)
+				find_links = re.compile('^OTHER_LINKS = "', re.IGNORECASE)
 			elif "#!/usr/bin/perl" in line:
 				type_perl = True
-				find_links = re.compile('"META_LINK_.*=', re.IGNORECASE)
+				find_links = re.compile('^[[:space:]].*"META_LINK_.*=', re.IGNORECASE)
 	f.close()
 #	print(these_urls)
 
