@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.5'
+SVER = '1.0.6'
 ##############################################################################
 # linkchk.py - SCA Pattern Link Verification Tool
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Validates META_LINK solution URLs to ensure they are valid.
 #               Supports python and perl patterns with *.py and *.pl extensions.
-# Modified:     2022 Oct 25
+# Modified:     2022 Oct 27
 #
 ##############################################################################
 #
@@ -236,7 +236,7 @@ def show_summary():
 		for pattern in invalid_links.keys():
 			print(pattern)
 			if invalid_links[pattern]['nosolutions']:
-				print(ldisplay.format('! Invalid Pattern', 'No valid solution links found'))
+				print(ldisplay.format('! No Solutions', pattern))
 			del invalid_links[pattern]['nosolutions']
 			for key, value in invalid_links[pattern].items():
 				print(ldisplay.format(value, key))
@@ -316,7 +316,7 @@ def main(argv):
 			if( len(bad_urls) == len(url_list) ):
 				invalid_links[pattern]['nosolutions'] = True
 				c_['nosolutions'] += 1
-				status = "! Invalid Pattern"
+				status = "! No Solutions"
 				if verbose:
 					print(vdisplay.format(status, pattern))
 			else:
