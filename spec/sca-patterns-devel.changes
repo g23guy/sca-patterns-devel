@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Sat Oct 29 17:14:27 UTC 2022 - jason.record@suse.com
+Sat Oct 29 17:33:45 UTC 2022 - jason.record@suse.com
 
+- Fixed hash pling errors with perl and summary display
 - Fixed KeyError Recommed type
 - Fixed path to pat
 

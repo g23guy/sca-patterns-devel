@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.2'
+SVER = '2.0.3'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2022 SUSE LLC
@@ -233,7 +233,7 @@ def validate_pattern(this_pattern):
 	for binline in data:
 		line = binline.decode('ascii')
 		if hashpling.search(line):
-			hpl = line[2:] #drop the #!, keep the path
+			hpl = line[2:].split()[0] #drop the #!, keep the path
 			break
 
 	if len(hpl) > 0:
@@ -243,6 +243,7 @@ def validate_pattern(this_pattern):
 	if hplmissing:
 		meta_error['any'] = True
 		meta_error['hpl'] = True
+		status = 'Fatal'
 
 def show_meta_errors():
 	edisplay = "- {0}"
@@ -407,7 +408,10 @@ def main(argv):
 	elapsed = str(timedelta(seconds=end-start))
 	if verbose:
 		print()
-	show_summary()
+	if c_['total_pat'] > 0:
+		show_summary()
+	else:
+		print("No patterns found\n")
 		
 # Entry point
 if __name__ == "__main__":
