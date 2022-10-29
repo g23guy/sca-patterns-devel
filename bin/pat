@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.3'
+SVER = '2.0.3_dev1'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2022 SUSE LLC
@@ -47,9 +47,9 @@ archive_list = []
 defpath = {'archives': '/var/opt/patdev', 'patterns': '', 'scalib': '/opt/patdev/patterns/sca-patterns-base/libraries'}
 usepath = defpath
 overall_dict = {"-2": "Temporary", "-1": "Partial", "0": "Success", "1": "Recommend", "2": "Promotion", "3": "Warning", "4": "Critical", "5": "Error", "6": "Ignore"}
-c_ = {'current': 0, 'total': 0, 'total_pat': 0, 'total_arch': 0, "active_pattern": '', "active_archive": '', 'Fatal': 0, 'Temporary': 0, 'Partial': 0, 'Success': 0, 'Recommend': 0, 'Promotion': 0, 'Warning': 0, 'Critical': 0, 'Error': 0, 'Ignore': 0}
-meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False}
-progress_bar_width = 57
+c_ = {'current': 0, 'total': 0, 'total_pat': 0, 'total_arch': 0, "active_pattern": '', "active_archive": '', 'skipped': 0, 'Fatal': 0, 'Temporary': 0, 'Partial': 0, 'Success': 0, 'Recommend': 0, 'Promotion': 0, 'Warning': 0, 'Critical': 0, 'Error': 0, 'Ignore': 0}
+meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False, 'notsca': False}
+progress_bar_width = 65
 invalid_patterns = []
 verbose = False
 elapsed = -1
@@ -70,7 +70,7 @@ def title():
 
 def usage():
 	"Displays usage information"
-	print("Usage: pat [options] [path_to_pattern(s)]")
+	print("Usage: pat [options] <path_to_pattern|directory>")
 	print()
 	print("Options:")
 	print("  -h, --help     Display this help")
@@ -114,6 +114,7 @@ def show_summary():
 	print(display.format("Patterns Checked", c_['total_pat']))
 	print(display.format("Archives Tested", c_['total_arch']))
 	print(display.format("Total Checks", c_['total']))
+	print(display.format("Files Skipped", c_['skipped']))
 	print(display.format("Fatal", c_['Fatal']))
 	print(display.format("Errors", c_['Error']))
 	print(display.format("Ignored", c_['Ignore']))
@@ -224,17 +225,25 @@ def validate_pattern(this_pattern):
 		meta_error['any'] = True
 		meta_error['dos'] = True
 
-	# Validate pattern hash pling
+	# Validate pattern hash pling and SCA pattern
 	data = bindata.splitlines()
 	hashpling = re.compile('^#!/')
 	validhpls = re.compile('python3$|perl$')
+	scapattern = re.compile('^Core.init\(META_CLASS|^\@PATTERN_RESULTS = \(', re.IGNORECASE)
 	hpl = ''
 	hplmissing = True
+	scafile = False
 	for binline in data:
 		line = binline.decode('ascii')
 		if hashpling.search(line):
 			hpl = line[2:].split()[0] #drop the #!, keep the path
+		if scapattern.search(line):
+			scafile = True
 			break
+
+	if not scafile:
+		meta_error['notsca'] = True
+		return
 
 	if len(hpl) > 0:
 		if os.path.exists(hpl):
@@ -243,7 +252,6 @@ def validate_pattern(this_pattern):
 	if hplmissing:
 		meta_error['any'] = True
 		meta_error['hpl'] = True
-		status = 'Fatal'
 
 def show_meta_errors():
 	edisplay = "- {0}"
@@ -269,15 +277,26 @@ def run_pattern(this_pattern, this_archive):
 	status = ''
 	status_display = "Status: {0}"
 	valid_output = re.compile("^META_CLASS=.*|META_CATEGORY=.*|META_COMPONENT=.*|PATTERN_ID=.*|PRIMARY_LINK=META_LINK_.*|OVERALL=.*|OVERALL_INFO=.*|META_LINK_")
-	meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False}
+	meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False, 'notsca': False}
 
 	validate_pattern(this_pattern)
-	if meta_error['any']:
-		status = 'Fatal'
-		c_['Fatal'] += 1
 
 	if verbose:
 		print(run_display.format(this_pattern, this_archive))
+
+	if meta_error['notsca']:
+		c_['skipped'] += 1
+		status = 'Skipped, Not an SCA Pattern'
+		if verbose:
+			print(status_display.format(status))
+			hbar("-")
+			print()
+		return
+
+
+	if meta_error['any']:
+		status = 'Fatal'
+		c_['Fatal'] += 1
 
 	try:
 		p = subprocess.run([this_pattern, '-p', this_archive], universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -297,7 +316,6 @@ def run_pattern(this_pattern, this_archive):
 			print()
 		if meta_error['any']:
 			invalid_patterns.append([this_pattern, this_archive])
-
 		return
 
 	if p.returncode > 0:
@@ -380,7 +398,11 @@ def main(argv):
 	if len(args) > 0:
 		usepath['patterns'] = args[0]
 	else:
-		usepath['patterns'] = os.getcwd()
+		print("Error: Missing path to pattern file or directory, use . for current directory\n")
+		usage()
+		sys.exit(1)
+
+
 	pattern_list = prepare_patterns()
 	c_['total_pat'] = len(pattern_list)
 
@@ -388,7 +410,7 @@ def main(argv):
 	print()
 
 	if not verbose:
-		bar = ProgressBar(" Checking Patterns: ", progress_bar_width, c_['total'])
+		bar = ProgressBar(" Checking: ", progress_bar_width, c_['total'])
 
 	for pattern in pattern_list:
 		for archive in archive_list:

@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Sat Oct 29 18:46:46 UTC 2022 - jason.record@suse.com
+
+- Skip non-SCA files
+
+-------------------------------------------------------------------
 Sat Oct 29 17:33:45 UTC 2022 - jason.record@suse.com
 
 - Fixed hash pling errors with perl and summary display
