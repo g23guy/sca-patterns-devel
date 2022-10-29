@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Sat Oct 29 16:58:36 UTC 2022 - jason.record@suse.com
+Sat Oct 29 17:00:36 UTC 2022 - jason.record@suse.com
 
+- Updated pat version string
 - Converted pat from bash to python3 based
 
 -------------------------------------------------------------------
