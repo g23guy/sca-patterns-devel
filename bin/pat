@@ -1,12 +1,12 @@
-#!/bin/bash
-SVER='1.0.13'
-
+#!/usr/bin/python3
+SVER = '0.0.2_dev1'
 ##############################################################################
-#  pat - Pattern Tester Tool
-#  Copyright (C) 2014-2021 SUSE LLC
+# pat - SCA Pattern Checker Tool
+# Copyright (C) 2022 SUSE LLC
 #
-# Description:  Tests one pattern against several supportconfig archives.
-# Modified:     2021 Jan 26
+# Description:  Runs a pattern or patterns against supportconfig directories to
+#               check the pattern's output based on the supportconfig directory.
+# Modified:     2022 Oct 29
 #
 ##############################################################################
 #
@@ -27,193 +27,391 @@ SVER='1.0.13'
 #
 ##############################################################################
 
-LCONF='/etc/opt/patdev/patdev.conf'
-[[ -s $LCONF ]] && . $LCONF || { echo "ERROR: File not found, $LCONF"; echo; exit 1; }
+import sys
+import os
+import re
+import getopt
+import signal
+import subprocess
+from datetime import timedelta
+from timeit import default_timer as timer
 
-: ${SCA_LIBRARY_PATH:="${PATDEV_BASE}/sca-patterns-base/libraries"}
-: ${SCA_PATTERN_PATH:="${PATDEV_BASE}"}
-: ${DEFAULT_ARCHDIR:="${PATDEV_ARCH_DIR}"}
-BASHLIB="${SCA_LIBRARY_PATH}/bash"
-PERL5LIB="${PERL5LIB}:${SCA_LIBRARY_PATH}/perl/"
-PYTHONPATH="${PYTHONPATH}:${SCA_LIBRARY_PATH}/python/"
-export SCA_LIBRARY_PATH SCA_PATTERN_PATH BASHLIB PERL5LIB PYTHONPATH
+##############################################################################
+# Global Options
+##############################################################################
 
-title() {
-	echo "##########################################################################"
-	echo "# PAT - SCA Pattern Tester v$SVER"
-	echo "##########################################################################"
-}
+recurse_archives = False
+recurse_patterns = False
+pattern_list = []
+archive_list = []
+defpath = {'archives': '/var/opt/patdev', 'patterns': '', 'scalib': '/opt/patdev/patterns/sca-patterns-base/libraries'}
+usepath = defpath
+overall_dict = {"-2": "Temporary", "-1": "Partial", "0": "Success", "1": "Recommed", "2": "Promotion", "3": "Warning", "4": "Critical", "5": "Error", "6": "Ignore"}
+c_ = {'current': 0, 'total': 0, 'total_pat': 0, 'total_arch': 0, "active_pattern": '', "active_archive": '', 'Fatal': 0, 'Temporary': 0, 'Partial': 0, 'Success': 0, 'Recommend': 0, 'Promotion': 0, 'Warning': 0, 'Critical': 0, 'Error': 0, 'Ignore': 0}
+meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False}
+progress_bar_width = 57
+invalid_patterns = []
+verbose = False
+elapsed = -1
+hbar_length = 90
 
-CMDLINE=$*
-ARCHIVES=0
-ERR_MODE=0
-ERR_BIN=0
-ERR_OUT=0
-ERR_HPL=0
-ERR_DOS=0
-RET_FAT=0
+##############################################################################
+# Functions
+##############################################################################
 
-RET_TMP=0
-RET_PAR=0
-RET_GRN=0
-RET_REC=0
-RET_PRO=0
-RET_YEL=0
-RET_RED=0
-RET_ERR=0
-RET_IGN=0
+def hbar(_type):
+	print("{}".format(_type*hbar_length))
 
-usage() {
-	echo "Usage:"
-	echo "  $(basename $0) pattern [pattern options]"
-	echo
-	echo "Set ARCHDIR in your environment to overide the default archive"
-	echo "directory. The ARCHDIR directory should contain all of the"
-	echo "extracted supportconfig tar balls you wish to test against."
-	echo
-}
+def title():
+	"Display the program title"
+	hbar("#")
+	print("# SCA Pattern Checker v" + str(SVER))
+	hbar("#")
 
-count_rc() {
-	PRC=$1
-	case $PRC in
-	6) ((RET_IGN++)) ;;
-	5) ((RET_ERR++)) ;;
-	4) ((RET_RED++)) ;;
-	3) ((RET_YEL++)) ;;
-	2) ((RET_PRO++)) ;;
-	1) ((RET_REC++)) ;;
-	0) ((RET_GRN++)) ;;
-	-1) ((RET_PAR++)) ;;
-	-2) ((RET_TMP++)) ;;
-	esac
-}
+def usage():
+	"Displays usage information"
+	print("Usage: pat [options] [path_to_pattern(s)]")
+	print()
+	print("Options:")
+	print("  -h, --help     Display this help")
+	print("  -a, --archives Root directory for supportconfig archives to be used for testing")
+	print("  -r, --recurse  Validate patterns and archives recursively found in the directory structures")
+	print("  -v, --verbose  Display verbose logging messages")
+	print()
 
-validateOutput() {
-	echo "$PATOUT"
-	if echo $PATOUT | grep '^META_CLASS=.*|META_CATEGORY=.*|META_COMPONENT=.*|PATTERN_ID=.*|PRIMARY_LINK=META_LINK_.*|OVERALL=.*|OVERALL_INFO=.*|META_LINK_' &>/dev/null
-	then
-		OVERALL=$(echo $PATOUT | grep 'OVERALL=' | cut -d\| -f6 | cut -d= -f2)
-		count_rc $OVERALL
-	else
-		((RET_FAT++))
-		((ERR_OUT++))
-		(( DEBUG )) && OVERALL="Debug" || OVERALL="Failed"
-	fi
-}
+def signal_handler(sig, frame):
+	print("\n\nAborting...\n")
+	show_summary()
+	sys.exit(1)
 
-########################################
-# main
-########################################
+class ProgressBar():
+	"Initialize and update progress bar class"
+	def __init__(self, prefix, bar_width, total):
+		self.prefix = prefix
+		self.bar_width = bar_width
+		self.total = total
+		self.out = sys.stdout
 
-clear
-title
-[[ -z "$ARCHDIR" ]] && ARCHDIR="$DEFAULT_ARCHDIR"
-printf "Archive Directory:      "
-if [ -d ${ARCHDIR} ]; then
-	echo "$ARCHDIR"
-else
-	echo "$ARCHDIR"
-	printf "ERROR: Missing or invalid directory\n\n"
-	usage
-	exit 2
-fi
-echo "Pattern Directory:      $SCA_PATTERN_PATH"
-echo "SCA Library Directory:  $SCA_LIBRARY_PATH"
+	def __str__(self):
+		return 'class %s(\n  prefix=%r \n  bar_width=%r \n  total=%r\n)' % (self.__class__.__name__, self.prefix, self.bar_width, self.total)
 
-if echo $CMDLINE | grep ' -d' &>/dev/null; then
-	DEBUG=1
-else
-	DEBUG=0
-fi
-if [ "$1" == "" ]; then
-	echo
-	printf "ERROR: Missing pattern to test\n\n"
-	usage
-	exit 1
-elif [ "$1" == "-h" ]; then
-	echo
-	usage
-	exit 0
-elif [ ! -s $1 ]; then
-	echo
-	printf "ERROR: Cannot open pattern: $1\n\n"
-	usage
-	exit 3
-fi
-PATFULL=$(readlink -f $1)
-shift
-if head -1 $PATFULL | grep -v '#!/' &>/dev/null; then
-	((RET_FAT++))
-	((ERR_HPL++))
-else
-	HASH_PLING=$(head -1 $PATFULL)
-	if echo $HASH_PLING | grep -i python &>/dev/null
-	then
-		echo "Python Libraries:       $PYTHONPATH"
-	elif echo $HASH_PLING | grep -i perl &>/dev/null
-	then
-		echo "Perl Libraries:         $PERL5LIB"
-	elif echo $HASH_PLING | grep -i bash &>/dev/null
-	then
-		echo "Bash Libraries:         $BASHLIB"
-	fi
-fi
-echo
-if head -1 $PATFULL | grep '^ ' &>/dev/null; then
-	((RET_FAT++))
-	((ERR_HPL++))
-fi
-[[ ! -x $PATFULL ]] && { ((ERR_MODE++)); ((RET_FAT++)); }
-if grep  $PATFULL &>/dev/null
-then
-	((RET_FAT++))
-	((ERR_DOS++))
-fi
+	def update(self, count):
+		percent_complete = int(100*count/self.total)
+		current_progress = int(self.bar_width*count/self.total)
+		print("{}[{}{}] {:3g}% {:3g}/{}".format(self.prefix, "#"*current_progress, "."*(self.bar_width-current_progress), percent_complete, count, self.total), end='\r', file=self.out, flush=True)
 
-if [[ -s $ARCHDIR/basic-environment.txt ]]; then
-	echo "Running: $PATFULL $@ -p $ARCHDIR"
-	PATOUT=$($PATFULL $@ -p ${ARCHDIR}/)
-	RC=$?
-	test $RC -gt 0 && { ((ERR_BIN++)); ((RET_FAT++)); }
-	validateOutput # sets OVERALL
-	echo "Returns: $RC, Overall: $OVERALL"
-	((ARCHIVES++))
-else
-	for i in $(find -L ${ARCHDIR}/ -maxdepth 1 -type d | egrep "nts_|scc_")
-	do
-		echo "Running: $PATFULL $@ -p $i"
-		PATOUT=$(perl $PATFULL $@ -p $i)
-		RC=$?
-		test $RC -gt 0 && { ((ERR_BIN++)); ((RET_FAT++)); }
-		validateOutput # sets OVERALL
-		echo "Returns: $RC, Overall: $OVERALL"
-		((ARCHIVES++))
-		echo "--------------------------------------------------------------------------"
-		echo
-	done
-fi
-echo
-echo "##[ Summary ]#############################################################"
-echo
-echo "Archive Directory:     $ARCHDIR"
-echo "SCA Library Directory: $SCA_LIBRARY_PATH"
-echo "Archive(s) Tested:     $ARCHIVES"
-echo "Pattern Tested:        $PATFULL"
-echo "  Fatal: $RET_FAT, Err: $RET_ERR, Ign: $RET_IGN, Cri: $RET_RED, Wrn: $RET_YEL, Pro: $RET_PRO, Rec: $RET_REC, Good: $RET_GRN"
-echo
-echo "##########################################################################"
-echo
-if (( RET_FAT )); then
-	echo "WARNING:"
-	echo "You have fatal errors, refer to the pat documentation."
-	echo
-	(( ERR_DOS )) && echo "- Detected DOS file format, use 'dos2unix ${PATFULL}' to convert"
-	(( ERR_BIN )) && echo "- Pattern execution error, pattern returned non-zero"
-	(( ERR_MODE )) && echo "- Missing execute permission"
-	(( ERR_OUT )) && echo "- Invalid pattern output string, review Pattern Requirements"
-	(( ERR_HPL )) && echo "- Missing or invalid hash pling"
-	echo "##########################################################################"
-	echo
-fi
-exit 0
+	def finish(self):
+		print("\n", flush=True, file=self.out)
+
+def show_summary():
+	display = "{0:26} {1}"
+	print("Summary")
+	hbar("-")
+	print(display.format("Elsapsed Runtime", str(elapsed).split('.')[0]))
+	print(display.format("Pattern Directory", usepath['patterns']))
+	print(display.format("Archive Directory", usepath['archives']))
+	print(display.format("SCA Library Directory", usepath['scalib']))
+	print(display.format("Patterns Checked", c_['total_pat']))
+	print(display.format("Archives Tested", c_['total_arch']))
+	print(display.format("Total Checks", c_['total']))
+	print(display.format("Fatal", c_['Fatal']))
+	print(display.format("Errors", c_['Error']))
+	print(display.format("Ignored", c_['Ignore']))
+	print(display.format("Critical", c_['Critical']))
+	print(display.format("Warning", c_['Warning']))
+	print(display.format("Proactive", c_['Promotion']))
+	print(display.format("Recommended", c_['Recommend']))
+	print(display.format("Success", c_['Success']))
+	if len(c_['active_pattern']) > 0:
+		print(display.format("Active Pattern", c_['active_pattern']))
+	if len(c_['active_archive']) > 0:
+		print(display.format("Active Archive", c_['active_archive']))
+	print()
+	print("Fatal Patterns")
+	hbar("-")
+	ldisplay = "  {0:25} {1}"
+	if len(invalid_patterns) > 0:
+		for invalid_pattern in invalid_patterns:
+			print("clear; /home/opt/scatools/sca-patterns-devel/bin/patchk.py -va " + invalid_pattern[1] + " " + invalid_pattern[0])
+	else:
+		print("None")
+	print()
+
+def set_environment():
+	os.environ['PERL5LIB'] = usepath['scalib'] + '/perl'
+	os.environ['PYTHONPATH'] = usepath['scalib'] + '/python'
+
+def get_archive_list(this_path):
+	scadir = re.compile("^scc_|^nts_", re.IGNORECASE)
+	subfolders = []
+	supportconfig_dir = this_path + "/basic-environment.txt"
+
+	if os.path.exists(supportconfig_dir):
+		subfolders.append(this_path)
+	else:
+		these_folders = [f.path for f in os.scandir(this_path) if f.is_dir()]
+
+		if recurse_archives:
+			for dirname in list(these_folders):
+				these_folders.extend(get_archive_list(dirname))
+
+		for folder in these_folders:
+			if scadir.search(os.path.basename(folder)):
+				subfolders.append(folder)
+				
+	return subfolders
+
+def prepare_archives():
+	these_archives = []
+	if os.path.isdir(usepath['archives']):
+		usepath['archives'] = os.path.abspath(usepath['archives'])
+		if recurse_archives:
+			print("Recursively Loading Archives from " + usepath['archives'])
+		else:
+			print("Loading Archives from " + usepath['archives'])
+		these_archives = get_archive_list(usepath['archives'])
+	else:
+		print("Error: Invalid archive path - " + usepath['archives'] + "\n")
+		usage()
+		sys.exit(5)
+
+	return these_archives
+
+def get_pattern_list():
+	this_list = []
+	include_file = re.compile(".py$|.pl$")
+	for dirpath, subdirs, files in os.walk(usepath['patterns'], topdown = True):
+		for file in files:
+			if include_file.search(file):
+				this_list.append(os.path.join(dirpath, file))
+		if not recurse_patterns:
+			break
+	return this_list
+
+def prepare_patterns():
+	these_patterns = []
+
+	if os.path.isdir(usepath['patterns']):
+		usepath['patterns'] = os.path.abspath(usepath['patterns'])
+		if recurse_patterns:
+			print("Recursively Processing " + usepath['patterns'])
+		else:
+			print("Processing " + usepath['patterns'])
+		these_patterns = get_pattern_list()
+	elif os.path.isfile(usepath['patterns']):
+		usepath['patterns'] = os.path.abspath(usepath['patterns'])
+		print("Processing file " + usepath['patterns'])
+		these_patterns.append(usepath['patterns'])
+	else:
+		print("Error: Invalid pattern file or path - " + usepath['patterns'] + "\n")
+		usage()
+		sys.exit(5)
+
+	return these_patterns
+
+def validate_pattern(this_pattern):
+	# Validate pattern mode
+	if not os.access(this_pattern, os.X_OK):
+		meta_error['any'] = True
+		meta_error['mode'] = True
+
+	# Validate UNIX text files
+	with open(this_pattern, 'rb') as f:
+		bindata = f.read()
+	f.close()
+
+	if b'\x0d\x0a' in bindata: # Look for \r\n
+		meta_error['any'] = True
+		meta_error['dos'] = True
+
+	# Validate pattern hash pling
+	data = bindata.splitlines()
+	hashpling = re.compile('^#!/')
+	validhpls = re.compile('python3$|perl$')
+	hpl = ''
+	hplmissing = True
+	for binline in data:
+		line = binline.decode('ascii')
+		if hashpling.search(line):
+			hpl = line[2:] #drop the #!, keep the path
+			break
+
+	if len(hpl) > 0:
+		if os.path.exists(hpl):
+			if validhpls.search(hpl):
+				hplmissing = False
+	if hplmissing:
+		meta_error['any'] = True
+		meta_error['hpl'] = True
+
+def show_meta_errors():
+	edisplay = "- {0}"
+	if meta_error['any']:
+		if verbose:
+			if meta_error['dos']:
+				print(edisplay.format("Detected DOS file format, use dos2unix to convert"))
+			if meta_error['mode']:
+				print(edisplay.format("Missing execute permission"))
+			if meta_error['hpl']:
+				print(edisplay.format("Missing or invalid hash pling"))
+			if meta_error['out']:
+				print(edisplay.format("Invalid pattern output string, review Pattern Requirements"))
+			if meta_error['bin']:
+				print(edisplay.format("Pattern execution error, pattern returned non-zero"))
+
+def run_pattern(this_pattern, this_archive):
+	global meta_error
+	run_display = "Running: {0} -p {1}\n"
+	IDX_OVERALL = 5
+	IDX_LAST = -1
+	output = []
+	status = ''
+	status_display = "Status: {0}"
+	valid_output = re.compile("^META_CLASS=.*|META_CATEGORY=.*|META_COMPONENT=.*|PATTERN_ID=.*|PRIMARY_LINK=META_LINK_.*|OVERALL=.*|OVERALL_INFO=.*|META_LINK_")
+	meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False}
+
+	validate_pattern(this_pattern)
+	if meta_error['any']:
+		status = 'Fatal'
+		c_['Fatal'] += 1
+
+	if verbose:
+		print(run_display.format(this_pattern, this_archive))
+
+	try:
+		p = subprocess.run([this_pattern, '-p', this_archive], universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	except Exception as e:
+#		print('Exception') ### DEBUG
+		meta_error['bin'] = True # not working
+		if not meta_error['any']:
+			c_['Fatal'] += 1
+		status = 'Fatal'
+		meta_error['any'] = True
+
+		if verbose:
+			print(str(e) + "\n")
+			show_meta_errors()
+			print(status_display.format(status))
+			hbar("-")
+			print()
+		if meta_error['any']:
+			invalid_patterns.append([this_pattern, this_archive])
+
+		return
+
+	if p.returncode > 0:
+#		print('None-Zero Return Code') ### DEBUG
+		if not meta_error['any']:
+			c_['Fatal'] += 1
+		status = 'Fatal'
+		meta_error['any'] = True
+		meta_error['bin'] = True
+
+		if verbose:
+			print(p.stdout)
+			print(p.stderr)
+	else:
+		if valid_output.search(p.stdout):
+#			print('Valid Execution, Output Found') ### DEBUG
+			lines = p.stdout.splitlines()
+			if len(lines) > 1:
+				meta_error['any'] = True
+				meta_error['out'] = True
+				status = 'Fatal'
+				c_['Fatal'] += 1
+			else:
+				output = p.stdout.split('|')
+				overall = output[IDX_OVERALL].split("=")[IDX_LAST]
+				c_[overall_dict[overall]] += 1
+				status = overall_dict[overall]
+			if verbose:
+				print(p.stdout)
+		else:
+#			print('Valid Execution, Output MISSING') ### DEBUG
+			if not meta_error['any']:
+				c_['Fatal'] += 1
+			status = 'Fatal'
+			meta_error['any'] = True
+			meta_error['out'] = True
+
+	if meta_error['any']:
+		invalid_patterns.append([this_pattern, this_archive])
+	if verbose:
+		show_meta_errors()
+		print(status_display.format(status))
+		hbar("-")
+		print()
+
+##############################################################################
+# Main
+##############################################################################
+
+def main(argv):
+	"main entry point"
+	global SVER, pattern_list, archive_list, recurse_archives, recurse_patterns, c_, invalid_patterns, verbose, elapsed, defpath, usepath, hbar_length, meta_error
+	start = timer()
+	
+	try:
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "ha:rv", ["help", "archives=", "recurse", "verbose"])
+	except getopt.GetoptError as exc:
+		title()
+		usage()
+		print("Error:", exc, file=sys.stderr)
+		sys.exit(2)
+	for opt in optlist:
+		if opt[0] in {"-h", "--help"}:
+			title()
+			usage()
+			sys.exit(0)
+		elif opt[0] in {"-a", "--archives"}:
+			usepath['archives'] = opt[1]
+		elif opt[0] in {"-r", "--recurse"}:
+			recurse_archives = True
+			recurse_patterns = True
+		elif opt[0] in {"-v", "--verbose"}:
+			verbose = True
+
+	title()
+	set_environment()
+	archive_list = prepare_archives()
+	c_['total_arch'] = len(archive_list)
+
+	if len(args) > 0:
+		usepath['patterns'] = args[0]
+	else:
+		usepath['patterns'] = os.getcwd()
+	pattern_list = prepare_patterns()
+	c_['total_pat'] = len(pattern_list)
+
+	c_['total'] = c_['total_pat'] * c_['total_arch']
+	print()
+
+	if not verbose:
+		bar = ProgressBar(" Checking Patterns: ", progress_bar_width, c_['total'])
+
+	for pattern in pattern_list:
+		for archive in archive_list:
+			c_['current'] += 1
+			c_['active_pattern'] = pattern
+			c_['active_archive'] = archive
+			run_pattern(pattern, archive)
+			if not verbose:
+				bar.update(c_['current'])
+	c_['active_pattern'] = ''
+	c_['active_archive'] = ''
+
+	if not verbose:
+		bar.finish()
+
+	end = timer()
+	elapsed = str(timedelta(seconds=end-start))
+	if verbose:
+		print()
+	show_summary()
+		
+# Entry point
+if __name__ == "__main__":
+	signal.signal(signal.SIGINT, signal_handler)
+	main(sys.argv)
+
 

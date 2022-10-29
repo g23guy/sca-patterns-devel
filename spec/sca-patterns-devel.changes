@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Sat Oct 29 16:58:36 UTC 2022 - jason.record@suse.com
+
+- Converted pat from bash to python3 based
+
+-------------------------------------------------------------------
 Thu Oct 27 12:49:55 UTC 2022 - jason.record@suse.com
 
 - Added pattern filename with no solutions

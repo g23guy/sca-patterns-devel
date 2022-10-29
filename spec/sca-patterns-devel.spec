@@ -16,8 +16,8 @@
 %define patdevconfdir %{_sysconfdir}/opt/%{patdevbase}
 
 Name:         sca-patterns-devel
-Version:      1.2.5
-Release:      3
+Version:      1.2.6
+Release:      0
 Summary:      Supportconf Analysis Pattern Development Tools
 License:      GPL-2.0-only
 URL:          https://github.com/g23guy/sca-patterns-devel
