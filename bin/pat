@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.3_dev1'
+SVER = '2.0.4'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2022 SUSE LLC
