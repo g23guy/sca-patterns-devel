@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Sat Oct 29 18:46:46 UTC 2022 - jason.record@suse.com
+Sat Oct 29 21:19:37 UTC 2022 - jason.record@suse.com
 
+- Added invalid pattern short list
 - Skip non-SCA files
 
 -------------------------------------------------------------------

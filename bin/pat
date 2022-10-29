@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.4'
+SVER = '2.0.5'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2022 SUSE LLC
@@ -51,6 +51,7 @@ c_ = {'current': 0, 'total': 0, 'total_pat': 0, 'total_arch': 0, "active_pattern
 meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False, 'notsca': False}
 progress_bar_width = 65
 invalid_patterns = []
+invalid_pattern_shortlist = {}
 verbose = False
 elapsed = -1
 hbar_length = 90
@@ -128,7 +129,12 @@ def show_summary():
 	if len(c_['active_archive']) > 0:
 		print(display.format("Active Archive", c_['active_archive']))
 	print()
-	print("Fatal Patterns")
+	print("Fatal Pattern Short List")
+	hbar("-")
+	for pattern in invalid_pattern_shortlist.keys():
+		print(pattern)
+	print()
+	print("Fatal Pattern Details")
 	hbar("-")
 	ldisplay = "  {0:25} {1}"
 	if len(invalid_patterns) > 0:
@@ -316,6 +322,7 @@ def run_pattern(this_pattern, this_archive):
 			print()
 		if meta_error['any']:
 			invalid_patterns.append([this_pattern, this_archive])
+			invalid_pattern_shortlist[this_pattern] = True
 		return
 
 	if p.returncode > 0:
@@ -355,6 +362,7 @@ def run_pattern(this_pattern, this_archive):
 
 	if meta_error['any']:
 		invalid_patterns.append([this_pattern, this_archive])
+		invalid_pattern_shortlist[this_pattern] = True
 	if verbose:
 		show_meta_errors()
 		print(status_display.format(status))
@@ -367,7 +375,8 @@ def run_pattern(this_pattern, this_archive):
 
 def main(argv):
 	"main entry point"
-	global SVER, pattern_list, archive_list, recurse_archives, recurse_patterns, c_, invalid_patterns, verbose, elapsed, defpath, usepath, hbar_length, meta_error
+	global SVER, pattern_list, archive_list, recurse_archives, recurse_patterns, c
+	global invalid_patterns, invalid_pattern_shortlist, verbose, elapsed, defpath, usepath, hbar_length, meta_error
 	start = timer()
 	
 	try:
