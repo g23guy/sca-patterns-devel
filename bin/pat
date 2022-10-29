@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.1'
+SVER = '2.0.2'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2022 SUSE LLC
@@ -46,7 +46,7 @@ pattern_list = []
 archive_list = []
 defpath = {'archives': '/var/opt/patdev', 'patterns': '', 'scalib': '/opt/patdev/patterns/sca-patterns-base/libraries'}
 usepath = defpath
-overall_dict = {"-2": "Temporary", "-1": "Partial", "0": "Success", "1": "Recommed", "2": "Promotion", "3": "Warning", "4": "Critical", "5": "Error", "6": "Ignore"}
+overall_dict = {"-2": "Temporary", "-1": "Partial", "0": "Success", "1": "Recommend", "2": "Promotion", "3": "Warning", "4": "Critical", "5": "Error", "6": "Ignore"}
 c_ = {'current': 0, 'total': 0, 'total_pat': 0, 'total_arch': 0, "active_pattern": '', "active_archive": '', 'Fatal': 0, 'Temporary': 0, 'Partial': 0, 'Success': 0, 'Recommend': 0, 'Promotion': 0, 'Warning': 0, 'Critical': 0, 'Error': 0, 'Ignore': 0}
 meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False}
 progress_bar_width = 57
