@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.0'
+SVER = '2.0.1'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2022 SUSE LLC
@@ -132,7 +132,7 @@ def show_summary():
 	ldisplay = "  {0:25} {1}"
 	if len(invalid_patterns) > 0:
 		for invalid_pattern in invalid_patterns:
-			print("clear; /home/opt/scatools/sca-patterns-devel/bin/patchk.py -va " + invalid_pattern[1] + " " + invalid_pattern[0])
+			print("clear; pat -va " + invalid_pattern[1] + " " + invalid_pattern[0])
 	else:
 		print("None")
 	print()
