@@ -1,0 +1,438 @@
+#!/usr/bin/python3
+SVER = '2.0.0_b1'
+##############################################################################
+# scconvert - Supportconfig Archive Directory Name Converter
+# Copyright (c) 2022 SUSE LLC
+#
+# Description:  Changes the directory name to a meanful one
+# Modified:	 2022 Oct 31
+#
+##############################################################################
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; version 2 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, see <http://www.gnu.org/licenses/>.
+#
+#  Authors/Contributors:
+#	 Jason Record <jason.record@suse.com>
+#
+##############################################################################
+
+import sys
+import os
+import re
+import getopt
+import signal
+import subprocess
+from datetime import timedelta
+
+##############################################################################
+# Global Options
+##############################################################################
+
+hbar_length = 120
+reset_directories = False
+recurse_archives = False
+display = ''
+
+
+##############################################################################
+# Functions
+##############################################################################
+
+def hbar(_type):
+	print("{}".format(_type*hbar_length))
+
+def title():
+	"Display the program title"
+	hbar("#")
+	print("# SCA Pattern Checker v" + str(SVER))
+	hbar("#")
+
+def usage():
+	"Displays usage information"
+	print("Usage: scconvert [options] <path_to_directory>")
+	print()
+	print("Options:")
+	print(" -h, -help        Displays this screen")
+	print(" -r, --recurse    Recurse through all subdirectories in the given path")
+	print(" -s, --reset      Reset directory name to original supportconfig name")
+	print(" -t, --tag=<name> Add directory name tag")
+	print()
+
+def get_archive_list(this_path):
+	scadir = re.compile("^scc_|^nts_", re.IGNORECASE)
+	these_folders = []
+	subfolders = []
+	basic = "/basic-environment.txt"
+
+	if os.path.exists(this_path + basic):
+		subfolders.append(this_path)
+	else:
+		if recurse_archives:
+			for root, dirs, files in os.walk(this_path, topdown=False):
+				for name in dirs:
+					test_path = os.path.join(root, name)
+					if os.path.exists(test_path + basic):
+						these_folders.append(test_path)
+		else:
+			for root, dirs, files in os.walk(this_path, topdown=True):
+				for name in dirs:
+					test_path = os.path.join(root, name)
+					if os.path.exists(test_path + basic):
+						these_folders.append(test_path)
+				break
+
+		for folder in these_folders:
+			if scadir.search(os.path.basename(folder)):
+				subfolders.append(folder)
+
+	return subfolders
+
+def prepare_archives(_dir):
+	these_archives = []
+	if os.path.isdir(_dir):
+		_dir = os.path.abspath(_dir)
+		if recurse_archives:
+			print("Recursively Loading Archives from " + _dir)
+		else:
+			print("Loading Archives from " + _dir)
+		these_archives = get_archive_list(_dir)
+	else:
+		print("Error: Invalid directory path - " + _dir + "\n")
+		usage()
+		sys.exit(5)
+
+	return these_archives
+
+def set_display(these_archives):
+	global display
+	size = 0
+	for archive in these_archives:
+		this_size = len(archive)
+		if this_size > size:
+			size = this_size
+	display = "{0:" + str(size) + "} -> {1}"
+
+def reset_path(_dir):
+	reset_path = ''
+	source = _dir + '/supportconfig.txt'
+	original_path = re.compile("Data Directory:.*/", re.IGNORECASE)
+	converted_path = _dir
+	name = ''
+	try:
+		with open(source) as f:
+			file = f.read().splitlines()
+	except Exception as e:
+		print(display.format(source, str(e)))
+		basic_env = []
+		return converted_path
+
+
+	file = open(source, 'rt', errors='ignore')
+	name = ''
+
+	missing = True
+	for line in file:
+		if original_path.search(line):
+			name = line.split('/')[-1].strip()
+			missing = False
+			break
+	file.close()
+	
+	if missing:
+		print(display.format(_dir, "ERROR: Missing data directory from supportconfig.txt"))
+		reset_path = ''
+	else:
+		reset_path = os.path.dirname(_dir) + '/' + name
+
+	return reset_path
+
+def get_host_info(_file):
+	element = {}
+	in_state = False
+	uname = re.compile("uname -a")
+
+	for line in _file:
+		if in_state:
+			elements = line.split()
+			element['hostname'] = elements[1]
+			element['arch'] = elements[-4]
+			break
+		elif uname.search(line):
+			in_state = True
+
+	return element
+
+def get_virt_info(_file):
+	element = ''
+	tag_hyper = re.compile("^Hypervisor:\s", re.IGNORECASE)
+	tag_id = re.compile("^Identity:\s", re.IGNORECASE)
+	base = ''
+	identity = ''
+	virt_found = False
+	for line in _file:
+		if tag_hyper.search(line):
+			line = line.lower()
+			if "none" in line:
+				break
+			elif "xen" in line:
+				virt_found = True
+				base = "xen"
+			elif "kvm" in line:
+				virt_found = True
+				base = "kvm"
+			elif "vmware" in line:
+				virt_found = True
+				base = "vmware"
+			elif "microsoft" in line:
+				virt_found = True
+				base = "ms"
+			elif "virtualbox" in line:
+				virt_found = True
+				base = "sunvbx"
+		elif tag_id.search(line):
+			if "Server" in line:
+				identity = 'vms'
+			else:
+				identity = 'vm'
+	if virt_found:
+		element = identity + "-" + base
+
+	return element
+
+def get_distro(_file):
+	element = ''
+	os_release = re.compile("^# /etc/os-release$")
+	os_in_state = False
+	missing = True
+	base = 'sle'
+	major = '0'
+	minor = '0'
+
+	# search os-release info
+	for line in _file:
+		if os_in_state:
+			if line.startswith("VERSION_ID="):
+				missing = False
+				version = line.split('=')[-1].strip('"\'')
+				parts = version.split('.')
+				major = parts[0]
+				if len(parts) > 1:
+					minor = parts[1]
+			elif line.startswith("NAME="):
+				line = line.lower()
+				if "micro" in line:
+					base = "slemicro"
+			elif line.startswith("#==["):
+				break
+		elif os_release.search(line):
+			os_in_state = True
+	if missing:
+		# search SuSE-release
+		suse_release = re.compile("^# /etc/SuSE-release$")
+		suse_in_state = False
+		for line in _file:
+			if suse_in_state:
+				if line.startswith("VERSION ="):
+					missing = False
+					major = line.split('=')[-1].strip()
+				elif line.startswith("PATCHLEVEL ="):
+					minor = line.split('=')[-1].strip()
+				elif line.startswith("#==["):
+					break
+			elif suse_release.search(line):
+				suse_in_state = True
+			
+	if not missing:
+		element = base + major + "sp" + minor
+	return element
+
+def get_hae(_file):
+	element = ''
+	prod_name = re.compile(r'<summary>SUSE Linux Enterprise High Availability Extension.*</summary>', re.IGNORECASE)
+	for line in _file:
+		if prod_name.search(line):
+			element = 'hae'
+	return element
+
+def get_suma(_file):
+	element = ''
+	prod_name = re.compile(r'<name>SUSE-Manager.*</name>', re.IGNORECASE)
+	for line in _file:
+		if prod_name.search(line):
+			element = 'suma'
+	return element
+
+def get_distro_vm(_file):
+	element = ''
+	prod_name = re.compile(r'<summary>SUSE Linux Enterprise Server .* for VMware</summary>', re.IGNORECASE)
+	for line in _file:
+		if prod_name.search(line):
+			element = 'suma'
+	return element
+
+def get_distro_sap(_file):
+	element = ''
+	prod_name = re.compile(r'<description>SUSE LINUX Enterprise Server for SAP Applications</description>', re.IGNORECASE)
+	for line in _file:
+		if prod_name.search(line):
+			element = 'sap'
+	return element
+
+def get_runinfo(_file):
+	element = ''
+	rundate = re.compile("<rundate>.*</rundate>")
+	runtime = re.compile("<runtime>.*</runtime>")
+	add_date = '000000'
+	add_time = '0000'
+
+	for line in _file:
+		if rundate.search(line):
+			add_date = line.split('>')[1].split('<')[0]
+		elif runtime.search(line):
+			add_time = line.split('>')[1].split('<')[0]
+	element = add_date + add_time
+	return element
+
+def convert_path(_dir, _tag):
+	IDX_DISTRO = 1
+	converted_path = ''
+	basic_env = []
+	summary = []
+	host = {}
+	info = ['scc']
+
+	# Open needed files
+	source = _dir + "/basic-environment.txt"
+	basedir = os.path.dirname(_dir)
+	try:
+		with open(source) as f:
+			basic_env = f.read().splitlines()
+	except Exception as e:
+		print(display.format(source, str(e)))
+		basic_env = []
+		return converted_path
+
+	source = _dir + "/summary.xml"
+	try:
+		with open(source) as f:
+			summary = f.read().splitlines()
+	except Exception as e:
+		print(display.format(_dir, "Warning: Missing summary.xml"))
+		summary = []
+
+	# Gather server data for path conversion
+	host = get_host_info(basic_env)
+	info.append(get_distro(basic_env))
+	info.append(host['arch'])
+
+	# Gather additional summary information
+	if len(summary) > 0:
+		info.append(get_runinfo(summary))
+		info.append(get_virt_info(basic_env))
+		info.append(get_hae(summary))
+		info.append(get_suma(summary))
+		info.append(get_distro_vm(summary))
+		info.append(get_distro_sap(summary))
+	else:
+		info.append(get_virt_info(basic_env))
+
+	del basic_env
+	del summary
+
+	info.append(host['hostname'])
+	info.append(_tag)
+
+	# Clean up empty elements 
+	while '' in info:
+		info.remove('')
+
+	conversion = "_".join(info)
+	converted_path = basedir + "/" + conversion
+
+		
+	return converted_path
+
+def change_path(_before, _after):
+	if _before == _after:
+		print(display.format(_before, "Unchanged"))
+	elif len(_after) == 0:
+		print(display.format(_before, "Cannot convert empty directory name"))
+	elif os.path.exists(_after):
+		print(display.format(_before, "Duplicate - " + _after))
+	else:
+		print(display.format(_before, _after))
+		os.rename(_before, _after)
+   
+##############################################################################
+# Main
+##############################################################################
+
+def main(argv):
+	"main entry point"
+	global SVER, reset_directories, recurse_archives, display, hbar_length
+	tag = ''
+	basedir = ''
+	after = ''
+	
+	try:
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hrst:", ["help", "recurse", "reset", "tag="])
+	except getopt.GetoptError as exc:
+		title()
+		usage()
+		print("Error:", exc, file=sys.stderr)
+		sys.exit(2)
+	for opt in optlist:
+		if opt[0] in {"-h", "--help"}:
+			title()
+			usage()
+			sys.exit(0)
+		elif opt[0] in {"-r", "--recurse"}:
+			recurse_archives = True
+#			recurse_archives = False # currently broken and now disabled until fix is found
+#			print("Disabled for bug review")
+		elif opt[0] in {"-s", "--reset"}:
+			reset_directories = True
+		elif opt[0] in {"-t", "--tag"}:
+			tag = opt[1]
+
+	title()
+	if len(args) > 0:
+		if args[0] == '.':
+			basedir = os.getcwd()
+		else:
+			basedir = args[0]
+	else:
+		usage()
+		sys.exit(1)
+
+	archive_list = prepare_archives(basedir)
+	if len(archive_list) > 0:
+		set_display(archive_list)
+		if reset_directories:
+			print("Resetting Directory Names")
+			for before in archive_list:
+				after = reset_path(before)
+				change_path(before, after)
+		else:
+			print("Converting Directory Names")
+			for before in archive_list:
+				after = convert_path(before, tag)
+				change_path(before, after)
+	else:
+		print("No supportconfig directories to convert")
+	print()
+
+# Entry point
+if __name__ == "__main__":
+	main(sys.argv)
+

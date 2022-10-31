@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Oct 31 21:14:47 UTC 2022 - jason.record@suse.com
+
+- Changes to version 1.2.7
+  + Added scconvert to convert archive directory names
+  + Renamed files to remove .py
+
+-------------------------------------------------------------------
 Sat Oct 29 21:19:37 UTC 2022 - jason.record@suse.com
 
 - Added invalid pattern short list
