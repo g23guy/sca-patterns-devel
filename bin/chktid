@@ -1,5 +1,5 @@
 #!/bin/bash
-SVER='1.0.2'
+SVER='1.0.3'
 
 ##############################################################################
 #  chktid - TID Checker
@@ -7,7 +7,7 @@ SVER='1.0.2'
 #
 # Description:  Checks existing patterns for the string given, usually a TID
 #               number.
-# Modified:     2022 Jun 01
+# Modified:     2022 Nov 01
 #
 ##############################################################################
 #
@@ -29,13 +29,13 @@ SVER='1.0.2'
 ##############################################################################
 
 
-LCONF='/etc/opt/patdev/patdev.conf'
+LCONF='/etc/opt/patdevel/patdev.conf'
 [[ -s $LCONF ]] && . $LCONF || { echo "ERROR: File not found, $LCONF"; echo; exit 1; }
 
 clear
 echo "Checking Patterns for $1"
-echo "Root Directory: $PATDEV_BASE"
-cd ${PATDEV_BASE}
-find ${PATDEV_BASE}/ -type f | grep patterns | sort | xargs grep "$1"
+echo "Pattern Root Directory: $PATDEV_REPOS_DIR"
+cd ${PATDEV_REPOS_DIR}
+find ${PATDEV_REPOS_DIR}/ -type f | grep patterns | sort | xargs grep "$1"
 echo
 

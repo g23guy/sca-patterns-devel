@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Wed Nov  2 13:55:50 UTC 2022 - jason.record@suse.com
+
+- Changes to version 1.2.8
+  + Consolidated directory to /var/opt/patdevel
+  + Updated pat to read configuration file
+  + scconvert does better check for SAP and VMware
+
+-------------------------------------------------------------------
 Mon Oct 31 21:14:47 UTC 2022 - jason.record@suse.com
 
 - Changes to version 1.2.7

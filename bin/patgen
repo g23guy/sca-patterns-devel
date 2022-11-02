@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.7'
+SVER = '1.0.8'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2022 Oct 17
+# Modified:     2022 Nov 01
 #
 ##############################################################################
 #
@@ -38,7 +38,7 @@ import requests
 
 # Global Options
 script_name = "SCA Tool Python Pattern Generator"
-conf_file = "/etc/opt/patdev/patdev.conf"
+conf_file = "/etc/opt/patdevel/patdev.conf"
 conf_file_dict = {}
 
 # Class and Function Definitions
@@ -147,9 +147,9 @@ self.title
 		print("Checking for Duplicates")
 		these_duplicates = {}
 		output_string = ''
-		duplicate_tids = subprocess.getoutput("find " + self.config['PATDEV_BASE'] + " -type f -exec grep " + self.tid_number + " {} \+ | grep META_LINK_TID")
+		duplicate_tids = subprocess.getoutput("find " + self.config['PATDEV_REPOS_DIR'] + " -type f -exec grep " + self.tid_number + " {} \+ | grep META_LINK_TID")
 		if len(self.bug_number) > 1:
-			duplicate_bugs = subprocess.getoutput("find " + self.config['PATDEV_BASE'] + " -type f -exec grep " + self.bug_number + " {} \+ | grep META_LINK_BUG")
+			duplicate_bugs = subprocess.getoutput("find " + self.config['PATDEV_REPOS_DIR'] + " -type f -exec grep " + self.bug_number + " {} \+ | grep META_LINK_BUG")
 		else:
 			duplicate_bugs = ''
 

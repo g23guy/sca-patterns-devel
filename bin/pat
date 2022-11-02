@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.5'
+SVER = '2.0.6'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Runs a pattern or patterns against supportconfig directories to
 #               check the pattern's output based on the supportconfig directory.
-# Modified:     2022 Oct 29
+# Modified:     2022 Nov 01
 #
 ##############################################################################
 #
@@ -44,8 +44,7 @@ recurse_archives = False
 recurse_patterns = False
 pattern_list = []
 archive_list = []
-defpath = {'archives': '/var/opt/patdev', 'patterns': '', 'scalib': '/opt/patdev/patterns/sca-patterns-base/libraries'}
-usepath = defpath
+usepath = {'archives': '', 'patterns': '', 'scalib': ''}
 overall_dict = {"-2": "Temporary", "-1": "Partial", "0": "Success", "1": "Recommend", "2": "Promotion", "3": "Warning", "4": "Critical", "5": "Error", "6": "Ignore"}
 c_ = {'current': 0, 'total': 0, 'total_pat': 0, 'total_arch': 0, "active_pattern": '', "active_archive": '', 'skipped': 0, 'Fatal': 0, 'Temporary': 0, 'Partial': 0, 'Success': 0, 'Recommend': 0, 'Promotion': 0, 'Warning': 0, 'Critical': 0, 'Error': 0, 'Ignore': 0}
 meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False, 'notsca': False}
@@ -55,6 +54,9 @@ invalid_pattern_shortlist = {}
 verbose = False
 elapsed = -1
 hbar_length = 90
+conf_file = "/etc/opt/patdevel/patdev.conf"
+conf_file_dict = {}
+
 
 ##############################################################################
 # Functions
@@ -375,7 +377,7 @@ def run_pattern(this_pattern, this_archive):
 
 def main(argv):
 	"main entry point"
-	global SVER, pattern_list, archive_list, recurse_archives, recurse_patterns, c
+	global SVER, pattern_list, archive_list, recurse_archives, recurse_patterns, c, conf_file, conf_file_dict
 	global invalid_patterns, invalid_pattern_shortlist, verbose, elapsed, defpath, usepath, hbar_length, meta_error
 	start = timer()
 	
@@ -447,6 +449,26 @@ def main(argv):
 # Entry point
 if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
+	try:
+		f = open(conf_file, "rt")
+	except Exception as error:
+		title()
+		print("{0} {1}, {2}".format("ERROR: Missing configuration file: ", conf_file, str(error)))
+		print()
+		sys.exit(3)
+
+	skipped_line = re.compile("^#|^$", re.IGNORECASE)
+	for line in f.readlines():
+		line = line.strip("\n")
+		if skipped_line.search(line):
+			continue
+		key, value = line.split('=')
+		value = value.strip('"')
+		conf_file_dict[key] = value.strip('"\'')
+	f.close()
+	usepath['archives'] = conf_file_dict['PATDEV_ARCH_DIR']
+	usepath['scalib'] = conf_file_dict['SCALIB_DIR']
+
 	main(sys.argv)
 
 
