@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.0_b2'
+SVER = '2.0.0_b3'
 ##############################################################################
 # scconvert - Supportconfig Archive Directory Name Converter
 # Copyright (c) 2022 SUSE LLC
@@ -133,7 +133,7 @@ def reset_path(_dir):
 			file = f.read().splitlines()
 	except Exception as e:
 		print(display.format(source, str(e)))
-		basic_env = []
+		hardware = []
 		return converted_path
 
 
@@ -174,13 +174,25 @@ def get_host_info(_file):
 
 def get_virt_info(_file):
 	element = ''
+	tag_hyperven = re.compile("Hypervisor vendor:.*[a-z]", re.IGNORECASE)
+	tag_aws = re.compile("^Manufacturer:.*Amazon.*EC2", re.IGNORECASE)
+	tag_gce = re.compile("^Hardware:.*Google Compute Engine", re.IGNORECASE)
 	tag_hyper = re.compile("^Hypervisor:\s", re.IGNORECASE)
 	tag_id = re.compile("^Identity:\s", re.IGNORECASE)
+	pub_cloud = ''
 	base = ''
 	identity = ''
 	virt_found = False
 	for line in _file:
-		if tag_hyper.search(line):
+		if tag_aws.search(line):
+			virt_found = True
+			pub_cloud = 'aws'
+			identity = 'vm'
+		elif tag_gce.search(line):
+			virt_found = True
+			pub_cloud = 'gce'
+			identity = 'vm'
+		elif tag_hyper.search(line):
 			line = line.lower()
 			if "none" in line:
 				break
@@ -195,17 +207,26 @@ def get_virt_info(_file):
 				base = "vmware"
 			elif "microsoft" in line:
 				virt_found = True
-				base = "ms"
+				base = "azure"
 			elif "virtualbox" in line:
 				virt_found = True
 				base = "sunvbx"
+		elif tag_hyperven.search(line):
+			line = line.lower()
+			if "kvm" in line:
+				virt_found = True
+				base = "kvm"
 		elif tag_id.search(line):
-			if "Server" in line:
-				identity = 'vms'
-			else:
-				identity = 'vm'
+			if len(identity) == 0:
+				if "Server" in line:
+					identity = 'vms'
+				else:
+					identity = 'vm'
 	if virt_found:
-		element = identity + "-" + base
+		if len(pub_cloud) > 0:
+			element = identity + "-" + pub_cloud + "-" + base
+		else:
+			element = identity + "-" + base
 
 	return element
 
@@ -306,8 +327,10 @@ def get_runinfo(_file):
 def convert_path(_dir, _tag):
 	IDX_DISTRO = 1
 	converted_path = ''
-	basic_env = []
+	basic = []
+	hardware = []
 	summary = []
+	hardware = []
 	host = {}
 	info = ['scc']
 
@@ -316,10 +339,10 @@ def convert_path(_dir, _tag):
 	basedir = os.path.dirname(_dir)
 	try:
 		with open(source) as f:
-			basic_env = f.read().splitlines()
+			basic = f.read().splitlines()
 	except Exception as e:
 		print(display.format(source, str(e)))
-		basic_env = []
+		hardware = []
 		return converted_path
 
 	source = _dir + "/summary.xml"
@@ -330,23 +353,32 @@ def convert_path(_dir, _tag):
 		print(display.format(_dir, "Warning: Missing summary.xml"))
 		summary = []
 
+	source = _dir + "/hardware.txt"
+	try:
+		with open(source) as f:
+			hardware = f.read().splitlines()
+	except Exception as e:
+		print(display.format(_dir, "Warning: Missing summary.xml"))
+		hardware = []
+
 	# Gather server data for path conversion
-	host = get_host_info(basic_env)
-	info.append(get_distro(basic_env))
+	host = get_host_info(basic)
+	info.append(get_distro(basic))
 	info.append(host['arch'])
+	del basic
 
 	# Gather additional summary information
 	if len(summary) > 0:
 		info.append(get_runinfo(summary))
-		info.append(get_virt_info(basic_env))
-		info.append(get_hae(summary))
-		info.append(get_suma(summary))
+		info.append(get_virt_info(hardware))
 		info.append(get_distro_vm(summary))
 		info.append(get_distro_sap(summary))
+		info.append(get_hae(summary))
+		info.append(get_suma(summary))
 	else:
-		info.append(get_virt_info(basic_env))
+		info.append(get_virt_info(hardware))
 
-	del basic_env
+	del hardware
 	del summary
 
 	info.append(host['hostname'])
@@ -358,8 +390,13 @@ def convert_path(_dir, _tag):
 
 	conversion = "_".join(info)
 	converted_path = basedir + "/" + conversion
+	dupid = 1
+	duplicate_path = converted_path
+	while os.path.exists(duplicate_path):
+		duplicate_path = "{0}_{1:02d}".format(converted_path, dupid)
+		dupid += 1
+	converted_path = duplicate_path
 
-		
 	return converted_path
 
 def change_path(_before, _after):
