@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Nov  4 16:25:37 UTC 2022 - jason.record@suse.com
+
+- Added -q, --quiet which returns the number of fatal patterns
+
+-------------------------------------------------------------------
 Thu Nov  3 01:15:09 UTC 2022 - jason.record@suse.com
 
 - Changes to version 1.2.8

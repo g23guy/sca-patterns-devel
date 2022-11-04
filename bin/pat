@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.6'
+SVER = '2.0.7'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Runs a pattern or patterns against supportconfig directories to
 #               check the pattern's output based on the supportconfig directory.
-# Modified:     2022 Nov 01
+# Modified:     2022 Nov 04
 #
 ##############################################################################
 #
@@ -51,7 +51,8 @@ meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': Fa
 progress_bar_width = 65
 invalid_patterns = []
 invalid_pattern_shortlist = {}
-verbose = False
+log_level = {'quiet': 0, 'normal': 1, 'verbose': 2}
+logging = log_level['normal']
 elapsed = -1
 hbar_length = 90
 conf_file = "/etc/opt/patdevel/patdev.conf"
@@ -79,6 +80,7 @@ def usage():
 	print("  -h, --help     Display this help")
 	print("  -a, --archives Root directory for supportconfig archives to be used for testing")
 	print("  -r, --recurse  Validate patterns and archives recursively found in the directory structures")
+	print("  -q, --quiet    Not output is displayed. The number of fatal patterns is returned as the exit status")
 	print("  -v, --verbose  Display verbose logging messages")
 	print()
 
@@ -174,10 +176,11 @@ def prepare_archives():
 	these_archives = []
 	if os.path.isdir(usepath['archives']):
 		usepath['archives'] = os.path.abspath(usepath['archives'])
-		if recurse_archives:
-			print("Recursively Loading Archives from " + usepath['archives'])
-		else:
-			print("Loading Archives from " + usepath['archives'])
+		if logging > log_level['quiet']:
+			if recurse_archives:
+				print("Recursively Loading Archives from " + usepath['archives'])
+			else:
+				print("Loading Archives from " + usepath['archives'])
 		these_archives = get_archive_list(usepath['archives'])
 	else:
 		print("Error: Invalid archive path - " + usepath['archives'] + "\n")
@@ -202,14 +205,16 @@ def prepare_patterns():
 
 	if os.path.isdir(usepath['patterns']):
 		usepath['patterns'] = os.path.abspath(usepath['patterns'])
-		if recurse_patterns:
-			print("Recursively Processing " + usepath['patterns'])
-		else:
-			print("Processing " + usepath['patterns'])
+		if logging > log_level['quiet']:
+			if recurse_patterns:
+				print("Recursively Processing " + usepath['patterns'])
+			else:
+				print("Processing " + usepath['patterns'])
 		these_patterns = get_pattern_list()
 	elif os.path.isfile(usepath['patterns']):
 		usepath['patterns'] = os.path.abspath(usepath['patterns'])
-		print("Processing file " + usepath['patterns'])
+		if logging > log_level['quiet']:
+			print("Processing file " + usepath['patterns'])
 		these_patterns.append(usepath['patterns'])
 	else:
 		print("Error: Invalid pattern file or path - " + usepath['patterns'] + "\n")
@@ -264,7 +269,7 @@ def validate_pattern(this_pattern):
 def show_meta_errors():
 	edisplay = "- {0}"
 	if meta_error['any']:
-		if verbose:
+		if logging > log_level['normal']:
 			if meta_error['dos']:
 				print(edisplay.format("Detected DOS file format, use dos2unix to convert"))
 			if meta_error['mode']:
@@ -289,13 +294,13 @@ def run_pattern(this_pattern, this_archive):
 
 	validate_pattern(this_pattern)
 
-	if verbose:
+	if logging > log_level['normal']:
 		print(run_display.format(this_pattern, this_archive))
 
 	if meta_error['notsca']:
 		c_['skipped'] += 1
 		status = 'Skipped, Not an SCA Pattern'
-		if verbose:
+		if logging > log_level['normal']:
 			print(status_display.format(status))
 			hbar("-")
 			print()
@@ -316,7 +321,7 @@ def run_pattern(this_pattern, this_archive):
 		status = 'Fatal'
 		meta_error['any'] = True
 
-		if verbose:
+		if logging > log_level['normal']:
 			print(str(e) + "\n")
 			show_meta_errors()
 			print(status_display.format(status))
@@ -335,7 +340,7 @@ def run_pattern(this_pattern, this_archive):
 		meta_error['any'] = True
 		meta_error['bin'] = True
 
-		if verbose:
+		if logging > log_level['normal']:
 			print(p.stdout)
 			print(p.stderr)
 	else:
@@ -352,7 +357,7 @@ def run_pattern(this_pattern, this_archive):
 				overall = output[IDX_OVERALL].split("=")[IDX_LAST]
 				c_[overall_dict[overall]] += 1
 				status = overall_dict[overall]
-			if verbose:
+			if logging > log_level['normal']:
 				print(p.stdout)
 		else:
 #			print('Valid Execution, Output MISSING') ### DEBUG
@@ -365,7 +370,7 @@ def run_pattern(this_pattern, this_archive):
 	if meta_error['any']:
 		invalid_patterns.append([this_pattern, this_archive])
 		invalid_pattern_shortlist[this_pattern] = True
-	if verbose:
+	if logging > log_level['normal']:
 		show_meta_errors()
 		print(status_display.format(status))
 		hbar("-")
@@ -378,11 +383,11 @@ def run_pattern(this_pattern, this_archive):
 def main(argv):
 	"main entry point"
 	global SVER, pattern_list, archive_list, recurse_archives, recurse_patterns, c, conf_file, conf_file_dict
-	global invalid_patterns, invalid_pattern_shortlist, verbose, elapsed, defpath, usepath, hbar_length, meta_error
+	global invalid_patterns, invalid_pattern_shortlist, logging, log_level, elapsed, defpath, usepath, hbar_length, meta_error
 	start = timer()
 	
 	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "ha:rv", ["help", "archives=", "recurse", "verbose"])
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "ha:qrv", ["help", "archives=", "quiet", "recurse", "verbose"])
 	except getopt.GetoptError as exc:
 		title()
 		usage()
@@ -399,9 +404,12 @@ def main(argv):
 			recurse_archives = True
 			recurse_patterns = True
 		elif opt[0] in {"-v", "--verbose"}:
-			verbose = True
+			logging = log_level['verbose']
+		elif opt[0] in {"-q", "--quiet"}:
+			logging = log_level['quiet']
 
-	title()
+	if logging > log_level['quiet']:
+		title()
 	set_environment()
 	archive_list = prepare_archives()
 	c_['total_arch'] = len(archive_list)
@@ -416,11 +424,11 @@ def main(argv):
 
 	pattern_list = prepare_patterns()
 	c_['total_pat'] = len(pattern_list)
-
 	c_['total'] = c_['total_pat'] * c_['total_arch']
-	print()
+	if logging > log_level['quiet']:
+		print()
 
-	if not verbose:
+	if logging == log_level['normal']:
 		bar = ProgressBar(" Checking: ", progress_bar_width, c_['total'])
 
 	for pattern in pattern_list:
@@ -429,22 +437,23 @@ def main(argv):
 			c_['active_pattern'] = pattern
 			c_['active_archive'] = archive
 			run_pattern(pattern, archive)
-			if not verbose:
+			if logging == log_level['normal']:
 				bar.update(c_['current'])
 	c_['active_pattern'] = ''
 	c_['active_archive'] = ''
 
-	if not verbose:
+	if logging == log_level['normal']:
 		bar.finish()
 
 	end = timer()
 	elapsed = str(timedelta(seconds=end-start))
-	if verbose:
+	if logging == log_level['verbose']:
 		print()
-	if c_['total_pat'] > 0:
-		show_summary()
-	else:
-		print("No patterns found\n")
+	if logging > log_level['quiet']:
+		if c_['total_pat'] > 0:
+			show_summary()
+		else:
+			print("No patterns found\n")
 		
 # Entry point
 if __name__ == "__main__":
@@ -470,5 +479,6 @@ if __name__ == "__main__":
 	usepath['scalib'] = conf_file_dict['SCALIB_DIR']
 
 	main(sys.argv)
+	sys.exit(c_['Fatal'])
 
 
