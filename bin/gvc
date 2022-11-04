@@ -1,5 +1,5 @@
 #!/bin/bash
-SVER='1.0.4'
+SVER='1.0.5'
 
 ##############################################################################
 # gvc - GitHub change log and spec file editor
@@ -8,7 +8,7 @@ SVER='1.0.4'
 # Description:  Creates a new entry in the .changes file of the current local
 #               GitHub repository. If no changes are needed to the spec file,
 #               just quit the editor to proceed.
-# Modified:     2022 Oct 05
+# Modified:     2022 Nov 04
 #
 ##############################################################################
 #
@@ -29,7 +29,7 @@ SVER='1.0.4'
 #
 ##############################################################################
 
-LCONF='/etc/opt/patdev/patdev.conf'
+LCONF='/etc/opt/patdevel/patdev.conf'
 [[ -s $LCONF ]] && . $LCONF || { echo "ERROR: File not found, $LCONF"; echo; exit 1; }
 
 if [[ -z $PATDEV_EMAIL ]]; then
