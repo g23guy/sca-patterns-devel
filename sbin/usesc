@@ -1,0 +1,51 @@
+#!/bin/bash
+SVER='0.0.1_dev1'
+
+##############################################################################
+# usesc - Changes the owner and permissions in archives for patdevel
+# Copyright (C) 2022 SUSE LLC
+#
+# Description:  Changes owner to root.users and permissions to 664.
+# Modified:     2022 Nov 04
+#
+##############################################################################
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; version 2 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, see <http://www.gnu.org/licenses/>.
+#
+#  Authors/Contributors:
+#     Jason Record <jason.record@suse.com>
+#
+##############################################################################
+
+LCONF='/etc/opt/patdevel/patdev.conf'
+[[ -s $LCONF ]] && . $LCONF || { echo "ERROR: File not found, $LCONF"; echo; exit 1; }
+OWNER='root.users'
+DIR_MODE='775'
+FILE_MODE='664'
+
+echo "Changing to user permissions in archive directory"
+if [[ -n $PATDEV_ARCH_DIR ]]; then
+	if [[ -d $PATDEV_ARCH_DIR ]]; then
+		find $PATDEV_ARCH_DIR -exec chown $OWNER {} \+
+		find $PATDEV_ARCH_DIR -type d -exec chmod $DIR_MODE {} \+
+		find $PATDEV_ARCH_DIR -type f -exec chmod $FILE_MODE {} \+
+		cd $PATDEV_ARCH_DIR
+		ls -l $LS_OPTIONS
+	else
+		echo "Archive directory not found - $PATDEV_ARCH_DIR"
+	fi
+else
+	echo " + Archive directory not defined, check PATDEV_ARCH_DIR in $LCONF"
+fi	
+echo
+

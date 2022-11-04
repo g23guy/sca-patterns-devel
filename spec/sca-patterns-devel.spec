@@ -16,7 +16,7 @@
 %define patdevconfdir %{_sysconfdir}/opt/%{patdevbase}
 
 Name:         sca-patterns-devel
-Version:      1.2.8
+Version:      1.2.9
 Release:      0
 Summary:      Supportconf Analysis Pattern Development Tools
 License:      GPL-2.0-only
@@ -41,6 +41,7 @@ pwd;ls -la
 #install -d %{buildroot}%{_mandir}/man5
 #install -d %{buildroot}%{_mandir}/man8
 mkdir -p %{buildroot}/usr/local/bin
+mkdir -p %{buildroot}/usr/local/sbin
 mkdir -p %{buildroot}%{patdevbasedir}
 mkdir -p %{buildroot}%{patdevbasedir}/repos
 mkdir -p %{buildroot}%{patdevbasedir}/patterns
@@ -48,6 +49,7 @@ mkdir -p %{buildroot}%{patdevbasedir}/forks
 mkdir -p %{buildroot}%{patdevbasedir}/archives
 mkdir -p %{buildroot}%{patdevconfdir}
 install -m 755 bin/* %{buildroot}/usr/local/bin
+install -m 755 sbin/* %{buildroot}/usr/local/sbin
 install -m 664 conf/* %{buildroot}%{patdevconfdir}
 
 %files
@@ -56,6 +58,7 @@ install -m 664 conf/* %{buildroot}%{patdevconfdir}
 %dir %{patdevconfdir}
 %{patdevbasedir}/*
 /usr/local/bin/*
+/usr/local/sbin/*
 %attr(775,root,users) %{patdevbasedir}/repos
 %attr(775,root,users) %{patdevbasedir}/forks
 %attr(775,root,users) %{patdevbasedir}/patterns

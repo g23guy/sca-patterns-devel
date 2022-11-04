@@ -1,5 +1,5 @@
 OBSPACKAGE=sca-patterns-devel
-SVNDIRS=bin conf
+SVNDIRS=bin sbin conf
 VERSION=$(shell awk '/Version:/ { print $$2 }' spec/${OBSPACKAGE}.spec)
 RELEASE=$(shell awk '/Release:/ { print $$2 }' spec/${OBSPACKAGE}.spec)
 SRCDIR=$(OBSPACKAGE)-$(VERSION)
