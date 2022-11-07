@@ -1,5 +1,5 @@
 #!/bin/bash
-SVER='0.0.1_dev1'
+SVER='1.0.0'
 ##############################################################################
 # rstat - Show the current github status of the repository
 # Copyright (C) 2022 SUSE LLC
