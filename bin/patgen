@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.8'
+SVER = '1.0.9'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2022 Nov 01
+# Modified:     2022 Nov 06
 #
 ##############################################################################
 #
@@ -709,7 +709,7 @@ if __name__ == "__main__":
 
 	skipped_line = re.compile("^#|^$", re.IGNORECASE)
 	for line in f.readlines():
-		line = line.strip("\n")
+		line = line.strip(" \n")
 		if skipped_line.search(line):
 			continue
 		key, value = line.split('=')

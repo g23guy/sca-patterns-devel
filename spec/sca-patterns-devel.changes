@@ -1,10 +1,11 @@
 -------------------------------------------------------------------
-Fri Nov  4 18:36:07 UTC 2022 - jason.record@suse.com
+Mon Nov  7 11:55:13 UTC 2022 - jason.record@suse.com
 
 - Changes to version 1.2.9
   + Added -q, --quiet which returns the number of fatal patterns
   + Updated path to conf file in gvc and patgvc
   + Added /usr/local/sbin/usesc to change test archive ower and mode
+  + Fixed config file processing
 
 -------------------------------------------------------------------
 Thu Nov  3 01:15:09 UTC 2022 - jason.record@suse.com
