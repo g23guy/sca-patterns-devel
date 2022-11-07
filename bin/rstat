@@ -28,9 +28,9 @@ SVER='1.0.0'
 CONF_FILE="/etc/opt/patdevel/patdev.conf"
 
 title() {
-        echo "#####################################################"
+        echo "###########################################################"
         echo "#  GIT Repository Status, v${SVER}"
-        echo "#####################################################"
+        echo "###########################################################"
 }
 
 if [[ -s $CONF_FILE ]]; then
@@ -45,6 +45,8 @@ clear
 title
 if [[ -d ${PWD}/.git ]]; then
 	git status
+	echo
+	ls -l $LS_OPTIONS
 	echo
 else
 	cd $PATDEV_REPOS_DIR
