@@ -1,0 +1,70 @@
+#!/bin/bash
+SVER='0.0.1_dev1'
+##############################################################################
+# rstat - Show the current github status of the repository
+# Copyright (C) 2022 SUSE LLC
+#
+# Description:  Checks the status of a repository on the cwd or all repos if not
+# Modified:     2022 Nov 06
+#
+##############################################################################
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; version 2 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, see <http://www.gnu.org/licenses/>.
+#
+#  Authors/Contributors:
+#     Jason Record <jason.record@suse.com>
+#
+##############################################################################
+CONF_FILE="/etc/opt/patdevel/patdev.conf"
+
+title() {
+        echo "#####################################################"
+        echo "#  GIT Repository Status, v${SVER}"
+        echo "#####################################################"
+}
+
+if [[ -s $CONF_FILE ]]; then
+        . $CONF_FILE
+else
+	echo "ERRROR: File not found - $CONF_FILE"
+	echo
+	exit 1
+fi
+
+clear
+title
+if [[ -d ${PWD}/.git ]]; then
+	git status
+	echo
+else
+	cd $PATDEV_REPOS_DIR
+	for i in *
+	do
+		if [[ -d $i ]]
+		then
+			cd $i
+			printf "%-40s" "Checking $i:  "
+			make clean &>/dev/null
+			BRANCH=$(git status | grep 'On branch' | awk '{print $NF}')
+			printf "%-10s" "${BRANCH} "
+			if git status 2>/dev/null | egrep -i "is ahead of|Changes not staged for commit|Untracked files" &>/dev/null; then
+				echo "Push"
+			else
+				echo "Current"
+			fi
+			cd ..
+		fi
+	done
+fi
+echo
+
