@@ -1,11 +1,11 @@
 #!/bin/bash
-SVER='1.0.0'
+SVER='1.0.1'
 ##############################################################################
 # rstat - Show the current github status of the repository
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Checks the status of a repository on the cwd or all repos if not
-# Modified:     2022 Nov 06
+# Modified:     2022 Nov 09
 #
 ##############################################################################
 #
@@ -44,12 +44,17 @@ fi
 clear
 title
 if [[ -d ${PWD}/.git ]]; then
+	REMOTE_ORIGIN=$(grep url .git/config | awk '{print $NF}')
+	echo "Remote Origin: $REMOTE_ORIGIN"
+	echo
 	git status
 	echo
 	ls -l $LS_OPTIONS
 	echo
 else
 	cd $PATDEV_REPOS_DIR
+	echo "Repository Directory: $PATDEV_REPOS_DIR"
+	echo
 	for i in *
 	do
 		if [[ -d $i ]]
