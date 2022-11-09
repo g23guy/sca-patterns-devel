@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-SVER = '2.0.0_b3'
+SVER = '2.0.0'
 ##############################################################################
 # scconvert - Supportconfig Archive Directory Name Converter
 # Copyright (c) 2022 SUSE LLC
 #
 # Description:  Changes the directory name to a meanful one
-# Modified:	 2022 Nov 02
+# Modified:	 2022 Nov 09
 #
 ##############################################################################
 #
@@ -223,6 +223,10 @@ def get_virt_info(_file):
 				else:
 					identity = 'vm'
 	if virt_found:
+		if len(base) == 0:
+			base = 'Unknown'
+		if len(identity) == 0:
+			identity = 'vm'
 		if len(pub_cloud) > 0:
 			element = identity + "-" + pub_cloud + "-" + base
 		else:
