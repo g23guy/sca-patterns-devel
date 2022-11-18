@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Nov 18 13:12:54 UTC 2022 - jason.record@suse.com
+
+- Renamed rstat to gstat
+
+-------------------------------------------------------------------
 Wed Nov  9 20:46:33 UTC 2022 - jason.record@suse.com
 
 - Added location string to rstat
