@@ -1,0 +1,5 @@
+alias p='clear; echo "Pattern Development Directories"; cd /var/opt/patdevel/; ls -l $LS_OPTIONS; echo'
+alias s='clear; echo "Pattern Development Libraries"; cd /var/opt/patdevel/repos/sca-patterns-base/libraries/; ls -l $LS_OPTIONS; echo'
+alias r='clear; echo "Pattern Development Repositories"; cd /var/opt/patdevel/repos/; ls -l $LS_OPTIONS; echo'
+alias a='clear; echo "Supportconfig Archives"; cd /var/opt/patdevel/archives/; ls -l $LS_OPTIONS; echo'
+

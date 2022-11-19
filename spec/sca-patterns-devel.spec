@@ -14,9 +14,10 @@
 %define patdevbase patdevel
 %define patdevbasedir %{_localstatedir}/opt/%{patdevbase}
 %define patdevconfdir %{_sysconfdir}/opt/%{patdevbase}
+%define patdocs %{_docdir}/%{name}
 
 Name:         sca-patterns-devel
-Version:      1.2.9
+Version:      1.3.0
 Release:      0
 Summary:      Supportconf Analysis Pattern Development Tools
 License:      GPL-2.0-only
@@ -48,17 +49,21 @@ mkdir -p %{buildroot}%{patdevbasedir}/patterns
 mkdir -p %{buildroot}%{patdevbasedir}/forks
 mkdir -p %{buildroot}%{patdevbasedir}/archives
 mkdir -p %{buildroot}%{patdevconfdir}
+mkdir -p %{buildroot}%{patdocs}
 install -m 755 bin/* %{buildroot}/usr/local/bin
 install -m 755 sbin/* %{buildroot}/usr/local/sbin
 install -m 664 conf/* %{buildroot}%{patdevconfdir}
+install -m 644 docs/* %{buildroot}%{patdocs}
 
 %files
 %defattr(-,root,root,-)
 %dir %{patdevbasedir}
 %dir %{patdevconfdir}
+%dir %{patdocs}
 %{patdevbasedir}/*
 /usr/local/bin/*
 /usr/local/sbin/*
+%{patdocs}/*
 %attr(775,root,users) %{patdevbasedir}/repos
 %attr(775,root,users) %{patdevbasedir}/forks
 %attr(775,root,users) %{patdevbasedir}/patterns
