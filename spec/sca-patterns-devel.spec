@@ -50,10 +50,15 @@ mkdir -p %{buildroot}%{patdevbasedir}/forks
 mkdir -p %{buildroot}%{patdevbasedir}/archives
 mkdir -p %{buildroot}%{patdevconfdir}
 mkdir -p %{buildroot}%{patdocs}
+mkdir -p %{buildroot}%{patdocs}/python
+mkdir -p %{buildroot}%{patdocs}/perl
 install -m 755 bin/* %{buildroot}/usr/local/bin
 install -m 755 sbin/* %{buildroot}/usr/local/sbin
 install -m 664 conf/* %{buildroot}%{patdevconfdir}
-install -m 644 docs/* %{buildroot}%{patdocs}
+install -m 644 docs/python/* %{buildroot}%{patdocs}/python
+install -m 644 docs/perl/* %{buildroot}%{patdocs}/perl
+install -m 644 docs/alias %{buildroot}%{patdocs}
+install -m 644 docs/index.html %{buildroot}%{patdocs}
 
 %files
 %defattr(-,root,root,-)
@@ -64,6 +69,8 @@ install -m 644 docs/* %{buildroot}%{patdocs}
 /usr/local/bin/*
 /usr/local/sbin/*
 %{patdocs}/*
+%{patdocs}/python/*
+%{patdocs}/perl/*
 %attr(775,root,users) %{patdevbasedir}/repos
 %attr(775,root,users) %{patdevbasedir}/forks
 %attr(775,root,users) %{patdevbasedir}/patterns

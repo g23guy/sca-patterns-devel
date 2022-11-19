@@ -1,0 +1,269 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module Core</title>
+<meta charset="utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>Core</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href="../docs-python.html">index</a><br>/usr/lib/sca/python/Core.py</font></td></tr></table>
+    <p><tt>Supportconfig&nbsp;Analysis&nbsp;Library&nbsp;for&nbsp;Core&nbsp;python&nbsp;patterns<br>
+&nbsp;<br>
+Core&nbsp;library&nbsp;of&nbsp;functions&nbsp;for&nbsp;creating&nbsp;and&nbsp;processing&nbsp;python&nbsp;patterns</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="https://docs.python.org/library/os.html">os</a><br>
+</td><td width="25%" valign=top><a href="https://docs.python.org/library/re.html">re</a><br>
+</td><td width="25%" valign=top><a href="https://docs.python.org/library/sys.html">sys</a><br>
+</td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-compareLooseVersions"><strong>compareLooseVersions</strong></a>(version1, version2)</dt><dd><tt>Compares&nbsp;two&nbsp;version&nbsp;strings&nbsp;using&nbsp;LooseVersion<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;version1&nbsp;(String)&nbsp;-&nbsp;The&nbsp;first&nbsp;version&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;version2&nbsp;(String)&nbsp;-&nbsp;The&nbsp;second&nbsp;version&nbsp;string<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-1,&nbsp;0,&nbsp;1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;version1&nbsp;is&nbsp;older&nbsp;than&nbsp;version2<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;version1&nbsp;is&nbsp;the&nbsp;same&nbsp;as&nbsp;version2<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;version1&nbsp;is&nbsp;newer&nbsp;than&nbsp;version2<br>
+Example:<br>
+&nbsp;<br>
+thisVersion&nbsp;=&nbsp;'1.1.0-2'<br>
+thatVersion&nbsp;=&nbsp;'1.2'<br>
+if(&nbsp;Core.<a href="#-compareLooseVersions">compareLooseVersions</a>(thisVersion,&nbsp;thatVersion)&nbsp;&gt;&nbsp;0&nbsp;):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.<a href="#-updateStatus">updateStatus</a>(Core.WARN,&nbsp;"The&nbsp;version&nbsp;is&nbsp;too&nbsp;old,&nbsp;update&nbsp;the&nbsp;system")<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.<a href="#-updateStatus">updateStatus</a>(Core.IGNORE,&nbsp;"The&nbsp;version&nbsp;is&nbsp;sufficient")</tt></dd></dl>
+ <dl><dt><a name="-compareVersions"><strong>compareVersions</strong></a>(version1, version2)</dt><dd><tt>Compares&nbsp;the&nbsp;left&nbsp;most&nbsp;significant&nbsp;version&nbsp;string&nbsp;elements<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;version1&nbsp;(String)&nbsp;-&nbsp;The&nbsp;first&nbsp;version&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;version2&nbsp;(String)&nbsp;-&nbsp;The&nbsp;second&nbsp;version&nbsp;string<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-1,&nbsp;0,&nbsp;1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;version1&nbsp;is&nbsp;older&nbsp;than&nbsp;version2<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;version1&nbsp;is&nbsp;the&nbsp;same&nbsp;as&nbsp;version2<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;version1&nbsp;is&nbsp;newer&nbsp;than&nbsp;version2<br>
+Example:<br>
+&nbsp;<br>
+thisVersion&nbsp;=&nbsp;'1.1.0-2'<br>
+thatVersion&nbsp;=&nbsp;'1.2'<br>
+if(&nbsp;<a href="#-compareVersions">compareVersions</a>(thisVersion,&nbsp;thatVersion)&nbsp;&gt;&nbsp;0&nbsp;):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.<a href="#-updateStatus">updateStatus</a>(Core.WARN,&nbsp;"The&nbsp;version&nbsp;is&nbsp;too&nbsp;old,&nbsp;update&nbsp;the&nbsp;system")<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.<a href="#-updateStatus">updateStatus</a>(Core.IGNORE,&nbsp;"The&nbsp;version&nbsp;is&nbsp;sufficient")</tt></dd></dl>
+ <dl><dt><a name="-getExactSection"><strong>getExactSection</strong></a>(FILE_OPEN, SECTION, CONTENT)</dt><dd><tt>Extracts&nbsp;the&nbsp;first&nbsp;section&nbsp;of&nbsp;a&nbsp;supportconfig&nbsp;file&nbsp;matching&nbsp;SECTION&nbsp;and&nbsp;puts&nbsp;it&nbsp;into&nbsp;the&nbsp;CONTENT&nbsp;list,&nbsp;one&nbsp;line&nbsp;per&nbsp;list&nbsp;element.<br>
+NOTE:&nbsp;getExactSection&nbsp;differs&nbsp;from&nbsp;getSection&nbsp;in&nbsp;that&nbsp;CONTENT&nbsp;is&nbsp;a&nbsp;list&nbsp;instead&nbsp;of&nbsp;a&nbsp;dictionary&nbsp;and&nbsp;the&nbsp;SECTION&nbsp;string&nbsp;must&nbsp;match&nbsp;exactly&nbsp;to&nbsp;the&nbsp;Section&nbsp;name&nbsp;in&nbsp;the&nbsp;file.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FILE_OPEN&nbsp;(String)&nbsp;-&nbsp;The&nbsp;supportconfig&nbsp;filename&nbsp;to&nbsp;open<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SECTION&nbsp;(String)&nbsp;-&nbsp;The&nbsp;section&nbsp;regex&nbsp;identifier&nbsp;in&nbsp;the&nbsp;file<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONTENT&nbsp;(List)&nbsp;-&nbsp;Section&nbsp;contents&nbsp;line-by-line<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;or&nbsp;False<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;-&nbsp;The&nbsp;specified&nbsp;section&nbsp;was&nbsp;found<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;False&nbsp;-&nbsp;The&nbsp;section&nbsp;was&nbsp;not&nbsp;found<br>
+Example:<br>
+&nbsp;<br>
+fileOpen&nbsp;=&nbsp;"boot.txt"<br>
+section&nbsp;=&nbsp;"menu.lst"<br>
+content&nbsp;=&nbsp;[]<br>
+if&nbsp;Core.<a href="#-getSection">getSection</a>(fileOpen,&nbsp;section,&nbsp;content):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;line&nbsp;in&nbsp;content:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;"xen.gz"&nbsp;in&nbsp;line:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.<a href="#-updateStatus">updateStatus</a>(Core.IGNORE,&nbsp;"Found&nbsp;Xen&nbsp;kernel&nbsp;boot&nbsp;option"<br>
+Core.<a href="#-updateStatus">updateStatus</a>(Core.WARN,&nbsp;"Missing&nbsp;Xen&nbsp;kernel&nbsp;boot&nbsp;option")</tt></dd></dl>
+ <dl><dt><a name="-getRegExSection"><strong>getRegExSection</strong></a>(FILE_OPEN, SECTION, CONTENT)</dt><dd><tt>Extracts&nbsp;the&nbsp;first&nbsp;section&nbsp;of&nbsp;a&nbsp;supportconfig&nbsp;file&nbsp;matching&nbsp;SECTION&nbsp;and&nbsp;puts&nbsp;it&nbsp;into&nbsp;the&nbsp;CONTENT&nbsp;list,&nbsp;one&nbsp;line&nbsp;per&nbsp;list&nbsp;element.<br>
+NOTE:&nbsp;getRegExSection&nbsp;differs&nbsp;from&nbsp;getSection&nbsp;in&nbsp;that&nbsp;CONTENT&nbsp;is&nbsp;a&nbsp;list&nbsp;instead&nbsp;of&nbsp;a&nbsp;dictionary.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FILE_OPEN&nbsp;(String)&nbsp;-&nbsp;The&nbsp;supportconfig&nbsp;filename&nbsp;to&nbsp;open<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SECTION&nbsp;(String)&nbsp;-&nbsp;The&nbsp;section&nbsp;regex&nbsp;identifier&nbsp;in&nbsp;the&nbsp;file<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONTENT&nbsp;(List)&nbsp;-&nbsp;Section&nbsp;contents&nbsp;line-by-line<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;or&nbsp;False<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;-&nbsp;The&nbsp;specified&nbsp;section&nbsp;was&nbsp;found<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;False&nbsp;-&nbsp;The&nbsp;section&nbsp;was&nbsp;not&nbsp;found<br>
+Example:<br>
+&nbsp;<br>
+FILE_OPEN&nbsp;=&nbsp;"boot.txt"<br>
+SECTION&nbsp;=&nbsp;"menu.lst"<br>
+CONTENT&nbsp;=&nbsp;[]<br>
+if&nbsp;Core.<a href="#-getRegExSection">getRegExSection</a>(FILE_OPEN,&nbsp;SECTION,&nbsp;CONTENT):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;LINE&nbsp;in&nbsp;CONTENT:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;"xen.gz"&nbsp;in&nbsp;LINE:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.<a href="#-updateStatus">updateStatus</a>(Core.IGNORE,&nbsp;"Found&nbsp;Xen&nbsp;kernel&nbsp;boot&nbsp;option"<br>
+Core.<a href="#-updateStatus">updateStatus</a>(Core.WARN,&nbsp;"Missing&nbsp;Xen&nbsp;kernel&nbsp;boot&nbsp;option")</tt></dd></dl>
+ <dl><dt><a name="-getRegExSectionRaw"><strong>getRegExSectionRaw</strong></a>(FILE_OPEN, SECTION, CONTENT)</dt><dd><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Extracts&nbsp;the&nbsp;first&nbsp;section&nbsp;of&nbsp;a&nbsp;supportconfig&nbsp;file&nbsp;matching&nbsp;SECTION&nbsp;and&nbsp;puts&nbsp;it&nbsp;into&nbsp;the&nbsp;CONTENT&nbsp;list,&nbsp;one&nbsp;line&nbsp;per&nbsp;list&nbsp;element.<br>
+NOTE:&nbsp;getRegExSectionRaw&nbsp;differs&nbsp;from&nbsp;getRegExSection&nbsp;by&nbsp;searching&nbsp;commented&nbsp;lines&nbsp;in&nbsp;the&nbsp;file&nbsp;section.&nbsp;All&nbsp;lines&nbsp;are&nbsp;included&nbsp;in&nbsp;the&nbsp;search.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FILE_OPEN&nbsp;(String)&nbsp;-&nbsp;The&nbsp;supportconfig&nbsp;filename&nbsp;to&nbsp;open<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SECTION&nbsp;(String)&nbsp;-&nbsp;The&nbsp;section&nbsp;regex&nbsp;identifier&nbsp;in&nbsp;the&nbsp;file<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONTENT&nbsp;(List)&nbsp;-&nbsp;Section&nbsp;contents&nbsp;line-by-line<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;or&nbsp;False<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;-&nbsp;The&nbsp;specified&nbsp;section&nbsp;was&nbsp;found<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;False&nbsp;-&nbsp;The&nbsp;section&nbsp;was&nbsp;not&nbsp;found<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Example:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FILE_OPEN&nbsp;=&nbsp;"boot.txt"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SECTION&nbsp;=&nbsp;"menu.lst"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONTENT&nbsp;=&nbsp;[]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;Core.<a href="#-getRegExSectionRaw">getRegExSectionRaw</a>(FILE_OPEN,&nbsp;SECTION,&nbsp;CONTENT):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;LINE&nbsp;in&nbsp;CONTENT:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;"xen.gz"&nbsp;in&nbsp;LINE:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.<a href="#-updateStatus">updateStatus</a>(Core.IGNORE,&nbsp;"Found&nbsp;Xen&nbsp;kernel&nbsp;boot&nbsp;option"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.<a href="#-updateStatus">updateStatus</a>(Core.WARN,&nbsp;"Missing&nbsp;Xen&nbsp;kernel&nbsp;boot&nbsp;option")</tt></dd></dl>
+ <dl><dt><a name="-getSection"><strong>getSection</strong></a>(FILE_OPEN, SECTION, CONTENT)</dt><dd><tt>Deprecated:&nbsp;Use&nbsp;Core.getRegExSection&nbsp;or&nbsp;Core.getExactSection&nbsp;instead.<br>
+&nbsp;<br>
+Extracts&nbsp;the&nbsp;first&nbsp;section&nbsp;of&nbsp;a&nbsp;supportconfig&nbsp;file&nbsp;matching&nbsp;SECTION&nbsp;and&nbsp;puts&nbsp;it&nbsp;into&nbsp;the&nbsp;CONTENT&nbsp;dictionary,&nbsp;one&nbsp;line&nbsp;per&nbsp;list&nbsp;element.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FILE_OPEN&nbsp;(String)&nbsp;-&nbsp;The&nbsp;supportconfig&nbsp;filename&nbsp;to&nbsp;open<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SECTION&nbsp;(String)&nbsp;-&nbsp;The&nbsp;section&nbsp;regex&nbsp;identifier&nbsp;in&nbsp;the&nbsp;file<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONTENT&nbsp;(Dictionary)&nbsp;-&nbsp;Section&nbsp;contents&nbsp;line-by-line<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;or&nbsp;False<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;-&nbsp;The&nbsp;specified&nbsp;section&nbsp;was&nbsp;found<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;False&nbsp;-&nbsp;The&nbsp;section&nbsp;was&nbsp;not&nbsp;found<br>
+Example:<br>
+&nbsp;<br>
+fileOpen&nbsp;=&nbsp;"boot.txt"<br>
+section&nbsp;=&nbsp;"menu.lst"<br>
+content&nbsp;=&nbsp;{}<br>
+if&nbsp;Core.<a href="#-getSection">getSection</a>(fileOpen,&nbsp;section,&nbsp;content):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;line&nbsp;in&nbsp;content:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;"xen.gz"&nbsp;in&nbsp;content[line]:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.<a href="#-updateStatus">updateStatus</a>(Core.IGNORE,&nbsp;"Found&nbsp;Xen&nbsp;kernel&nbsp;boot&nbsp;option"<br>
+Core.<a href="#-updateStatus">updateStatus</a>(Core.WARN,&nbsp;"Missing&nbsp;Xen&nbsp;kernel&nbsp;boot&nbsp;option")</tt></dd></dl>
+ <dl><dt><a name="-init"><strong>init</strong></a>(CLASS, CATEGORY, COMPONENT, ID, LINK, OVER_ALL, INFO, LINKS)</dt><dd><tt>Initialize&nbsp;the&nbsp;pattern&nbsp;metadata&nbsp;variables&nbsp;and&nbsp;process&nbsp;the&nbsp;startup&nbsp;options.<br>
+A&nbsp;python&nbsp;pattern&nbsp;should&nbsp;initialize&nbsp;the&nbsp;metadata&nbsp;variables&nbsp;and&nbsp;then&nbsp;call<br>
+this&nbsp;function.&nbsp;Required&nbsp;at&nbsp;the&nbsp;beginning&nbsp;of&nbsp;the&nbsp;pattern.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CLASS&nbsp;=&nbsp;META_CLASS<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CATEGORY&nbsp;=&nbsp;META_CATEGORY<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COMPONENT&nbsp;=&nbsp;META_COMPONENT<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ID&nbsp;=&nbsp;PATTERN_ID<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LINK&nbsp;=&nbsp;PRIMARY_LINK<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OVER_ALL&nbsp;=&nbsp;OVERALL<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INFO&nbsp;=&nbsp;OVERALL_INFO<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LINKS&nbsp;=&nbsp;OTHER_LINKS<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Updates&nbsp;global&nbsp;variables</tt></dd></dl>
+ <dl><dt><a name="-isFileActive"><strong>isFileActive</strong></a>(FILE_OPEN)</dt></dl>
+ <dl><dt><a name="-listSections"><strong>listSections</strong></a>(FILE_OPEN, CONTENT)</dt><dd><tt>Extracts&nbsp;all&nbsp;section&nbsp;names&nbsp;from&nbsp;FILE_OPEN&nbsp;and&nbsp;adds&nbsp;them&nbsp;to&nbsp;CONTENT.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FILE_OPEN&nbsp;(String)&nbsp;-&nbsp;The&nbsp;supportconfig&nbsp;filename&nbsp;to&nbsp;open<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONTENT&nbsp;(List)&nbsp;-&nbsp;Section&nbsp;names&nbsp;in&nbsp;FILE_OPEN<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;or&nbsp;False<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;-&nbsp;Sections&nbsp;were&nbsp;found&nbsp;in&nbsp;FILE_OPEN<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;False&nbsp;-&nbsp;No&nbsp;sections&nbsp;found&nbsp;in&nbsp;FILE_OPEN<br>
+Example:<br>
+&nbsp;<br>
+FILE_OPEN&nbsp;=&nbsp;"ha.txt"<br>
+CONTENT&nbsp;=&nbsp;{}<br>
+if&nbsp;Core.<a href="#-listSections">listSections</a>(FILE_OPEN,&nbsp;CONTENT):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;LINE&nbsp;in&nbsp;CONTENT:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;"corosync.conf"&nbsp;in&nbsp;CONTENT[LINE]:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;True<br>
+return&nbsp;False</tt></dd></dl>
+ <dl><dt><a name="-normalizeVersionString"><strong>normalizeVersionString</strong></a>(versionString)</dt><dd><tt>Converts&nbsp;a&nbsp;version&nbsp;string&nbsp;to&nbsp;a&nbsp;list&nbsp;of&nbsp;version&nbsp;elements<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;versionString<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;list&nbsp;of&nbsp;version&nbsp;string&nbsp;elements</tt></dd></dl>
+ <dl><dt><a name="-printPatternResults"><strong>printPatternResults</strong></a>()</dt><dd><tt>Prints&nbsp;to&nbsp;stdout&nbsp;the&nbsp;pattern&nbsp;result&nbsp;string.&nbsp;The&nbsp;pattern&nbsp;result&nbsp;string&nbsp;is&nbsp;case<br>
+sensitive&nbsp;and&nbsp;order&nbsp;dependent.&nbsp;This&nbsp;function&nbsp;ensures&nbsp;the&nbsp;strings&nbsp;is&nbsp;printed&nbsp;<br>
+correctly.&nbsp;Call&nbsp;this&nbsp;function&nbsp;when&nbsp;the&nbsp;pattern&nbsp;had&nbsp;completed&nbsp;its&nbsp;processing.<br>
+Required&nbsp;at&nbsp;the&nbsp;end&nbsp;of&nbsp;the&nbsp;pattern.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;None<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Pattern&nbsp;result&nbsp;string&nbsp;to&nbsp;stdout</tt></dd></dl>
+ <dl><dt><a name="-processOptions"><strong>processOptions</strong></a>()</dt><dd><tt>A&nbsp;function&nbsp;to&nbsp;handle&nbsp;the&nbsp;pattern's&nbsp;startup&nbsp;options.&nbsp;Currently&nbsp;only<br>
+-p&nbsp;/path/to/extracted/archive&nbsp;is&nbsp;supported.&nbsp;It&nbsp;is&nbsp;the&nbsp;only&nbsp;required&nbsp;<br>
+startup&nbsp;option.&nbsp;Required&nbsp;at&nbsp;the&nbsp;beginning&nbsp;of&nbsp;a&nbsp;pattern.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;None<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;global&nbsp;path&nbsp;to&nbsp;extracted&nbsp;archive<br>
+Example:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;None</tt></dd></dl>
+ <dl><dt><a name="-setStatus"><strong>setStatus</strong></a>(overAll, overAllInfo)</dt><dd><tt>Manually&nbsp;overrides&nbsp;the&nbsp;OVERALL&nbsp;status&nbsp;and&nbsp;the&nbsp;OVERALL_INFO&nbsp;message&nbsp;string.<br>
+Regardless&nbsp;of&nbsp;the&nbsp;current&nbsp;status,&nbsp;this&nbsp;function&nbsp;overrides&nbsp;it.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;overAll&nbsp;(Integer)&nbsp;-&nbsp;Current&nbsp;pattern&nbsp;status.&nbsp;Acceptable&nbsp;values&nbsp;are:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.TEMP&nbsp;same&nbsp;as&nbsp;Core.STATUS_TEMPORARY<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.PART&nbsp;same&nbsp;as&nbsp;Core.STATUS_PARTIAL<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.SUCC&nbsp;same&nbsp;as&nbsp;Core.STATUS_SUCCESS<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.REC&nbsp;same&nbsp;as&nbsp;Core.STATUS_RECCOMENDED<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.WARN&nbsp;same&nbsp;as&nbsp;Core.STATUS_WARNING<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.CRIT&nbsp;same&nbsp;as&nbsp;Core.STATUS_CRITICAL<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.ERROR&nbsp;same&nbsp;as&nbsp;Core.STATUS_ERROR<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.IGNORE&nbsp;same&nbsp;as&nbsp;Core.STATUS_IGNORE<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;overAllInfo&nbsp;(String)&nbsp;-&nbsp;Current&nbsp;pattern&nbsp;status&nbsp;message.<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Updates&nbsp;global&nbsp;OVERALL&nbsp;and&nbsp;OVERALL_INFO&nbsp;as&nbsp;needed<br>
+Example:<br>
+&nbsp;<br>
+Core.<a href="#-updateStatus">updateStatus</a>(Core.WARN,&nbsp;"Found&nbsp;a&nbsp;condition&nbsp;suitable&nbsp;for&nbsp;a&nbsp;warning")<br>
+Core.<a href="#-updateStatus">updateStatus</a>(Core.STATUS_CRITICAL,&nbsp;"Found&nbsp;a&nbsp;more&nbsp;severe&nbsp;condition,&nbsp;the&nbsp;warning&nbsp;is&nbsp;overwritten")<br>
+Core.<a href="#-updateStatus">updateStatus</a>(Core.CRIT,&nbsp;"Another&nbsp;critical&nbsp;condition&nbsp;found,&nbsp;but&nbsp;ignored&nbsp;because&nbsp;critical&nbsp;is&nbsp;already&nbsp;set")<br>
+Core.<a href="#-setStatus">setStatus</a>(Core.SUCC,&nbsp;"A&nbsp;successful&nbsp;condition&nbsp;found,&nbsp;and&nbsp;manually&nbsp;set&nbsp;to&nbsp;override&nbsp;the&nbsp;previous&nbsp;critical&nbsp;condition")</tt></dd></dl>
+ <dl><dt><a name="-updateStatus"><strong>updateStatus</strong></a>(overAll, overAllInfo)</dt><dd><tt>Update&nbsp;the&nbsp;global&nbsp;pattern&nbsp;result&nbsp;string&nbsp;with&nbsp;the&nbsp;current&nbsp;pattern&nbsp;state.&nbsp;The<br>
+pattern&nbsp;result&nbsp;string&nbsp;is&nbsp;only&nbsp;updated&nbsp;if&nbsp;overAll&nbsp;is&nbsp;greater&nbsp;than&nbsp;its&nbsp;previous<br>
+value.&nbsp;overAll&nbsp;is&nbsp;used&nbsp;to&nbsp;update&nbsp;the&nbsp;global&nbsp;OVERALL&nbsp;status&nbsp;value,&nbsp;and&nbsp;<br>
+overAllInfo&nbsp;is&nbsp;used&nbsp;to&nbsp;update&nbsp;the&nbsp;global&nbsp;OVERALL_INFO&nbsp;status&nbsp;message.&nbsp;The&nbsp;<br>
+OVERALL_INFO&nbsp;string&nbsp;is&nbsp;displayed&nbsp;on&nbsp;the&nbsp;SCA&nbsp;Report.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;overAll&nbsp;(Integer)&nbsp;-&nbsp;Current&nbsp;pattern&nbsp;status.&nbsp;Acceptable&nbsp;values&nbsp;are:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.TEMP&nbsp;same&nbsp;as&nbsp;Core.STATUS_TEMPORARY<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.PART&nbsp;same&nbsp;as&nbsp;Core.STATUS_PARTIAL<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.SUCC&nbsp;same&nbsp;as&nbsp;Core.STATUS_SUCCESS<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.REC&nbsp;same&nbsp;as&nbsp;Core.STATUS_RECCOMENDED<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.WARN&nbsp;same&nbsp;as&nbsp;Core.STATUS_WARNING<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.CRIT&nbsp;same&nbsp;as&nbsp;Core.STATUS_CRITICAL<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.ERROR&nbsp;same&nbsp;as&nbsp;Core.STATUS_ERROR<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.IGNORE&nbsp;same&nbsp;as&nbsp;Core.STATUS_IGNORE<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;overAllInfo&nbsp;(String)&nbsp;-&nbsp;Current&nbsp;pattern&nbsp;status&nbsp;message.<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Updates&nbsp;global&nbsp;OVERALL&nbsp;and&nbsp;OVERALL_INFO&nbsp;as&nbsp;needed<br>
+Example:<br>
+&nbsp;<br>
+Core.<a href="#-updateStatus">updateStatus</a>(Core.WARN,&nbsp;"Found&nbsp;a&nbsp;condition&nbsp;suitable&nbsp;for&nbsp;a&nbsp;warning")<br>
+Core.<a href="#-updateStatus">updateStatus</a>(Core.STATUS_CRITICAL,&nbsp;"Found&nbsp;a&nbsp;more&nbsp;severe&nbsp;condition,&nbsp;the&nbsp;warning&nbsp;is&nbsp;overwritten")<br>
+Core.<a href="#-updateStatus">updateStatus</a>(Core.CRIT,&nbsp;"Another&nbsp;critical&nbsp;condition&nbsp;found,&nbsp;but&nbsp;ignored&nbsp;because&nbsp;critical&nbsp;is&nbsp;already&nbsp;set")<br>
+Core.<a href="#-updateStatus">updateStatus</a>(Core.SUCC,&nbsp;"A&nbsp;successful&nbsp;condition&nbsp;found,&nbsp;but&nbsp;ignored&nbsp;because&nbsp;the&nbsp;severity&nbsp;is&nbsp;already&nbsp;at&nbsp;critical")</tt></dd></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>CRIT</strong> = 4<br>
+<strong>ERROR</strong> = 5<br>
+<strong>EXIT</strong> = 5<br>
+<strong>IGNORE</strong> = 6<br>
+<strong>META_CATEGORY</strong> = ''<br>
+<strong>META_CLASS</strong> = ''<br>
+<strong>META_COMPONENT</strong> = ''<br>
+<strong>OTHER_LINKS</strong> = ''<br>
+<strong>OVERALL</strong> = -2<br>
+<strong>OVERALL_INFO</strong> = ''<br>
+<strong>PART</strong> = -1<br>
+<strong>PASS</strong> = 0<br>
+<strong>PATTERN_ID</strong> = ''<br>
+<strong>PRIMARY_LINK</strong> = ''<br>
+<strong>REC</strong> = 1<br>
+<strong>STATUS_CRITICAL</strong> = 4<br>
+<strong>STATUS_ERROR</strong> = 5<br>
+<strong>STATUS_IGNORE</strong> = 6<br>
+<strong>STATUS_PARTIAL</strong> = -1<br>
+<strong>STATUS_PROMOTION</strong> = 2<br>
+<strong>STATUS_RECOMMEND</strong> = 1<br>
+<strong>STATUS_SUCCESS</strong> = 0<br>
+<strong>STATUS_TEMPORARY</strong> = -2<br>
+<strong>STATUS_WARNING</strong> = 3<br>
+<strong>SUCC</strong> = 0<br>
+<strong>TEMP</strong> = -2<br>
+<strong>TMP</strong> = -2<br>
+<strong>WARN</strong> = 3<br>
+<strong>path</strong> = ''</td></tr></table>
+</body></html>

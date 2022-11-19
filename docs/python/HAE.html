@@ -1,0 +1,152 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module HAE</title>
+<meta charset="utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>HAE</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href="../docs-python.html">index</a><br>/usr/lib/sca/python/HAE.py</font></td></tr></table>
+    <p><tt>Supportconfig&nbsp;Analysis&nbsp;Library&nbsp;for&nbsp;HAE&nbsp;python&nbsp;patterns<br>
+&nbsp;<br>
+Library&nbsp;of&nbsp;functions&nbsp;for&nbsp;creating&nbsp;python&nbsp;patterns&nbsp;specific&nbsp;to&nbsp;<br>
+High&nbsp;Availability&nbsp;Extension&nbsp;(HAE)&nbsp;clustering</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="Core.html">Core</a><br>
+</td><td width="25%" valign=top><a href="https://docs.python.org/library/re.html">re</a><br>
+</td><td width="25%" valign=top></td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-getClusterConfig"><strong>getClusterConfig</strong></a>()</dt><dd><tt>Gets&nbsp;cluster&nbsp;configuration&nbsp;information&nbsp;from&nbsp;the&nbsp;cibadmin&nbsp;-Q&nbsp;output&nbsp;or&nbsp;cib.xml&nbsp;if&nbsp;the&nbsp;node&nbsp;is&nbsp;not&nbsp;connected&nbsp;to&nbsp;the&nbsp;cluster.&nbsp;It&nbsp;includes&nbsp;information&nbsp;from&nbsp;the&nbsp;&lt;cib&gt;&nbsp;and&nbsp;&lt;cluster_property_set&gt;&nbsp;tags.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;None<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;with&nbsp;keys<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;connected-to-cluster&nbsp;(Boolean)&nbsp;-&nbsp;True&nbsp;if&nbsp;the&nbsp;node&nbsp;is&nbsp;connected&nbsp;to&nbsp;the&nbsp;cluster,&nbsp;and&nbsp;False&nbsp;if&nbsp;not<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*All&nbsp;other&nbsp;key:value&nbsp;pairs&nbsp;are&nbsp;derived&nbsp;from&nbsp;the&nbsp;cluster&nbsp;configuration&nbsp;file&nbsp;itself<br>
+Example:<br>
+&nbsp;<br>
+CLUSTER&nbsp;=&nbsp;HAE.<a href="#-getClusterConfig">getClusterConfig</a>()<br>
+if&nbsp;'stonith-enabled'&nbsp;in&nbsp;CLUSTER:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;"true"&nbsp;in&nbsp;CLUSTER['stonith-enabled']:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.IGNORE,&nbsp;"Stonith&nbsp;is&nbsp;enabled&nbsp;for&nbsp;the&nbsp;cluster")<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.WARN,&nbsp;"Stonith&nbsp;is&nbsp;disabled&nbsp;for&nbsp;the&nbsp;cluster")<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.WARN,&nbsp;"Stonith&nbsp;is&nbsp;disabled&nbsp;by&nbsp;default&nbsp;for&nbsp;the&nbsp;cluster")</tt></dd></dl>
+ <dl><dt><a name="-getConfigCTDB"><strong>getConfigCTDB</strong></a>()</dt><dd><tt>Gets&nbsp;the&nbsp;/etc/sysconfig/ctdb&nbsp;configuration&nbsp;file&nbsp;information.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;None<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;with&nbsp;keys<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*All&nbsp;key:value&nbsp;pairs&nbsp;are&nbsp;derived&nbsp;from&nbsp;the&nbsp;configuration&nbsp;file&nbsp;itself.&nbsp;All&nbsp;key&nbsp;names&nbsp;are&nbsp;changed&nbsp;to&nbsp;uppercase.&nbsp;All&nbsp;values&nbsp;are&nbsp;left&nbsp;as&nbsp;is.<br>
+Example:<br>
+&nbsp;<br>
+CTDB&nbsp;=&nbsp;HAE.<a href="#-getConfigCTDB">getConfigCTDB</a>()<br>
+if&nbsp;'CTDB_START_AS_DISABLED'&nbsp;in&nbsp;CTDB:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;"yes"&nbsp;in&nbsp;CTDB['CTDB_START_AS_DISABLED']:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.IGNORE,&nbsp;"CTDB&nbsp;Starting&nbsp;disabled")<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.WARN,&nbsp;"CTDB&nbsp;Starting&nbsp;enabled")<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.ERROR,&nbsp;"Missing&nbsp;CTDB_START_AS_DISABLED,&nbsp;ignoring&nbsp;test")</tt></dd></dl>
+ <dl><dt><a name="-getConfigCorosync"><strong>getConfigCorosync</strong></a>()</dt><dd><tt>Gets&nbsp;Corosync&nbsp;configuration&nbsp;information&nbsp;from&nbsp;/etc/corosync/corosync.conf.&nbsp;All&nbsp;values&nbsp;are&nbsp;forced&nbsp;to&nbsp;lowercase.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;None<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;with&nbsp;keys&nbsp;and&nbsp;lists<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*All&nbsp;key:value&nbsp;pairs&nbsp;are&nbsp;derived&nbsp;from&nbsp;the&nbsp;cluster&nbsp;configuration&nbsp;file&nbsp;itself.&nbsp;The&nbsp;totem&nbsp;interfaces&nbsp;are&nbsp;a&nbsp;list&nbsp;of&nbsp;dictionaries&nbsp;within&nbsp;the&nbsp;totem&nbsp;dictionary.<br>
+Example:<br>
+&nbsp;<br>
+COROSYNC&nbsp;=&nbsp;HAE.<a href="#-getConfigCorosync">getConfigCorosync</a>()<br>
+BINDADDRS&nbsp;=&nbsp;{}<br>
+DUP_BINDADDRS&nbsp;=&nbsp;{}<br>
+for&nbsp;I&nbsp;in&nbsp;range(0,&nbsp;len(COROSYNC['totem']['interface'])):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ADDR&nbsp;=&nbsp;COROSYNC['totem']['interface'][I]['bindnetaddr']<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;ADDR&nbsp;in&nbsp;BINDADDRS:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#&nbsp;There&nbsp;is&nbsp;a&nbsp;duplicate&nbsp;bind&nbsp;net&nbsp;address&nbsp;key,&nbsp;add&nbsp;the&nbsp;duplicate&nbsp;to&nbsp;the&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DUP_BINDADDRS[ADDR]&nbsp;=&nbsp;True<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#&nbsp;The&nbsp;address&nbsp;is&nbsp;not&nbsp;a&nbsp;duplicate,&nbsp;add&nbsp;it&nbsp;to&nbsp;the&nbsp;list&nbsp;of&nbsp;bind&nbsp;net&nbsp;addresses&nbsp;to&nbsp;check<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BINDADDRS[ADDR]&nbsp;=&nbsp;True<br>
+if(&nbsp;len(DUP_BINDADDRS)&nbsp;&gt;&nbsp;0&nbsp;):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.CRIT,&nbsp;"Detected&nbsp;Duplicate&nbsp;Corosync&nbsp;Bind&nbsp;Addresses:&nbsp;"&nbsp;+&nbsp;"&nbsp;".join(DUP_BINDADDRS.keys()))<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.IGNORE,&nbsp;"All&nbsp;Corosync&nbsp;Bind&nbsp;Addresses&nbsp;are&nbsp;Unique")</tt></dd></dl>
+ <dl><dt><a name="-getNodeInfo"><strong>getNodeInfo</strong></a>()</dt><dd><tt>Gets&nbsp;cluster&nbsp;node&nbsp;information&nbsp;from&nbsp;the&nbsp;cibadmin&nbsp;-Q&nbsp;output&nbsp;or&nbsp;cib.xml&nbsp;if&nbsp;the&nbsp;node&nbsp;is&nbsp;not&nbsp;connected&nbsp;to&nbsp;the&nbsp;cluster.&nbsp;It&nbsp;includes&nbsp;information&nbsp;from&nbsp;the&nbsp;&lt;node&gt;&nbsp;and&nbsp;&lt;node_state&gt;&nbsp;tags.&nbsp;Only&nbsp;key/value&nbsp;pairs&nbsp;within&nbsp;the&nbsp;&lt;node_state&gt;&nbsp;tag&nbsp;itself&nbsp;are&nbsp;included,&nbsp;not&nbsp;tags&nbsp;below&nbsp;&lt;node_state&gt;.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;None<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;Node&nbsp;Dictionaries&nbsp;with&nbsp;keys<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*All&nbsp;key:value&nbsp;pairs&nbsp;are&nbsp;derived&nbsp;from&nbsp;the&nbsp;configuration&nbsp;file&nbsp;itself.<br>
+Example:<br>
+&nbsp;<br>
+STANDBY_NODES&nbsp;=&nbsp;[]<br>
+NODES&nbsp;=&nbsp;HAE.<a href="#-getNodeInfo">getNodeInfo</a>()<br>
+for&nbsp;I&nbsp;in&nbsp;range(0,&nbsp;len(NODES)):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#&nbsp;If&nbsp;the&nbsp;standby&nbsp;key&nbsp;exists&nbsp;in&nbsp;the&nbsp;node&nbsp;dictionary,&nbsp;proceed<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;"standby"&nbsp;in&nbsp;NODES[I]:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;'on'&nbsp;in&nbsp;NODES[I]['standby']:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;STANDBY_NODES.append(NODES[I]['uname'])<br>
+if(&nbsp;len(STANDBY_NODES)&nbsp;&gt;&nbsp;0&nbsp;):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.WARN,&nbsp;"Node(s)&nbsp;in&nbsp;standby&nbsp;mode:&nbsp;"&nbsp;+&nbsp;"&nbsp;".join(STANDBY_NODES))<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.IGNORE,&nbsp;"Node(s)&nbsp;in&nbsp;standby&nbsp;mode:&nbsp;None")</tt></dd></dl>
+ <dl><dt><a name="-getSBDInfo"><strong>getSBDInfo</strong></a>()</dt><dd><tt>Gets&nbsp;split&nbsp;brain&nbsp;detection&nbsp;partition&nbsp;information.&nbsp;Gathers&nbsp;information&nbsp;from&nbsp;the&nbsp;sbd&nbsp;dump&nbsp;command&nbsp;and&nbsp;the&nbsp;/etc/sysconfig/sbd&nbsp;file.&nbsp;SBD&nbsp;partitions&nbsp;with&nbsp;invalid&nbsp;sbd&nbsp;dump&nbsp;output&nbsp;are&nbsp;ignored.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;None<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;of&nbsp;SBD&nbsp;Dictionaries&nbsp;with&nbsp;keys<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SBD_DEVICE&nbsp;(String)&nbsp;-&nbsp;The&nbsp;/etc/sysconfig/sbd&nbsp;SDB_DEVICE&nbsp;variable.&nbsp;This&nbsp;value&nbsp;applies&nbsp;to&nbsp;all&nbsp;and&nbsp;is&nbsp;stored&nbsp;with&nbsp;each&nbsp;sbd&nbsp;device.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SBD_OPTS&nbsp;(String)&nbsp;-&nbsp;The&nbsp;/etc/sysconfig/sbd&nbsp;SBD_OPTS&nbsp;variable<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Version&nbsp;(Int)&nbsp;-&nbsp;The&nbsp;SDB&nbsp;header&nbsp;version&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Slots&nbsp;(Int)&nbsp;-&nbsp;The&nbsp;number&nbsp;of&nbsp;SDB&nbsp;slots<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Sector_Size&nbsp;(Int)&nbsp;-&nbsp;The&nbsp;SBD&nbsp;sector&nbsp;size<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Watchdog&nbsp;(Int)&nbsp;-&nbsp;The&nbsp;SBD&nbsp;watchdog&nbsp;timeout<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Allocate&nbsp;(Int)&nbsp;-&nbsp;The&nbsp;SBD&nbsp;allocate&nbsp;timeout<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Loop&nbsp;(Int)&nbsp;-&nbsp;The&nbsp;SBD&nbsp;loop&nbsp;timeout<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MsgWait&nbsp;(Int)&nbsp;-&nbsp;The&nbsp;SBD&nbsp;msgwait&nbsp;timeout<br>
+Example:<br>
+&nbsp;<br>
+SBD&nbsp;=&nbsp;HAE.<a href="#-getSBDInfo">getSBDInfo</a>()<br>
+MSG_WAIT_MIN&nbsp;=&nbsp;300<br>
+MSG_WAIT_OVERALL&nbsp;=&nbsp;MSG_WAIT_MIN<br>
+#&nbsp;Find&nbsp;the&nbsp;smallest&nbsp;msgwait&nbsp;value&nbsp;among&nbsp;the&nbsp;SBD&nbsp;partitions<br>
+for&nbsp;I&nbsp;in&nbsp;range(0,&nbsp;len(SBD)):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(&nbsp;SBD[I]['MsgWait']&nbsp;&lt;&nbsp;MSG_WAIT_OVERALL&nbsp;):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MSG_WAIT_OVERALL&nbsp;=&nbsp;SBD[I]['MsgWait']<br>
+#&nbsp;See&nbsp;if&nbsp;the&nbsp;smallest&nbsp;msgwait&nbsp;is&nbsp;less&nbsp;than&nbsp;the&nbsp;minimum&nbsp;required<br>
+if&nbsp;(&nbsp;MSG_WAIT_OVERALL&nbsp;&lt;&nbsp;MSG_WAIT_MIN&nbsp;):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.REC,&nbsp;"Consider&nbsp;changing&nbsp;your&nbsp;msgwait&nbsp;time")<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.IGNORE,&nbsp;"The&nbsp;msgwait&nbsp;is&nbsp;sufficient")</tt></dd></dl>
+ <dl><dt><a name="-haeConnected"><strong>haeConnected</strong></a>()</dt><dd><tt>Determines&nbsp;if&nbsp;the&nbsp;node&nbsp;is&nbsp;connected&nbsp;to&nbsp;the&nbsp;HAE&nbsp;cluster.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;None<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;if&nbsp;connected,&nbsp;False&nbsp;if&nbsp;disconnected<br>
+Example:<br>
+&nbsp;<br>
+if&nbsp;HAE.<a href="#-haeConnected">haeConnected</a>():<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.IGNORE,&nbsp;"Node&nbsp;connected&nbsp;to&nbsp;HAE&nbsp;Cluster")<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.WARN,&nbsp;"Node&nbsp;is&nbsp;disconnected,&nbsp;start&nbsp;HAE&nbsp;cluster&nbsp;services")</tt></dd></dl>
+ <dl><dt><a name="-haeEnabled"><strong>haeEnabled</strong></a>()</dt><dd><tt>Determines&nbsp;if&nbsp;an&nbsp;HAE&nbsp;cluster&nbsp;is&nbsp;enabled&nbsp;on&nbsp;the&nbsp;node&nbsp;based&nbsp;on&nbsp;a&nbsp;corosysnc.conf&nbsp;file.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;None<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;if&nbsp;enabled,&nbsp;False&nbsp;if&nbsp;disabled<br>
+Example:<br>
+&nbsp;<br>
+if&nbsp;HAE.<a href="#-haeEnabled">haeEnabled</a>():<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.IGNORE,&nbsp;"HAE&nbsp;Cluster&nbsp;enabled")<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.WARN,&nbsp;"HAE&nbsp;Cluster&nbsp;disabled")</tt></dd></dl>
+</td></tr></table>
+</body></html>

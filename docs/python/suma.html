@@ -1,0 +1,67 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module suma</title>
+<meta charset="utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>suma</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href="../docs-python.html">index</a><br>/usr/lib/sca/python/suma.py</a></font></td></tr></table>
+    <p><tt>Supportconfig&nbsp;Analysis&nbsp;Library&nbsp;for&nbsp;SUSE&nbsp;Manager&nbsp;patterns<br>
+&nbsp;<br>
+Library&nbsp;of&nbsp;python&nbsp;functions&nbsp;used&nbsp;when&nbsp;dealing&nbsp;with&nbsp;supportconfigs&nbsp;from&nbsp;SUSE<br>
+Manager&nbsp;server&nbsp;or&nbsp;proxy.</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="Core.html">Core</a><br>
+</td><td width="25%" valign=top></td><td width="25%" valign=top></td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-getSumaInfo"><strong>getSumaInfo</strong></a>()</dt><dd><tt>Gets&nbsp;basic&nbsp;information&nbsp;about&nbsp;SUMA&nbsp;from&nbsp;the&nbsp;supportconfig&nbsp;files.<br>
+&nbsp;<br>
+Args:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;None<br>
+Returns:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&nbsp;with&nbsp;keys<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Installed&nbsp;(Boolean)&nbsp;-&nbsp;True&nbsp;if&nbsp;SUSE&nbsp;Mangaer&nbsp;is&nbsp;installed&nbsp;as&nbsp;a&nbsp;base&nbsp;product<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Known&nbsp;(Boolean)&nbsp;-&nbsp;True&nbsp;if&nbsp;the&nbsp;product&nbsp;information&nbsp;contained&nbsp;the&nbsp;correct&nbsp;number&nbsp;of&nbsp;fields<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;(String)&nbsp;-&nbsp;The&nbsp;name&nbsp;of&nbsp;the&nbsp;SUSE&nbsp;Manager&nbsp;product<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Version&nbsp;(String)&nbsp;-&nbsp;The&nbsp;version&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Release&nbsp;(String)&nbsp;-&nbsp;The&nbsp;release&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Type&nbsp;(String)&nbsp;-&nbsp;server,&nbsp;proxy&nbsp;or&nbsp;unknown<br>
+&nbsp;<br>
+Example:<br>
+&nbsp;<br>
+SUMA&nbsp;=&nbsp;suma.<a href="#-getSumaInfo">getSumaInfo</a>()<br>
+if(&nbsp;SUMA['Installed']&nbsp;):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(&nbsp;Core.compareVersions(SUMA['Version'],&nbsp;'2.1')&nbsp;==&nbsp;0&nbsp;):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.REC,&nbsp;"SUSE&nbsp;Manager&nbsp;2.1&nbsp;is&nbsp;installed")<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.ERROR,&nbsp;"ERROR:&nbsp;SUSE&nbsp;Manager&nbsp;2.1&nbsp;required")<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.ERROR,&nbsp;"ERROR:&nbsp;SUSE&nbsp;Manager&nbsp;not&nbsp;installed")</tt></dd></dl>
+ <dl><dt><a name="-jabberdRunning"><strong>jabberdRunning</strong></a>()</dt><dd><tt>Confirms&nbsp;if&nbsp;all&nbsp;the&nbsp;processes&nbsp;required&nbsp;for&nbsp;jabberd&nbsp;are&nbsp;running.<br>
+&nbsp;<br>
+Args:&nbsp;None<br>
+Returns:&nbsp;True&nbsp;or&nbsp;False<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;-&nbsp;The&nbsp;jabberd&nbsp;processes&nbsp;are&nbsp;running<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;False&nbsp;-&nbsp;One&nbsp;or&nbsp;more&nbsp;jabberd&nbsp;processes&nbsp;are&nbsp;NOT&nbsp;running<br>
+&nbsp;<br>
+Example:<br>
+&nbsp;<br>
+if&nbsp;(&nbsp;suma.<a href="#-jabberdRunning">jabberdRunning</a>()&nbsp;):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.IGNORE,&nbsp;"The&nbsp;jabberd&nbsp;process(es)&nbsp;are&nbsp;running")<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.WARN,&nbsp;"ERROR:&nbsp;The&nbsp;jabberd&nbsp;process(es)&nbsp;are&nbsp;not&nbsp;running")</tt></dd></dl>
+</td></tr></table>
+</body></html>

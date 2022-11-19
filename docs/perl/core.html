@@ -1,0 +1,865 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Perl Library for SCA Patterns</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:none" />
+</head>
+
+<body style="background-color: white">
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#constants">CONSTANTS</a></li>
+	<ul>
+
+		<li><a href="#setting_severity_status">Setting Severity Status</a></li>
+		<li><a href="#setting_log_levels">Setting Log Levels</a></li>
+	</ul>
+
+	<li><a href="#global_variables">GLOBAL VARIABLES</a></li>
+	<li><a href="#functions__nsa_client_integration">FUNCTIONS: NSA Client Integration</a></li>
+	<ul>
+
+		<li><a href="#processoptions">processOptions</a></li>
+		<li><a href="#setstatus">setStatus</a></li>
+		<li><a href="#updatestatus">updateStatus</a></li>
+		<li><a href="#printpatternresults">printPatternResults</a></li>
+	</ul>
+
+	<li><a href="#functions__base">FUNCTIONS: Base</a></li>
+	<ul>
+
+		<li><a href="#convertdate2days">convertDate2Days</a></li>
+		<li><a href="#fileinarchive">fileInArchive</a></li>
+		<li><a href="#convertdate2days">convertDate2Days</a></li>
+		<li><a href="#trimwhite__ltrimwhite__rtrimwhite">trimWhite, ltrimWhite, rtrimWhite</a></li>
+	</ul>
+
+	<li><a href="#functions__information_gathering">FUNCTIONS: Information Gathering</a></li>
+	<ul>
+
+		<li><a href="#listsections">listSections</a></li>
+		<li><a href="#insection">inSection</a></li>
+		<li><a href="#loadfile">loadFile</a></li>
+		<li><a href="#getsection">getSection</a></li>
+		<li><a href="#normalizeversionstring">normalizeVersionString</a></li>
+	</ul>
+
+	<li><a href="#functions__comparisons">FUNCTIONS: Comparisons</a></li>
+	<ul>
+
+		<li><a href="#compareversions">compareVersions</a></li>
+	</ul>
+
+	<li><a href="#functions__debugging">FUNCTIONS: Debugging</a></li>
+	<ul>
+
+		<li><a href="#printdebug">printDebug</a></li>
+	</ul>
+
+	<li><a href="#contributors">CONTRIBUTORS</a></li>
+	<li><a href="#copyright">COPYRIGHT</a></li>
+</ul>
+
+<hr name="index" />
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>SDP::Core - The Support Diagnostic Pattern core perl library</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<p>use SDP::Core;</p>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>Provides necessary fuctions to have a support pattern interact correctly with 
+the NSA client.</p>
+<p>
+</p>
+<hr />
+<h1><a name="constants">CONSTANTS</a></h1>
+<p>
+</p>
+<h2><a name="setting_severity_status">Setting Severity Status</a></h2>
+<dl>
+<dt><strong><a name="status_temporary" class="item">STATUS_TEMPORARY</a></strong>
+
+<dd>
+<p>This is the initial overall status. Used for pre-condition processing.</p>
+</dd>
+</li>
+<dt><strong><a name="status_partial" class="item">STATUS_PARTIAL</a></strong>
+
+<dd>
+<p>All criteria are only partially checked. A status that can be used to test various conditional before assigning a valid exit condition, which is an overall status of STATUS_SUCCESS or higher. Used for pre-condition processing.</p>
+</dd>
+</li>
+<dt><strong><a name="status_success" class="item">STATUS_SUCCESS</a></strong>
+
+<dd>
+<p>All criteria have been checked. All are confirmed to be valid and working.</p>
+</dd>
+</li>
+<dt><strong><a name="status_recommend" class="item">STATUS_RECOMMEND</a></strong>
+
+<dd>
+<p>All criteria have been checked. However, the linked solution is a recommendation and does not fall into the other categories. Used to recommend an optimization TID or documentation, or even product promotions.</p>
+</dd>
+</li>
+<dt><strong><a name="status_promotion" class="item">STATUS_PROMOTION</a></strong>
+
+<dd>
+<p>All criteria have been checked. This status is used to suggest a SUSE product or service from which the customer may benefit.</p>
+</dd>
+</li>
+<dt><strong><a name="status_warning" class="item">STATUS_WARNING</a></strong>
+
+<dd>
+<p>All criteria have been checked. The criteria show a problem may occur, but may not currently be causing symptoms.</p>
+</dd>
+</li>
+<dt><strong><a name="status_critical" class="item">STATUS_CRITICAL</a></strong>
+
+<dd>
+<p>All criteria have been checked. The critiera show the server is currently matching criteria for the issue being checked.</p>
+</dd>
+</li>
+<dt><strong><a name="status_error" class="item">STATUS_ERROR</a></strong>
+
+<dd>
+<p>Not all criteria could be checked. A fatal pattern error has occurred, like a file not found.</p>
+</dd>
+</li>
+</dl>
+<p>
+</p>
+<h2><a name="setting_log_levels">Setting Log Levels</a></h2>
+<dl>
+<dt><strong><a name="loglevel_quiet" class="item">LOGLEVEL_QUIET</a></strong>
+
+<dt><strong><a name="loglevel_debug" class="item">LOGLEVEL_DEBUG</a></strong>
+
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="global_variables">GLOBAL VARIABLES</a></h1>
+<dl>
+<dt><strong><a name="_pattern_results" class="item">@PATTERN_RESULTS</a></strong>
+
+<dd>
+<p>The array returned by each pattern. There are mandatory fields and optional KEY=VALUE pairs that match criteria checked. Use <a href="#printpatternresults">SDP::Core::printPatternResults</a> to return the results to the NSA client.</p>
+</dd>
+</li>
+<dt><strong><a name="_arch_path" class="item">$ARCH_PATH</a></strong>
+
+<dd>
+<p>Set with the -p startup option. This is the directory where the archive is located. Default: Current Working Directory</p>
+</dd>
+</li>
+<dt><strong><a name="_opt_loglevel" class="item">$OPT_LOGLEVEL</a></strong>
+
+<dd>
+<p>Sets the log level for pattern output. The -d startup option sets $OPT_LOGLEVEL to LOGLEVEL_DEBUG. (<a href="#setting_log_levels">LOGLEVEL_QUIET</a>|<a href="#setting_log_levels">LOGLEVEL_DEBUG</a>) Default: LOGLEVEL_QUIET</p>
+</dd>
+</li>
+<dt><strong><a name="_gstatus" class="item">$GSTATUS</a></strong>
+
+<dd>
+<p>Keeps track of the overall status. The worst case of all criteria checked is saved in $GSTATUS, which is returned in @PATTERN_RESULTS as the OVERALL status. You should never have to set this manually, <a href="#setstatus">SDP::Core::setStatus</a> and <a href="#updatestatus">SDP::Core::updateStatus</a> to that.</p>
+</dd>
+</li>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="functions__nsa_client_integration">FUNCTIONS: NSA Client Integration</a></h1>
+<hr><p>
+</p>
+<h2><a name="processoptions">processOptions</a></h2>
+<dl>
+<dt><strong><a name="description" class="item">Description</a></strong>
+
+<dd>
+<p>Processes the pattern's startup options, which includes setting $ARCH_PATH.</p>
+</dd>
+</li>
+<dt><strong><a name="usage" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::Core::processOptions();</p>
+</dd>
+</li>
+<dt><strong><a name="input" class="item">Input</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+<dt><strong><a name="output" class="item">Output</a></strong>
+
+<dd>
+<p><a href="#global_variables">$ARCH_PATH</a>, <a href="#global_variables">$OPT_LOGLEVEL</a></p>
+</dd>
+</li>
+<dt><strong><a name="requires" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="setstatus">setStatus</a></h2>
+<dl>
+<dt><strong><a name="description2" class="item">Description</a></strong>
+
+<dd>
+<p>Initializes the OVERALL and OVERALL_INFO to the set status.</p>
+</dd>
+</li>
+<dt><strong><a name="usage2" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::Core::setStatus(STATUS, $description);</p>
+</dd>
+</li>
+<dt><strong><a name="input2" class="item">Input</a></strong>
+
+<dd>
+<p><a href="#setting_severity_status">STATUS</a> (STATUS_TEMPORARY|STATUS_PARTIAL|STATUS_SUCCESS|STATUS_RECOMMEND|STATUS_PROMOTION|STATUS_WARNING|STATUS_CRITICAL|STATUS_ERROR)</p>
+</dd>
+<dd>
+<p>$description (Brief description string)</p>
+</dd>
+</li>
+<dt><strong><a name="output2" class="item">Output</a></strong>
+
+<dd>
+<p><a href="#global_variables">@PATTERN_RESULTS</a>, <a href="#global_variables">$GSTATUS</a></p>
+</dd>
+</li>
+<dt><strong><a name="requires2" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="updatestatus">updateStatus</a></h2>
+<dl>
+<dt><strong><a name="description3" class="item">Description</a></strong>
+
+<dd>
+<p>Updates the OVERALL status if status is more severe that before. It also adds the specified key=value pair to @PATTERN_RESULTS. If the OVERALL status is green, and updateStatus is called with STATUS_SUCCESS, the OVERALL_INFO will not be updated, because the status is not worse that it was before. Use setStatus to update OVERALL and OVERALL_INFO in this case. A status greater than or equal to STATUS_ERROR, will trigger a script exit after printing @PATTERN_RESULTS.</p>
+</dd>
+</li>
+<dt><strong><a name="usage3" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::Core::updateStatus(STATUS, $value);</p>
+</dd>
+</li>
+<dt><strong><a name="input3" class="item">Input</a></strong>
+
+<dd>
+<p><a href="#setting_severity_status">STATUS</a> (STATUS_TEMPORARY|STATUS_PARTIAL|STATUS_SUCCESS|STATUS_RECOMMEND|STATUS_PROMOTION|STATUS_WARNING|STATUS_CRITICAL|STATUS_ERROR)</p>
+</dd>
+</li>
+<dt><strong><a name="output3" class="item">Output</a></strong>
+
+<dd>
+<p><a href="#global_variables">@PATTERN_RESULTS</a>, <a href="#global_variables">$GSTATUS</a></p>
+</dd>
+</li>
+<dt><strong><a name="requires3" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="printpatternresults">printPatternResults</a></h2>
+<dl>
+<dt><strong><a name="description4" class="item">Description</a></strong>
+
+<dd>
+<p>Prints <a href="#global_variables">@PATTERN_RESULTS</a> to STDOUT</p>
+</dd>
+</li>
+<dt><strong><a name="usage4" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::Core::printPatternResults();</p>
+</dd>
+</li>
+<dt><strong><a name="input4" class="item">Input</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+<dt><strong><a name="output4" class="item">Output</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+<dt><strong><a name="requires4" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="functions__base">FUNCTIONS: Base</a></h1>
+<hr><hr><p>
+</p>
+<h2><a name="convertdate2days">convertDate2Days</a></h2>
+<dl>
+<dt><strong><a name="description5" class="item">Description</a></strong>
+
+<dd>
+<p>Converts the $YEAR, $MONTH, $DAY date elements to the number of days since 1970 Jan 01.</p>
+</dd>
+</li>
+<dt><strong><a name="usage5" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $DAYS = SDP::Core::convertDate2Days(2009, 'Jan', 2);
+        SDP::Core::updateStatus(STATUS_PARTITAL, &quot;Number of days from 1970 Jan 01 to 2009 Jan 02: $DAYS&quot;);</pre>
+</dd>
+<dt><strong><a name="input5" class="item">Input</a></strong>
+
+<dd>
+<p>$YEAR (Use all four digits)</p>
+</dd>
+<dd>
+<p>$MONTH (Use locale's abbreviated month name {e.g., Jan})</p>
+</dd>
+<dd>
+<p>$DAY (Use the day of month {e.g, 01})</p>
+</dd>
+</li>
+<dt><strong><a name="output5" class="item">Output</a></strong>
+
+<dd>
+<p>Number of days since 1970 Jan 01.</p>
+</dd>
+</li>
+<dt><strong><a name="requires5" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><hr><p>
+</p>
+<h2><a name="fileinarchive">fileInArchive</a></h2>
+<dl>
+<dt><strong><a name="description6" class="item">Description</a></strong>
+
+<dd>
+<p>Returns true if the $FILE_NAME is in the supportconfig archive.</p>
+</dd>
+</li>
+<dt><strong><a name="usage6" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $FILE_NAME = 'plugin-iPrint.txt';
+        if ( SDP::Core::fileInArchive($FILE_NAME) ) {
+                SDP::Core::update_state(STATUS_SUCCESS, 'FILE', &quot;File Found: $FILE_NAME&quot;);
+        } else {
+                SDP::Core::update_state(STATUS_WARNING, 'FILE', &quot;File NOT Found: $FILE_NAME&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input6" class="item">Input</a></strong>
+
+<dd>
+<p>$FILE_NAME (The file to test.)</p>
+</dd>
+</li>
+<dt><strong><a name="output6" class="item">Output</a></strong>
+
+<dd>
+<p>0 = File NOT found in archive</p>
+</dd>
+<dd>
+<p>1 = File found in archive</p>
+</dd>
+</li>
+<dt><strong><a name="requires6" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="convertdate2days">convertDate2Days</a></h2>
+<dl>
+<dt><strong><a name="description7" class="item">Description</a></strong>
+
+<dd>
+<p>Converts the $INPUT_STRING to bytes</p>
+</dd>
+</li>
+<dt><strong><a name="usage7" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $INPUT_STRING = &quot;2.5G&quot;;
+        my $BYTES = SDP::Core::convert2bytes($INPUT_STRING);
+        SDP::Core::updateStatus(STATUS_PARTIAL, &quot;$INPUT_STRING converts to $BYTES bytes&quot;);</pre>
+</dd>
+<dt><strong><a name="input7" class="item">Input</a></strong>
+
+<dd>
+<p>$INPUT_STRING (A digit or decimal followed by a case insensitive type qualifer.)</p>
+</dd>
+<dd>
+<p>Valid type modifier:</p>
+</dd>
+<dd>
+<pre>
+        k = Kilobytes
+        m = Megabytes (Default if no qualifier specified)
+        g = Gigbytes
+        t = Terabytes
+        p = Petabytes</pre>
+</dd>
+</li>
+<dt><strong><a name="output7" class="item">Output</a></strong>
+
+<dd>
+<p>Number of bytes converted from $INPUT_STRING</p>
+</dd>
+<dd>
+<p>-1 for invalid type modifiers</p>
+</dd>
+</li>
+<dt><strong><a name="requires7" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="trimwhite__ltrimwhite__rtrimwhite">trimWhite, ltrimWhite, rtrimWhite</a></h2>
+<dl>
+<dt><strong><a name="description8" class="item">Description</a></strong>
+
+<dd>
+<p>Removes leading and trailing white space from $STRING, ltrimWhite trims the left and rtrimWhite the right.</p>
+</dd>
+</li>
+<dt><strong><a name="usage8" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $STRING = &quot;   This is a test   \t  &quot;;
+        SDP::Core::updateStatus(STATUS_PARTIAL, SDP::Core::trimWhite($STRING));
+        SDP::Core::updateStatus(STATUS_PARTIAL, SDP::Core::ltrimWhite($STRING));
+        SDP::Core::updateStatus(STATUS_PARTIAL, SDP::Core::rtrimWhite($STRING));</pre>
+</dd>
+<dt><strong><a name="input8" class="item">Input</a></strong>
+
+<dd>
+<p>$STRING (A string)</p>
+</dd>
+</li>
+<dt><strong><a name="output8" class="item">Output</a></strong>
+
+<dd>
+<p>String without leading or trailing whitespace.</p>
+</dd>
+</li>
+<dt><strong><a name="requires8" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="functions__information_gathering">FUNCTIONS: Information Gathering</a></h1>
+<hr><p>
+</p>
+<h2><a name="listsections">listSections</a></h2>
+<dl>
+<dt><strong><a name="description9" class="item">Description</a></strong>
+
+<dd>
+<p>Stores the section names in ARRAY_POINTER contined in FILE_OPEN.</p>
+</dd>
+</li>
+<dt><strong><a name="usage9" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $FILE_OPEN = 'fs-diskio.txt';
+        my @FILE_SECTIONS = ();
+        my $SECTION = '';</pre>
+</dd>
+<dd>
+<pre>
+        if ( SDP::Core::listSections($FILE_OPEN, \@FILE_SECTIONS) ) {
+                foreach $SECTION (@FILE_SECTIONS) {
+                        if ( $SECTION =~ m/\/parted -s / ) {
+                                printf(&quot;Section with parted: $SECTION\n&quot;);
+                        }
+                }
+        } else {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;ERROR: myFunction(): No sections found in $FILE_OPEN&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input9" class="item">Input</a></strong>
+
+<dd>
+<p>FILE_OPEN (The supportconfig FILE_OPEN to look in)</p>
+</dd>
+<dd>
+<p>ARRAY_POINTER (A pointer to an array that will contain the FILE_OPEN section names)</p>
+</dd>
+</li>
+<dt><strong><a name="output9" class="item">Output</a></strong>
+
+<dd>
+<p>Number of elements in the array</p>
+</dd>
+</li>
+<dt><strong><a name="requires9" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="insection">inSection</a></h2>
+<dl>
+<dt><strong><a name="description10" class="item">Description</a></strong>
+
+<dd>
+<p>Opens FILE_OPEN and looks for SEARCH_STRING anywhere in the file</p>
+</dd>
+</li>
+<dt><strong><a name="usage10" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $FILE_OPEN = 'modules.txt';
+        my $MODULE = 'usbcore';
+        my $SEARCH_STRING = &quot;options.*$MODULE.*usbfs_snoop&quot;
+        my $FOUND = SDP::Core::inSection($FILE_OPEN, $SEARCH_STRING);
+        if ( $FOUND ) {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;Found $SEARCH_STRING in $FILE_OPEN, section $FOUND&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_WARNING, &quot;NOT FOUND: $SEARCH_STRING in $FILE_OPEN&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input10" class="item">Input</a></strong>
+
+<dd>
+<p>FILE_OPEN (The supportconfig filename to look in)</p>
+</dd>
+<dd>
+<p>SEARCH_STRING (The string you are looking for in FILE_OPEN)</p>
+</dd>
+</li>
+<dt><strong><a name="output10" class="item">Output</a></strong>
+
+<dd>
+<p>The section name in $FILE_OPEN where $SEARCH_STRING is first found.</p>
+</dd>
+</li>
+<dt><strong><a name="requires10" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="loadfile">loadFile</a></h2>
+<dl>
+<dt><strong><a name="description11" class="item">Description</a></strong>
+
+<dd>
+<p>Loads the entire $FILE_OPEN into @CONTENT, skipping blank lines.</p>
+</dd>
+</li>
+<dt><strong><a name="usage11" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $FILE_OPEN = 'modules.txt';
+        my @CONTENT = ();
+        my $STATE = 0;
+        my $CONTENT_FOUND = 0;
+        if ( SDP::Core::loadFile($FILE_OPEN, \@CONTENT) ) {
+                foreach $_ (@CONTENT) {
+                        next if ( m/^\s*$/ ); # Skip blank lines
+                        if ( $STATE ) {
+                                if ( /^#==\[/ ) {
+                                        $STATE = 0;
+                                        SDP::Core::printDebug(&quot;  main DONE&quot;, &quot;State Off&quot;);
+                                } elsif ( /SearchForSectionContent/ ) { # Section content needed
+                                        $CONTENT_FOUND = 1;
+                                }
+                        } elsif ( /^# SectionNameToSearchFor/ ) { # Section
+                                $STATE = 1;
+                                SDP::Core::printDebug(&quot;  main CHECK&quot;, &quot;Section: $_&quot;);
+                        }
+                }
+        } else {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;ERROR: checkSomething(): Cannot load file: $FILE_OPEN&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input11" class="item">Input</a></strong>
+
+<dd>
+<p>LOAD_FILE (The supportconfig filename to open)</p>
+</dd>
+<dd>
+<p>ARRAY_REF (An address to an array)</p>
+</dd>
+</li>
+<dt><strong><a name="output11" class="item">Output</a></strong>
+
+<dd>
+<p>$ARRAY_REF and the number lines in the array</p>
+</dd>
+</li>
+<dt><strong><a name="requires11" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="getsection">getSection</a></h2>
+<dl>
+<dt><strong><a name="description12" class="item">Description</a></strong>
+
+<dd>
+<p>Opens file_name and retrieves the section matching the search string into the specified array</p>
+</dd>
+</li>
+<dt><strong><a name="usage12" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::Core::getSection($file_name, $section, \@array_pointer);</p>
+</dd>
+</li>
+<dt><strong><a name="input12" class="item">Input</a></strong>
+
+<dd>
+<p>file_name (The supportconfig file_name to look in)</p>
+</dd>
+<dd>
+<p>section (The name of the section you want)</p>
+</dd>
+<dd>
+<p>array_pointer (A pointer to an array that will contain the lines of the section asked for)</p>
+</dd>
+</li>
+<dt><strong><a name="output12" class="item">Output</a></strong>
+
+<dd>
+<p>Number of elements in the array</p>
+</dd>
+</li>
+<dt><strong><a name="requires12" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="normalizeversionstring">normalizeVersionString</a></h2>
+<dl>
+<dt><strong><a name="description13" class="item">Description</a></strong>
+
+<dd>
+<p>Converts a version string $VERSTR to an array of version elements. This function separates elements based on /usr/share/doc/packages/rpm/manual/dependencies. See the paragraph beginning: &quot;The algorithm that RPM uses to determine the version....&quot;</p>
+</dd>
+</li>
+<dt><strong><a name="usage13" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $VERSTR = '1.0-1.83';
+        my @FIRST = SDP::Core::normalizeVersionString($VERSTR);
+        SDP::Core::printDebug('$FIRST[$#FIRST]', &quot;$FIRST[$#FIRST]&quot;);</pre>
+</dd>
+<dt><strong><a name="input13" class="item">Input</a></strong>
+
+<dd>
+<p>$VERSTR (A version string)</p>
+</dd>
+</li>
+<dt><strong><a name="output13" class="item">Output</a></strong>
+
+<dd>
+<p>Array of version elements</p>
+</dd>
+</li>
+<dt><strong><a name="requires13" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="functions__comparisons">FUNCTIONS: Comparisons</a></h1>
+<hr><p>
+</p>
+<h2><a name="compareversions">compareVersions</a></h2>
+<dl>
+<dt><strong><a name="description14" class="item">Description</a></strong>
+
+<dd>
+<p>Compares two version strings. Only the most significant version components are compared. For example, if 2.6.5 is compared with 2.6.16.60-0.23, then only 2.6.5 and 2.6.16 will be used for the comparison. Characters in the version strings are separated into their own version element, as if there were a &quot;.&quot; at the beginning and end of the group of letters. String comparisons are used on string elements and numeric comparisons are used for digits. If a numeric element is compared to a string element, the numeric element will be converted to string for the comparison.</p>
+</dd>
+</li>
+<dt><strong><a name="usage14" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::Core::compareVersions($verstr1, $verstr2);</p>
+</dd>
+</li>
+<dt><strong><a name="input14" class="item">Input</a></strong>
+
+<dd>
+<p>$verstr1 (The first version string to compare)</p>
+</dd>
+<dd>
+<p>$verstr2 (The last version string to compare)</p>
+</dd>
+</li>
+<dt><strong><a name="output14" class="item">Output</a></strong>
+
+<dd>
+<p>-1 if $verstr1 &lt; $verstr2</p>
+</dd>
+<dd>
+<p>0 if $verstr1 == $verstr2</p>
+</dd>
+<dd>
+<p>1 if $verstr1 &gt; $verstr2</p>
+</dd>
+</li>
+<dt><strong><a name="requires14" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="functions__debugging">FUNCTIONS: Debugging</a></h1>
+<hr><p>
+</p>
+<h2><a name="printdebug">printDebug</a></h2>
+<dl>
+<dt><strong><a name="description15" class="item">Description</a></strong>
+
+<dd>
+<p>Prints the label and value to STDOUT if the <a href="#global_variables">$OPT_LOGLEVEL</a> is set to LOGLEVEL_DEBUG or higher.</p>
+</dd>
+</li>
+<dt><strong><a name="usage15" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::Core::printDebug($label, $value);</p>
+</dd>
+</li>
+<dt><strong><a name="input15" class="item">Input</a></strong>
+
+<dd>
+<p>$label (Any string that labels you debug output)</p>
+</dd>
+<dd>
+<p>$value (The values or variables you want to print out. Does not support arrays or hashes.)</p>
+</dd>
+</li>
+<dt><strong><a name="output15" class="item">Output</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+<dt><strong><a name="requires15" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="contributors">CONTRIBUTORS</a></h1>
+<p>Jason Record &lt;<a href="mailto:jason.record@suse.com">jason.record@suse.com</a>&gt;</p>
+<p>
+</p>
+<hr />
+<h1><a name="copyright">COPYRIGHT</a></h1>
+<p>Copyright (C) 2008-2021 SUSE LLC</p>
+<p>This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; version 2 of the License.</p>
+<p>This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License
+along with this program; if not, see &lt;http://www.gnu.org/licenses/&gt;.
+
+</body>
+
+</html>

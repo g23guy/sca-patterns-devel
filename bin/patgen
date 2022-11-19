@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.9'
+SVER = '1.0.10'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2022 Nov 06
+# Modified:     2022 Nov 19
 #
 ##############################################################################
 #
@@ -58,6 +58,8 @@ def usage():
 	print()
 	print("  Ordering, Stacked: kernel > package > service > conditions")
 	print("  Ordering, Flat:    kernel   package   service   conditions")
+	print()
+	print("  Documentation: /usr/share/doc/packages/sca-patterns-devel/index.html")
 	print()
 	print("OPTIONS")
 	print("  -c <0-3>, --conditions=<0-3>       Number of conditional functions to include, default=0")

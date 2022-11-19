@@ -1,0 +1,78 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module MPIO</title>
+<meta charset="utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>MPIO</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href="../docs-python.html">index</a><br>/usr/lib/sca/python/MPIO.py</font></td></tr></table>
+    <p><tt>Supportconfig&nbsp;Analysis&nbsp;Library&nbsp;for&nbsp;Device&nbsp;Mapper&nbsp;Multi-path&nbsp;I/O&nbsp;(MPIO)&nbsp;Related&nbsp;Patterns<br>
+&nbsp;<br>
+Library&nbsp;of&nbsp;python&nbsp;functions&nbsp;used&nbsp;when&nbsp;dealing&nbsp;with&nbsp;issues&nbsp;incident&nbsp;to&nbsp;MPIO</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="Core.html">Core</a><br>
+</td><td width="25%" valign=top><a href="https://docs.python.org/library/re.html">re</a><br>
+</td><td width="25%" valign=top></td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-convertKeyValue"><strong>convertKeyValue</strong></a>(STR_TO_CONVERT)</dt></dl>
+ <dl><dt><a name="-devicesManaged"><strong>devicesManaged</strong></a>()</dt><dd><tt>Determines&nbsp;if&nbsp;any&nbsp;disks&nbsp;are&nbsp;managed&nbsp;with&nbsp;MPIO.&nbsp;It&nbsp;looks&nbsp;at&nbsp;the&nbsp;multipath&nbsp;-ll&nbsp;output&nbsp;for&nbsp;device&nbsp;lines&nbsp;with&nbsp;-+-&nbsp;in&nbsp;them.<br>
+&nbsp;<br>
+Args:&nbsp;None<br>
+Returns:&nbsp;True&nbsp;or&nbsp;False<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;if&nbsp;devices&nbsp;are&nbsp;being&nbsp;managed<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;False&nbsp;if&nbsp;they&nbsp;are&nbsp;not.<br>
+&nbsp;<br>
+Example:<br>
+if(&nbsp;SUSE.mpioDevicesManaged()&nbsp;):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.IGNORE,&nbsp;"MPIO&nbsp;Disks&nbsp;are&nbsp;being&nbsp;managed")<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.WARNG,&nbsp;"No&nbsp;MPIO&nbsp;Disks&nbsp;are&nbsp;being&nbsp;managed")</tt></dd></dl>
+ <dl><dt><a name="-getDiskID"><strong>getDiskID</strong></a>(DEVICE_PATH)</dt><dd><tt>Gets&nbsp;the&nbsp;system&nbsp;disk&nbsp;(sd?)&nbsp;or&nbsp;world&nbsp;wide&nbsp;name&nbsp;ID&nbsp;for&nbsp;use&nbsp;in&nbsp;MPIO&nbsp;managed&nbsp;disk&nbsp;lookup.<br>
+Returns&nbsp;and&nbsp;sd&nbsp;disk&nbsp;device&nbsp;without&nbsp;partition&nbsp;numbers&nbsp;or&nbsp;a&nbsp;wwid</tt></dd></dl>
+ <dl><dt><a name="-getManagedDevices"><strong>getManagedDevices</strong></a>()</dt><dd><tt>Normalizes&nbsp;the&nbsp;multipath&nbsp;-ll&nbsp;output&nbsp;into&nbsp;a&nbsp;list&nbsp;of&nbsp;dictionaries.&nbsp;The&nbsp;multipath&nbsp;-ll&nbsp;output&nbsp;looks&nbsp;similar&nbsp;to:<br>
+#==[&nbsp;Command&nbsp;]======================================#<br>
+#&nbsp;/sbin/multipath&nbsp;-ll<br>
+mpathe&nbsp;(3600601609e003700bd875493d3ade411)&nbsp;dm-2&nbsp;DGC,VRAID<br>
+size=1.0T&nbsp;features='1&nbsp;queue_if_no_path'&nbsp;hwhandler='1&nbsp;emc'&nbsp;wp=rw<br>
+|-+-&nbsp;policy='round-robin&nbsp;0'&nbsp;prio=4&nbsp;status=active<br>
+|&nbsp;|-&nbsp;2:0:1:4&nbsp;sdai&nbsp;66:32&nbsp;&nbsp;active&nbsp;ready&nbsp;running<br>
+|&nbsp;`-&nbsp;1:0:1:4&nbsp;sdo&nbsp;&nbsp;8:224&nbsp;&nbsp;active&nbsp;ready&nbsp;running<br>
+`-+-&nbsp;policy='round-robin&nbsp;0'&nbsp;prio=1&nbsp;status=enabled<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|-&nbsp;1:0:0:4&nbsp;sde&nbsp;&nbsp;8:64&nbsp;&nbsp;&nbsp;active&nbsp;ready&nbsp;running<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`-&nbsp;2:0:0:4&nbsp;sdy&nbsp;&nbsp;65:128&nbsp;active&nbsp;ready&nbsp;running<br>
+&nbsp;<br>
+Args:&nbsp;None<br>
+Returns:&nbsp;List&nbsp;of&nbsp;Dictionaries<br>
+&nbsp;<br>
+Example:<br>
+Though&nbsp;the&nbsp;order&nbsp;of&nbsp;the&nbsp;elements&nbsp;will&nbsp;be&nbsp;different&nbsp;that&nbsp;shown.&nbsp;These&nbsp;are&nbsp;ordered&nbsp;to&nbsp;demonstrate&nbsp;the&nbsp;key&nbsp;value&nbsp;pairs.&nbsp;<br>
+getManagedDevices&nbsp;would&nbsp;return&nbsp;a&nbsp;list&nbsp;of&nbsp;dictionaries&nbsp;for&nbsp;the&nbsp;example&nbsp;above&nbsp;as&nbsp;follows:<br>
+&nbsp;<br>
+[&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{'alias':&nbsp;'mpathe',&nbsp;'wwid':&nbsp;'3600601609e003700bd875493d3ade411',&nbsp;'dmdev':&nbsp;'dm-2',&nbsp;'description':&nbsp;'DGC,VRAID',&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'size':&nbsp;'1.0T',&nbsp;'features':&nbsp;'1&nbsp;queue_if_no_path',&nbsp;'hwhandler':&nbsp;'1&nbsp;emc',&nbsp;'wp':&nbsp;'rw',&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'devicepath':&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{'path_group_policy':&nbsp;'round-robin&nbsp;0',&nbsp;'path_state':&nbsp;'running',&nbsp;'path_group_status':&nbsp;'active',&nbsp;'path_devnode':&nbsp;'sdai',&nbsp;'path_group_prio':&nbsp;'4',&nbsp;'dm_status':&nbsp;'ready',&nbsp;'path_major_minor':&nbsp;'66:32',&nbsp;'path_scsi_addr':&nbsp;'2:0:1:4',&nbsp;'path_status':&nbsp;'active'},&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{'path_group_policy':&nbsp;'round-robin&nbsp;0',&nbsp;'path_state':&nbsp;'running',&nbsp;'path_group_status':&nbsp;'active',&nbsp;'path_devnode':&nbsp;'sdo',&nbsp;'path_group_prio':&nbsp;'4',&nbsp;'dm_status':&nbsp;'ready',&nbsp;'path_major_minor':&nbsp;'8:224',&nbsp;'path_scsi_addr':&nbsp;'1:0:1:4',&nbsp;'path_status':&nbsp;'active'},&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{'path_group_policy':&nbsp;'round-robin&nbsp;0',&nbsp;'path_state':&nbsp;'running',&nbsp;'path_group_status':&nbsp;'enabled',&nbsp;'path_devnode':&nbsp;'sde',&nbsp;'path_group_prio':&nbsp;'1',&nbsp;'dm_status':&nbsp;'ready',&nbsp;'path_major_minor':&nbsp;'8:64',&nbsp;'path_scsi_addr':&nbsp;'1:0:0:4',&nbsp;'path_status':&nbsp;'active'},&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{'path_group_policy':&nbsp;'round-robin&nbsp;0',&nbsp;'path_state':&nbsp;'running',&nbsp;'path_group_status':&nbsp;'enabled',&nbsp;'path_devnode':&nbsp;'sdy',&nbsp;'path_group_prio':&nbsp;'1',&nbsp;'dm_status':&nbsp;'ready',&nbsp;'path_major_minor':&nbsp;'65:128',&nbsp;'path_scsi_addr':&nbsp;'2:0:0:4',&nbsp;'path_status':&nbsp;'active'}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]<br>
+}]</tt></dd></dl>
+ <dl><dt><a name="-partitionManagedDevice"><strong>partitionManagedDevice</strong></a>(DISK_ID, MPIO_DEVS)</dt><dd><tt>Checks&nbsp;if&nbsp;the&nbsp;DISK_ID&nbsp;is&nbsp;present&nbsp;in&nbsp;the&nbsp;MPIO_DEVS&nbsp;or&nbsp;multipath&nbsp;devices&nbsp;that&nbsp;do&nbsp;not&nbsp;have&nbsp;a&nbsp;no_partitions&nbsp;feature.<br>
+Returns&nbsp;True&nbsp;if&nbsp;the&nbsp;DISK_ID&nbsp;is&nbsp;managed&nbsp;without&nbsp;no_partitions&nbsp;or&nbsp;False&nbsp;if&nbsp;it&nbsp;is&nbsp;not&nbsp;managed&nbsp;or&nbsp;if&nbsp;no_partitions&nbsp;is&nbsp;found&nbsp;on&nbsp;the&nbsp;wwid.</tt></dd></dl>
+</td></tr></table>
+</body></html>

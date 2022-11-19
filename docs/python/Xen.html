@@ -1,0 +1,81 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module Xen</title>
+<meta charset="utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>Xen</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href="../docs-python.html">index</a><br>/usr/lib/sca/python/Xen.py</font></td></tr></table>
+    <p><tt>Supportconfig&nbsp;Analysis&nbsp;Library&nbsp;for&nbsp;Xen&nbsp;patterns<br>
+&nbsp;<br>
+Library&nbsp;of&nbsp;python&nbsp;functions&nbsp;used&nbsp;when&nbsp;dealing&nbsp;with&nbsp;supportconfigs&nbsp;from&nbsp;Xen<br>
+vitural&nbsp;machines&nbsp;or&nbsp;their&nbsp;virtual&nbsp;machine&nbsp;servers.</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="Core.html">Core</a><br>
+</td><td width="25%" valign=top><a href="https://docs.python.org/library/re.html">re</a><br>
+</td><td width="25%" valign=top></td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-getConfigFiles"><strong>getConfigFiles</strong></a>()</dt><dd><tt>Stores&nbsp;the&nbsp;non-XML&nbsp;Xen&nbsp;configuration&nbsp;files&nbsp;in&nbsp;list&nbsp;of&nbsp;dictionaries<br>
+&nbsp;<br>
+Args:&nbsp;None<br>
+Returns:&nbsp;List&nbsp;of&nbsp;Dictionaries<br>
+&nbsp;<br>
+Example:<br>
+Pending</tt></dd></dl>
+ <dl><dt><a name="-getDiskValueList"><strong>getDiskValueList</strong></a>(XEN_CONFIG_DISK_VALUE)</dt></dl>
+ <dl><dt><a name="-isDom0"><strong>isDom0</strong></a>()</dt><dd><tt>Confirms&nbsp;if&nbsp;the&nbsp;supportconfig&nbsp;is&nbsp;from&nbsp;a&nbsp;Xen&nbsp;Dom0&nbsp;virtual&nbsp;machine&nbsp;server<br>
+&nbsp;<br>
+Args:&nbsp;None<br>
+Returns:&nbsp;True&nbsp;or&nbsp;False<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;-&nbsp;The&nbsp;server&nbsp;is&nbsp;a&nbsp;virtual&nbsp;machine&nbsp;server<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;False&nbsp;-&nbsp;The&nbsp;server&nbsp;is&nbsp;NOT&nbsp;a&nbsp;virutal&nbsp;machine&nbsp;server<br>
+&nbsp;<br>
+Example:<br>
+&nbsp;<br>
+if&nbsp;(&nbsp;Xen.<a href="#-isDom0">isDom0</a>()&nbsp;):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.WARN,&nbsp;"The&nbsp;server&nbsp;is&nbsp;a&nbsp;Xen&nbsp;Dom0&nbsp;virtual&nbsp;machine&nbsp;server")<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.ERROR,&nbsp;"ERROR:&nbsp;Not&nbsp;a&nbsp;Xen&nbsp;Dom0")</tt></dd></dl>
+ <dl><dt><a name="-isDom0Installed"><strong>isDom0Installed</strong></a>()</dt><dd><tt>Determines&nbsp;if&nbsp;the&nbsp;Xen&nbsp;Dom0&nbsp;kernel&nbsp;is&nbsp;installed&nbsp;in&nbsp;the&nbsp;menu.lst&nbsp;available&nbsp;for&nbsp;booting<br>
+&nbsp;<br>
+Args:&nbsp;None<br>
+Returns:&nbsp;True&nbsp;or&nbsp;False<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;-&nbsp;Xen&nbsp;virtualization&nbsp;is&nbsp;installed<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;False&nbsp;-&nbsp;Xen&nbsp;virtualization&nbsp;is&nbsp;NOT&nbsp;installed<br>
+&nbsp;<br>
+Example:<br>
+&nbsp;<br>
+if&nbsp;(&nbsp;Xen.<a href="#-isDom0Installed">isDom0Installed</a>()&nbsp;):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.WARN,&nbsp;"The&nbsp;server&nbsp;has&nbsp;Xen&nbsp;Dom0&nbsp;installed,&nbsp;buy&nbsp;may&nbsp;or&nbsp;may&nbsp;not&nbsp;be&nbsp;running")<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.ERROR,&nbsp;"ABORT:&nbsp;The&nbsp;server&nbsp;does&nbsp;not&nbsp;have&nbsp;Xen&nbsp;Dom0&nbsp;installed")</tt></dd></dl>
+ <dl><dt><a name="-isDomU"><strong>isDomU</strong></a>()</dt><dd><tt>Confirms&nbsp;if&nbsp;the&nbsp;supportconfig&nbsp;is&nbsp;from&nbsp;a&nbsp;Xen&nbsp;DomU&nbsp;virtual&nbsp;machine<br>
+&nbsp;<br>
+Args:&nbsp;None<br>
+Returns:&nbsp;True&nbsp;or&nbsp;False<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True&nbsp;-&nbsp;The&nbsp;server&nbsp;is&nbsp;a&nbsp;virtual&nbsp;machine<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;False&nbsp;-&nbsp;The&nbsp;server&nbsp;is&nbsp;NOT&nbsp;a&nbsp;virutal&nbsp;machine<br>
+&nbsp;<br>
+Example:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+if&nbsp;(&nbsp;Xen.<a href="#-isDomU">isDomU</a>()&nbsp;):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.WARN,&nbsp;"The&nbsp;server&nbsp;is&nbsp;a&nbsp;Xen&nbsp;DomU&nbsp;virtual&nbsp;machine")<br>
+else:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Core.updateStatus(Core.ERROR,&nbsp;"ERROR:&nbsp;Not&nbsp;a&nbsp;Xen&nbsp;DomU")</tt></dd></dl>
+</td></tr></table>
+</body></html>

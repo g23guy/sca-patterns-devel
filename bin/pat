@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.7'
+SVER = '2.0.8'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Runs a pattern or patterns against supportconfig directories to
 #               check the pattern's output based on the supportconfig directory.
-# Modified:     2022 Nov 04
+# Modified:     2022 Nov 19
 #
 ##############################################################################
 #
@@ -75,6 +75,11 @@ def title():
 def usage():
 	"Displays usage information"
 	print("Usage: pat [options] <path_to_pattern|directory>")
+	print()
+	print("Description:")
+	print("  Runs the selected pattern(s) against the selected supportconfig archive(s).")
+	print()
+	print("  Documentation: /usr/share/doc/packages/sca-patterns-devel/index.html")
 	print()
 	print("Options:")
 	print("  -h, --help     Display this help")

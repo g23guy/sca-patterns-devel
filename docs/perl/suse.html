@@ -1,0 +1,1765 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Perl Library for SCA Patterns</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:none" />
+</head>
+
+<body style="background-color: white">
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#constants">CONSTANTS</a></li>
+	<ul>
+
+		<li><a href="#kernel_versions">Kernel Versions</a></li>
+	</ul>
+
+	<li><a href="#functions__information_gathering">FUNCTIONS: Information Gathering</a></li>
+	<ul>
+
+		<li><a href="#gethostinfo">getHostInfo</a></li>
+		<li><a href="#getdriverinfo">getDriverInfo</a></li>
+		<li><a href="#getserviceinfo">getServiceInfo</a></li>
+		<li><a href="#portinfo">portInfo</a></li>
+		<li><a href="#getboundips">getBoundIPs</a></li>
+		<li><a href="#netroutetable">netRouteTable</a></li>
+		<li><a href="#getfilesystems">getFileSystems</a></li>
+		<li><a href="#getscinfo">getSCInfo</a></li>
+	</ul>
+
+	<li><a href="#functions__comparisons">FUNCTIONS: Comparisons</a></li>
+	<ul>
+
+		<li><a href="#comparekernel">compareKernel</a></li>
+		<li><a href="#comparedriver">compareDriver</a></li>
+		<li><a href="#comparesupportconfig">compareSupportconfig</a></li>
+		<li><a href="#comparerpm">compareRpm</a></li>
+	</ul>
+
+	<li><a href="#functions__rpm_packages">FUNCTIONS: RPM Packages</a></li>
+	<ul>
+
+		<li><a href="#getrpminfo">getRpmInfo</a></li>
+		<li><a href="#packageinstalled">packageInstalled</a></li>
+		<li><a href="#haeenabled">haeEnabled</a></li>
+		<li><a href="#packageverify">packageVerify</a></li>
+		<li><a href="#securitypackagecheck">securityPackageCheck</a></li>
+		<li><a href="#securityseveritypackagecheck">securitySeverityPackageCheck</a></li>
+		<li><a href="#securitypackagechecknoerror">securityPackageCheckNoError</a></li>
+		<li><a href="#securityannouncementpackagecheck">securityAnnouncementPackageCheck</a></li>
+		<li><a href="#securityseveritypackagechecknoerror">securitySeverityPackageCheckNoError</a></li>
+		<li><a href="#securitykernelcheck">securityKernelCheck</a></li>
+		<li><a href="#securityseveritykernelcheck">securitySeverityKernelCheck</a></li>
+		<li><a href="#securityseveritykernelannouncement">securitySeverityKernelAnnouncement</a></li>
+	</ul>
+
+	<li><a href="#functions__general">FUNCTIONS: General</a></li>
+	<ul>
+
+		<li><a href="#servicebootstate">serviceBootstate</a></li>
+		<li><a href="#servicestatus">serviceStatus</a></li>
+		<li><a href="#servicehealth">serviceHealth</a></li>
+		<li><a href="#xendomu">xenDomU</a></li>
+		<li><a href="#xendom0installed">xenDom0installed</a></li>
+		<li><a href="#xendom0running">xenDom0running</a></li>
+		<li><a href="#getsupportconfigrundate">getSupportconfigRunDate</a></li>
+		<li><a href="#appcores">appCores</a></li>
+	</ul>
+
+	<li><a href="#contributors">CONTRIBUTORS</a></li>
+	<li><a href="#copyright">COPYRIGHT</a></li>
+</ul>
+
+<hr name="index" />
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>SDP::SUSE - The Support Diagnostic Pattern perl library for SUSE OS</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<p>use SDP::SUSE;</p>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>Provides necessary functions specific to patterns developed against supportconfig
+running on SUSE servers.</p>
+<p>
+</p>
+<hr />
+<h1><a name="constants">CONSTANTS</a></h1>
+<p>
+</p>
+<h2><a name="kernel_versions">Kernel Versions</a></h2>
+<dl>
+<dt><strong><a name="sle9ga_sle9sp1_sle9sp2_sle9sp3_sle9sp4_sle9sp5_sle10ga_sle10sp1_sle10sp2_sle10sp3_sle10sp4_sle10sp5_sle11ga_sle11sp1_sle11sp2_sle11sp3_sle11sp4_sle12ga" class="item">SLE9GA, SLE9SP1, SLE9SP2, SLE9SP3, SLE9SP4, SLE9SP5, SLE10GA, SLE10SP1, SLE10SP2, SLE10SP3, SLE10SP4, SLE10SP5, SLE11GA, SLE11SP1, SLE11SP2, SLE11SP3, SLE11SP4, SLE12GA</a></strong>
+
+<dd>
+<p>SUSE Linux Enterprise Server/Desktop kernel versions</p>
+</dd>
+</li>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="functions__information_gathering">FUNCTIONS: Information Gathering</a></h1>
+<hr><p>
+</p>
+<h2><a name="gethostinfo">getHostInfo</a></h2>
+<dl>
+<dt><strong><a name="description" class="item">Description</a></strong>
+
+<dd>
+<p>Returns a hash containing host information.</p>
+</dd>
+</li>
+<dt><strong><a name="usage" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my %HOST_INFO = SDP::SUSE::getHostInfo();
+</pre>
+</dd>
+<dt><strong><a name="input" class="item">Input</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+<dt><strong><a name="output" class="item">Output</a></strong>
+
+<dd>
+<p>Hash with host information.</p>
+</dd>
+</li>
+<dt><strong><a name="requires" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+<dt><strong><a name="hash_keys" class="item">Hash Keys</a></strong>
+
+<dd>
+<p>architecture, hostname, kernel, distribution, patchlevel</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="getdriverinfo">getDriverInfo</a></h2>
+<dl>
+<dt><strong><a name="description2" class="item">Description</a></strong>
+
+<dd>
+<p>Returns a hash containing loaded kernel module information.</p>
+</dd>
+</li>
+<dt><strong><a name="usage2" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $DRIVER_NAME = 'zapi';
+        my %DRIVER_INFO = SDP::SUSE::getDriverInfo($DRIVER_NAME);
+        if ( $DRIVER_INFO{'loaded'} ) {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;Driver $DRIVER_NAME is loaded and supported = $DRIVER_INFO{'supported'}&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_WARNING, &quot;Driver $DRIVER_NAME is NOT loaded&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input2" class="item">Input</a></strong>
+
+<dd>
+<p>$DRIVER_NAME (The name of the driver about which you want information.)</p>
+</dd>
+</li>
+<dt><strong><a name="output2" class="item">Output</a></strong>
+
+<dd>
+<p>Hash with load kernel driver information.</p>
+</dd>
+</li>
+<dt><strong><a name="requires2" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+<dt><strong><a name="hash_keys2" class="item">Hash Keys</a></strong>
+
+<dd>
+<p>name, loaded, filename, version, license, description, srcversion, supported, vermagic</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="getserviceinfo">getServiceInfo</a></h2>
+<dl>
+<dt><strong><a name="description3" class="item">Description</a></strong>
+
+<dd>
+<p>Returns a hash containing loaded kernel module information.</p>
+</dd>
+</li>
+<dt><strong><a name="usage3" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $SERVICE_NAME = 'ftp';
+        my %SERVICE_INFO = SDP::SUSE::getServiceInfo($SERVICE_NAME);
+        if ( $SERVICE_INFO{'running'} &gt; 0 ) {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;Service $SERVICE_INFO{'name'} is running&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_WARNING, &quot;Service $SERVICE_INFO{'name'} is NOT running&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input3" class="item">Input</a></strong>
+
+<dd>
+<p>$SERVICE_NAME (The system service about which you want information.)</p>
+</dd>
+</li>
+<dt><strong><a name="output3" class="item">Output</a></strong>
+
+<dd>
+<p>Hash with service information information.</p>
+</dd>
+</li>
+<dt><strong><a name="requires3" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+<dt><strong><a name="hash_keys3" class="item">Hash Keys</a></strong>
+
+<dd>
+<p>name  (The service name)</p>
+</dd>
+<dd>
+<p>running (-1=Unknown, 0=Unused or Dead, 1=Running)</p>
+</dd>
+<dd>
+<p>bootlevels (A list of runlevel numbers in which the service is turned on for boot. An empty string means the service is turned off at boot for all runlevels.)</p>
+</dd>
+<dd>
+<p>runlevel (The current system runlevel)</p>
+</dd>
+<dd>
+<p>runlevelstatus (0=Service is turned off for the current runlevel, 1=Service is turned on for the current runlevel)</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="portinfo">portInfo</a></h2>
+<dl>
+<dt><strong><a name="description4" class="item">Description</a></strong>
+
+<dd>
+<p>Gathers information about the service listening on $PORT_NUMBER</p>
+</dd>
+</li>
+<dt><strong><a name="usage4" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $PORT_NUMBER = '22';
+        my %PORT_INFO = SDP::SUSE::portInfo($PORT_NUMBER);
+        if ( %PORT_INFO ) {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;Port $PORT_NUMBER Is listening&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_WARNING, &quot;Port $PORT_NUMBER Is NOT listening&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input4" class="item">Input</a></strong>
+
+<dd>
+<p>$PORT_NUMBER (The network port number to check)</p>
+</dd>
+</li>
+<dt><strong><a name="output4" class="item">Output</a></strong>
+
+<dd>
+<p>Hash with port information</p>
+</dd>
+</li>
+<dt><strong><a name="hash_keys4" class="item">Hash Keys</a></strong>
+
+<dd>
+<p>port, service</p>
+</dd>
+</li>
+<dt><strong><a name="requires4" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="getboundips">getBoundIPs</a></h2>
+<dl>
+<dt><strong><a name="description5" class="item">Description</a></strong>
+
+<dd>
+<p>Identifies all IPv4 IP addresses bound to the server.</p>
+</dd>
+</li>
+<dt><strong><a name="usage5" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $i = '';
+        my @BOUND_IP = ();
+        my $TYPE = '';
+        my $PRI = 0;
+        my $SEC = 0;
+        my $ALL = 0;</pre>
+</dd>
+<dd>
+<pre>
+        if ( SDP::SUSE::getBoundIPs(\@BOUND_IP) ) {
+                for $i ( 0 .. $#BOUND_IP ) {
+                        if ( $BOUND_IP[$i]{'issec'} ) {
+                                $TYPE = 'Secondary';
+                                $SEC++;;
+                        } else {
+                                $TYPE = 'Primary';
+                                $PRI++;
+                        }
+                        SDP::Core::updateStatus(STATUS_PARTIAL, &quot;$TYPE $BOUND_IP[$i]{'interface'} addr:$BOUND_IP[$i]{'addr'}&quot;);
+                }
+                $ALL = scalar(@BOUND_IP);
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;Bound IP Addresses: Primary=$PRI, Secondary=$SEC, TOTAL=$ALL&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;Error: No IP addresses bound to the server&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input5" class="item">Input</a></strong>
+
+<dd>
+<p>Array address</p>
+</dd>
+</li>
+<dt><strong><a name="output5" class="item">Output</a></strong>
+
+<dd>
+<p>Array of hashes containing the address details</p>
+</dd>
+</li>
+<dt><strong><a name="hash_keys5" class="item">Hash Keys</a></strong>
+
+<dd>
+<p>interface, addr, bcast, mask, mac, irq, config, issec</p>
+</dd>
+</li>
+<dt><strong><a name="requires5" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="netroutetable">netRouteTable</a></h2>
+<dl>
+<dt><strong><a name="description6" class="item">Description</a></strong>
+
+<dd>
+<p>Gathers information from the routing table.</p>
+</dd>
+</li>
+<dt><strong><a name="usage6" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $i = '';
+        my @NETWORK_ROUTES = ();</pre>
+</dd>
+<dd>
+<pre>
+        if ( SDP::SUSE::netRouteTable(\@NETWORK_ROUTES) ) {
+                for $i ( 0 .. $#NETWORK_ROUTES ) {
+                        SDP::Core::printDebug('ROUTE', &quot;$i of $#NETWORK_ROUTES: $NETWORK_ROUTES[$i]{'gateway'} - $NETWORK_ROUTES[$i]{'flags'}&quot;);
+                }
+        }</pre>
+</dd>
+<dt><strong><a name="input6" class="item">Input</a></strong>
+
+<dd>
+<p>Array address</p>
+</dd>
+</li>
+<dt><strong><a name="output6" class="item">Output</a></strong>
+
+<dd>
+<p>Array of hashes</p>
+</dd>
+</li>
+<dt><strong><a name="hash_keys6" class="item">Hash Keys</a></strong>
+
+<dd>
+<p>destination, gateway, genmask, flags, mss, window, irtt, interface</p>
+</dd>
+</li>
+<dt><strong><a name="requires6" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="getfilesystems">getFileSystems</a></h2>
+<dl>
+<dt><strong><a name="description7" class="item">Description</a></strong>
+
+<dd>
+<p>Gets all fields from the mounted file systems and the fstab file. Information is returned as an array of hashes.</p>
+</dd>
+</li>
+<dt><strong><a name="usage7" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my @MOUNTS = SDP::SUSE::getFileSystems();
+        my $TMP;
+        my $FOUND = 0;
+        foreach $TMP (@MOUNTS) {
+                if ( $TMP-&gt;{'MPT'} eq '/' ) {
+                        SDP::Core::updateStatus(STATUS_SUCCESS, &quot;Found root device $TMP-&gt;{'DEV'} mounted on $TMP-&gt;{'MPT'} with file system $TMP-&gt;{'TYPE'}&quot;);
+                        $FOUND = 1;
+                }
+        }
+        SDP::Core::setStatus(STATUS_CRITICAL, 'Root file system not found') if ( ! $FOUND );</pre>
+</dd>
+<dt><strong><a name="input7" class="item">Input</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+<dt><strong><a name="output7" class="item">Output</a></strong>
+
+<dd>
+<p>Array of hashes</p>
+</dd>
+</li>
+<dt><strong><a name="hash_keys7" class="item">Hash Keys</a></strong>
+
+<dd>
+<p>DEV, DEVM, DEVF, MPT, TYPE, OPTIONS, DUMP, FSCK, MOUNTED, SIZE, USED, AVAIL, USEPCT</p>
+</dd>
+<dd>
+<pre>
+        DEV     = The active device path
+        DEVM    = The device path from the mount command
+        DEVF    = The device path from /etc/fstab
+        MPT     = The mount point
+        TYPE    = File system type
+        OPTIONS = Options used when mounted or mounting
+        DUMP    = /etc/fstab dump field, -1 if unknown
+        FSCK    = /etc/fstab fsck field, -1 if unknown
+        MOUNTED = -1 Unknown, 0 Not mounted, 1 Mounted
+        SIZE    = -1 Unknown, file system size in bytes
+        USED    = -1 Unknown, file system space used in bytes
+        AVAIL   = -1 Unknown, file system space available in bytes
+        USEPCT  = -1 Unknown, file system percent used</pre>
+</dd>
+</li>
+<dt><strong><a name="requires7" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="getscinfo">getSCInfo</a></h2>
+<dl>
+<dt><strong><a name="description8" class="item">Description</a></strong>
+
+<dd>
+<p>Returns a hash containing supportconfig information.</p>
+</dd>
+</li>
+<dt><strong><a name="usage8" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $REQUIRED_VERSION = '2.25-173';
+        my %SC_INFO = SDP::SUSE::getSCInfo();
+        if ( SDP::Core::compareVersions($SC_INFO{'version'}, $REQUIRED_VERSION) &gt;= 0 ) {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;Supportconfig v$SC_INFO{'version'} meets minimum requirement&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_WARNING, &quot;Supportconfig v$SC_INFO{'version'} NOT sufficient, $REQUIRED_VERSION or higher needed&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input8" class="item">Input</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+<dt><strong><a name="output8" class="item">Output</a></strong>
+
+<dd>
+<p>Hash with supportconfig information.</p>
+</dd>
+</li>
+<dt><strong><a name="requires8" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+<dt><strong><a name="hash_keys8" class="item">Hash Keys</a></strong>
+
+<dd>
+<p>version, scriptdate, cmdline, config, envalue, kernvalue, rundate</p>
+</dd>
+</li>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="functions__comparisons">FUNCTIONS: Comparisons</a></h1>
+<hr><p>
+</p>
+<h2><a name="comparekernel">compareKernel</a></h2>
+<dl>
+<dt><strong><a name="description9" class="item">Description</a></strong>
+
+<dd>
+<p>Uses SDP::Core::compareVersions to compare $test_version against the running kernel version. Only the most significant version components are compared. For example, if 2.6.5 is compared with 2.6.16.60-0.23, then only 2.6.5 and 2.6.16 will be used for the comparison.</p>
+</dd>
+</li>
+<dt><strong><a name="usage9" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        if ( SDP::SUSE::compareKernel(SLE10SP1) &gt;= 0 &amp;&amp; SDP::SUSE::compareKernel(SLE10SP2) &lt; 0) {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;Running SLES10 SP1 Kernel&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;ABORT: Outside the kernel scope&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input9" class="item">Input</a></strong>
+
+<dd>
+<p>$test_version (The version string to which the running kernel's version is compared.)</p>
+</dd>
+</li>
+<dt><strong><a name="output9" class="item">Output</a></strong>
+
+<dd>
+<p>-1 if kernel_version &lt; $test_version</p>
+</dd>
+<dd>
+<p>0 if kernel_version == $test_version</p>
+</dd>
+<dd>
+<p>1 if kernel_version &gt; $test_version</p>
+</dd>
+</li>
+<dt><strong><a name="requires9" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="comparedriver">compareDriver</a></h2>
+<dl>
+<dt><strong><a name="description10" class="item">Description</a></strong>
+
+<dd>
+<p>Uses SDP::Core::compareVersions to compare the $DRIVER_NAME and $TEST_VERSION against the loaded driver version. Only the most significant version components are compared. For example, if 2.6.5 is compared with 2.6.16.60-0.23, then only 2.6.5 and 2.6.16 will be used for the comparison.</p>
+</dd>
+</li>
+<dt><strong><a name="usage10" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $DRIVER_NAME = 'mptctl';
+        my $TEST_VERSION = '5.25';
+        if ( SDP::SUSE::compareDriver($DRIVER_NAME, $TEST_VERSION) &gt;= 0 ) {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;$DRIVER_NAME version meets minimum requirement&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_WARNING, &quot;$DRIVER_NAME version NOT sufficient, $TEST_VERSION or higher needed&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input10" class="item">Input</a></strong>
+
+<dd>
+<p>$DRIVER_NAME (The driver name that needs to be compared.)</p>
+</dd>
+<dd>
+<p>$TEST_VERSION (The version string to which the loaded driver's version is compared.)</p>
+</dd>
+</li>
+<dt><strong><a name="output10" class="item">Output</a></strong>
+
+<dd>
+<p>-1 if driver_version &lt; $TEST_VERSION</p>
+</dd>
+<dd>
+<p>0 if driver_version == $TEST_VERSION</p>
+</dd>
+<dd>
+<p>1 if driver_version &gt; $TEST_VERSION</p>
+</dd>
+</li>
+<dt><strong><a name="requires10" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="comparesupportconfig">compareSupportconfig</a></h2>
+<dl>
+<dt><strong><a name="description11" class="item">Description</a></strong>
+
+<dd>
+<p>Uses SDP::Core::compareVersions to compare $TEST_VERSION against the supportconfig version. Only the most significant version components are compared. For example, if 2.6.5 is compared with 2.6.16.60-0.23, then only 2.6.5 and 2.6.16 will be used for the comparison.</p>
+</dd>
+</li>
+<dt><strong><a name="usage11" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $TEST_VERSION = '2.25-173';
+        if ( SDP::SUSE::compareSupportconfig($TEST_VERSION) &gt;= 0 ) {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;Supportconfig version meets minimum requirement&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_WARNING, &quot;Supportconfig version NOT sufficient, $TEST_VERSION or higher needed&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input11" class="item">Input</a></strong>
+
+<dd>
+<p>$TEST_VERSION (The version string to which supportconfig's version is compared.)</p>
+</dd>
+</li>
+<dt><strong><a name="output11" class="item">Output</a></strong>
+
+<dd>
+<p>-1 if supportconfig_version &lt; $TEST_VERSION</p>
+</dd>
+<dd>
+<p>0 if supportconfig_version == $TEST_VERSION</p>
+</dd>
+<dd>
+<p>1 if supportconfig_version &gt; $TEST_VERSION</p>
+</dd>
+</li>
+<dt><strong><a name="requires11" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="comparerpm">compareRpm</a></h2>
+<dl>
+<dt><strong><a name="description12" class="item">Description</a></strong>
+
+<dd>
+<p>Uses SDP::Core::compareVersions to compare $test_version against the installed RPM version. Comparisons are only valid on a single installed RPM; the comparison is skipped if multiple RPMs of the same name are installed. Only the most significant version components are compared. For example, if 2.6.5 is compared with 2.6.16.60-0.23, then only 2.6.5 and 2.6.16 will be used for the comparison. Letters in version strings are compared as separate elements. So 2.6SP3 would be compared as 2.6.SP.3. Letters are compared as a string comparison, and are case sensitive.</p>
+</dd>
+</li>
+<dt><strong><a name="usage12" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $RPM_NAME = 'autofs';
+        my $VERSION_TO_COMPARE = '1.1.2';
+        my $RPM_COMPARISON = SDP::SUSE::compareRpm($RPM_NAME, $VERSION_TO_COMPARE);
+        if ( $RPM_COMPARISON == 2 ) {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;ERROR: RPM $RPM_NAME Not Installed&quot;);
+        } elsif ( $RPM_COMPARISON &gt; 2 ) {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;ERROR: Multiple Versions of $RPM_NAME RPM are Installed&quot;);
+        } else {
+                if ( $RPM_COMPARISON &lt; 0 ) {
+                        SDP::Core::updateStatus(STATUS_WARNING, &quot;The installed $RPM_NAME RPM version is less than version $VERSION_TO_COMPARE&quot;);
+                } else {
+                        SDP::Core::updateStatus(STATUS_ERROR, &quot;The installed $RPM_NAME RPM version meets or exceeds version $VERSION_TO_COMPARE&quot;);
+                }                       
+        }</pre>
+</dd>
+<dt><strong><a name="input12" class="item">Input</a></strong>
+
+<dd>
+<p>$rpm_name (The RPM name you are testing)</p>
+</dd>
+<dd>
+<p>$test_version (The RPM version string to which the installed RPM version is compared.)</p>
+</dd>
+</li>
+<dt><strong><a name="output12" class="item">Output</a></strong>
+
+<dd>
+<p>-1 if installed_rpm_version &lt; $test_version</p>
+</dd>
+<dd>
+<p>0 if installed_rpm_version == $test_version</p>
+</dd>
+<dd>
+<p>1 if installed_rpm_version &gt; $test_version</p>
+</dd>
+<dd>
+<p>2 if RPM is not installed</p>
+</dd>
+<dd>
+<p>3 if Multiple RPM versions exist</p>
+</dd>
+</li>
+<dt><strong><a name="requires12" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="functions__rpm_packages">FUNCTIONS: RPM Packages</a></h1>
+<hr><p>
+</p>
+<h2><a name="getrpminfo">getRpmInfo</a></h2>
+<dl>
+<dt><strong><a name="description13" class="item">Description</a></strong>
+
+<dd>
+<p>Returns an array of hashes containing RPM information. If the RPM is not installed, then @RPM_INFO is not set.</p>
+</dd>
+</li>
+<dt><strong><a name="usage13" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $RPM_NAME = 'kernel-xen';
+        my @RPM_INFO = SDP::SUSE::getRpmInfo($RPM_NAME);
+        if ( $#RPM_INFO &lt; 0 ) {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;ERROR: RPM $RPM_NAME Not Installed&quot;);
+        } elsif ( $#RPM_INFO &gt; 0 ) {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;ERROR: Multiple $RPM_NAME RPMs Installed&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;RPM $RPM_INFO[0]{'name'}-$RPM_INFO[0]{'version'} installed on $RPM_INFO[0]{'installed'}&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input13" class="item">Input</a></strong>
+
+<dd>
+<p>$rpm_name</p>
+</dd>
+</li>
+<dt><strong><a name="output13" class="item">Output</a></strong>
+
+<dd>
+<p>@RPM_INFO (An array of hashes containing RPM information)</p>
+</dd>
+</li>
+<dt><strong><a name="requires13" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+<dt><strong><a name="rpm_hash_keys" class="item">RPM Hash Keys</a></strong>
+
+<dd>
+<p>name, version, vendor, installed</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="packageinstalled">packageInstalled</a></h2>
+<dl>
+<dt><strong><a name="description14" class="item">Description</a></strong>
+
+<dd>
+<p>Confirms $PKG_NAME is installed on the system</p>
+</dd>
+</li>
+<dt><strong><a name="usage14" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $PKG_NAME = 'supportutils';
+        if ( SDP::SUSE::packageInstalled($PKG_NAME) ) {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;Package Installed: $PKG_NAME&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_CRITICAL, &quot;Package NOT Installed: $PKG_NAME&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input14" class="item">Input</a></strong>
+
+<dd>
+<p>$pacakge_name (The package name to validate)</p>
+</dd>
+</li>
+<dt><strong><a name="output14" class="item">Output</a></strong>
+
+<dd>
+<p>1 if Package is installed</p>
+</dd>
+<dd>
+<p>0 if Package is NOT installed</p>
+</dd>
+</li>
+<dt><strong><a name="requires14" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="haeenabled">haeEnabled</a></h2>
+<dl>
+<dt><strong><a name="description15" class="item">Description</a></strong>
+
+<dd>
+<p>Checks for a corosync.conf to show HAE is enabled.</p>
+</dd>
+</li>
+<dt><strong><a name="usage15" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        if ( SDP::SUSE::haeEnabled() ) {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;HAE Enabled&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;HAE Disabled&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input15" class="item">Input</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+<dt><strong><a name="output15" class="item">Output</a></strong>
+
+<dd>
+<p>0 if HAE is disabled, corosync.conf missing</p>
+</dd>
+<dd>
+<p>1 if HAE is enabled, corosync.conf found</p>
+</dd>
+</li>
+<dt><strong><a name="requires15" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="packageverify">packageVerify</a></h2>
+<dl>
+<dt><strong><a name="description16" class="item">Description</a></strong>
+
+<dd>
+<p>Checks if the named package passed it's RPM validation check.</p>
+</dd>
+</li>
+<dt><strong><a name="usage16" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $FILE_OPEN = 'fs-autofs.txt';
+        my $PKG_NAME = 'autofs';
+        my @EXCEPTION_LIST = ();
+        if ( SDP::SUSE::packageVerify($FILE_OPEN, $PKG_NAME, \@EXCEPTION_LIST) &gt; 1 ) {
+                SDP::Core::updateStatus(STATUS_CRITICAL, &quot;Failed RPM Validation: $PKG_NAME&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;Passed RPM Validation: $PKG_NAME&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input16" class="item">Input</a></strong>
+
+<dd>
+<p>$FILE_OPEN (The file in which the rpm -V was executed.)</p>
+</dd>
+<dd>
+<p>$PKG_NAME (The package name to validate)</p>
+</dd>
+<dd>
+<p>$EXCEPTION_LIST (An address to an array of files or directories to exclude from the check. OPTIONAL)</p>
+</dd>
+</li>
+<dt><strong><a name="output16" class="item">Output</a></strong>
+
+<dd>
+<p>0 if Package is valid, no differences found</p>
+</dd>
+<dd>
+<p>1 if Package is valid, or only docs or configuration files have been modified</p>
+</dd>
+<dd>
+<p>2 if Package is not valid, non-doc or non-configuration files have been modified</p>
+</dd>
+<dd>
+<p>3 if Package is not valid, binaries or library files have been modified</p>
+</dd>
+<dd>
+<p>4 if Package is not valid, unknown reason</p>
+</dd>
+</li>
+<dt><strong><a name="requires16" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="securitypackagecheck">securityPackageCheck</a></h2>
+<dl>
+<dt><strong><a name="description17" class="item">Description</a></strong>
+
+<dd>
+<p>A function specific to checking packages in a Security Advisory type format. The function will trigger a script exit if the @rpms_to_check are not installed. It is assumed that the @rpms_to_check are different packages with the same $fixed_rpm_version for each. For example, @rpms_to_check might be cups and cups-devel, but the fix is version 1.1.0 for each (cups-1.1.0 and cups-devel-1.1.0). This function is not intended to check two different versions on the same server. For example, java-1_4_2 and java-1_5_0 on the same server should not be checked with this function because securityPackageCheck will abort if it finds any occurance of a package not installed.</p>
+</dd>
+</li>
+<dt><strong><a name="usage17" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::SUSE::securityPackageCheck($title, $advisory_number, $advisory_description, \@rpms_to_check, $fixed_rpm_version);</p>
+</dd>
+</li>
+<dt><strong><a name="input17" class="item">Input</a></strong>
+
+<dd>
+<p>$title (Short one or two word title of the Advisory; ie Kerberos, CUPS or IBM Java)</p>
+</dd>
+<dd>
+<p>$advisory_number (The security advisory &quot;Announcement ID,&quot; ie SUSE-SA:2009:007)</p>
+</dd>
+<dd>
+<p>$advisory_description (The security advisory &quot;Vulnerability Type,&quot; ie &quot;Local privilege escalation&quot;)</p>
+</dd>
+<dd>
+<p>\@rpms_to_check (An array of rpm packages with the same version that are affected by the security advisory; ie cups, cups-libs, cups-devel)</p>
+</dd>
+<dd>
+<p>$fixed_rpm_version (The version of the @rpms_to_check in which the security vulnerabilty has been fixed, ie 1.1.23-40.38)</p>
+</dd>
+</li>
+<dt><strong><a name="output17" class="item">Output</a></strong>
+
+<dd>
+<p>1 if Package is confirmed to be installed and fixed</p>
+</dd>
+<dd>
+<p>0 if Package cannot be confirmed as installed and fixed</p>
+</dd>
+<dd>
+<p>@PATTERN_RESULTS (Adds the CVE key value pair)</p>
+</dd>
+</li>
+<dt><strong><a name="requires17" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="securityseveritypackagecheck">securitySeverityPackageCheck</a></h2>
+<dl>
+<dt><strong><a name="description18" class="item">Description</a></strong>
+
+<dd>
+<p>A function specific to checking packages in a Security Advisory type format. The function will trigger a script exit if the @rpms_to_check are not installed. It is assumed that the @rpms_to_check are different packages with the same $fixed_rpm_version for each. For example, @rpms_to_check might be cups and cups-devel, but the fix is version 1.1.0 for each (cups-1.1.0 and cups-devel-1.1.0). This function is not intended to check two different versions on the same server. For example, java-1_4_2 and java-1_5_0 on the same server should not be checked with this function because securityPackageCheck will abort if it finds any occurance of a package not installed.</p>
+</dd>
+</li>
+<dt><strong><a name="usage18" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::SUSE::securitySeverityPackageCheck($TITLE, $SEVERITY, $VULNERABILITY_TYPE, \@RPMS_TO_CHECK, $FIXED_RPM_VERSION);</p>
+</dd>
+</li>
+<dt><strong><a name="input18" class="item">Input</a></strong>
+
+<dd>
+<p>$PRODUCT (Short one or two word title of the Advisory; ie Kerberos, CUPS or IBM Java)</p>
+</dd>
+<dd>
+<p>$SEVERITY (The CVSS v2 Base Score number)</p>
+</dd>
+<dd>
+<p>$VULNERABILITY_TYPE (The security advisory &quot;Vulnerability Type,&quot; ie &quot;Local privilege escalation&quot;)</p>
+</dd>
+<dd>
+<p>\@RPMS_TO_CHECK (An array of rpm packages with the same version that are affected by the security advisory; ie cups, cups-libs, cups-devel)</p>
+</dd>
+<dd>
+<p>$FIXED_RPM_VERSION (The version of the @rpms_to_check in which the security vulnerabilty has been fixed, ie 1.1.23-40.38)</p>
+</dd>
+</li>
+<dt><strong><a name="output18" class="item">Output</a></strong>
+
+<dd>
+<p>1 if Package is confirmed to be installed and fixed</p>
+</dd>
+<dd>
+<p>0 if Package cannot be confirmed as installed and fixed</p>
+</dd>
+<dd>
+<p>@PATTERN_RESULTS (Adds the CVE key value pair)</p>
+</dd>
+</li>
+<dt><strong><a name="requires18" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="securitypackagechecknoerror">securityPackageCheckNoError</a></h2>
+<dl>
+<dt><strong><a name="description19" class="item">Description</a></strong>
+
+<dd>
+<p>A function specific to checking packages in a Security Advisory type format. No script exists are triggered. SDP::Core::setStatus is not called. If no @rpms_to_check are found, then STATUS_PARTIAL is returned. It is assumed that the @rpms_to_check are different packages with the same $fixed_rpm_version for each. For example, @rpms_to_check might be cups and cups-devel, but the fix is version 1.1.0 for each (cups-1.1.0 and cups-devel-1.1.0).</p>
+</dd>
+</li>
+<dt><strong><a name="usage19" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::SUSE::securityPackageCheckNoError($title, $advisory_number, $advisory_description, \@rpms_to_check, $fixed_rpm_version);</p>
+</dd>
+</li>
+<dt><strong><a name="input19" class="item">Input</a></strong>
+
+<dd>
+<p>$title (Short one or two word title of the Advisory; ie Kerberos, CUPS or IBM Java)</p>
+</dd>
+<dd>
+<p>$advisory_number (The security advisory &quot;Announcement ID,&quot; ie SUSE-SA:2009:007)</p>
+</dd>
+<dd>
+<p>$advisory_description (The security advisory &quot;Vulnerability Type,&quot; ie &quot;Local privilege escalation&quot;)</p>
+</dd>
+<dd>
+<p>\@rpms_to_check (An array of rpm packages with the same version that are affected by the security advisory; ie cups, cups-libs, cups-devel)</p>
+</dd>
+<dd>
+<p>$fixed_rpm_version (The version of the @rpms_to_check in which the security vulnerabilty has been fixed, ie 1.1.23-40.38)</p>
+</dd>
+</li>
+<dt><strong><a name="output19" class="item">Output</a></strong>
+
+<dd>
+<p>1 if Package(s) is confirmed to be installed and fixed</p>
+</dd>
+<dd>
+<p>0 if Package(s) cannot be confirmed as installed and fixed</p>
+</dd>
+<dd>
+<p>@PATTERN_RESULTS (Adds the PKG key value pair)</p>
+</dd>
+</li>
+<dt><strong><a name="requires19" class="item">Requires</a></strong>
+
+<dd>
+<p>SDP::Core::setStatus()</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="securityannouncementpackagecheck">securityAnnouncementPackageCheck</a></h2>
+<dl>
+<dt><strong><a name="description20" class="item">Description</a></strong>
+
+<dd>
+<p>Goes here...</p>
+</dd>
+</li>
+<dt><strong><a name="usage20" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::SUSE::securityAnnouncementPackageCheck($NAME, $SEVERITY, $TAG, %PACKAGES);</p>
+</dd>
+</li>
+<dt><strong><a name="input20" class="item">Input</a></strong>
+
+<dd>
+<p>$NAME (The product name being checked, like PostgreSQL, Acroread, or Firefix)</p>
+</dd>
+<dd>
+<p>$MAIN (The main rpm package name that must be installed to indicate $NAME is found OR leave empty to check all packages.)</p>
+</dd>
+<dd>
+<p>$SEVERITY (Critical, Important, etc. A single word shown in the Rating field of the security announcement)</p>
+</dd>
+<dd>
+<p>$TAG (The security announcement ID, like SUSE-SU-2013:0633-1)</p>
+</dd>
+<dd>
+<p>%PACKAGES (A hash of packages and their version numbers in which this issue is fixed to be checked. The key is the package name and the value is the fixed version string)</p>
+</dd>
+</li>
+<dt><strong><a name="output20" class="item">Output</a></strong>
+
+<dd>
+<p>1 if Package(s) is confirmed to be installed and fixed</p>
+</dd>
+<dd>
+<p>0 if Package(s) cannot be confirmed as installed and fixed</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="securityseveritypackagechecknoerror">securitySeverityPackageCheckNoError</a></h2>
+<dl>
+<dt><strong><a name="description21" class="item">Description</a></strong>
+
+<dd>
+<p>A function specific to checking packages in a Security Advisory type format. No script exists are triggered. SDP::Core::setStatus is not called. If no @rpms_to_check are found, then STATUS_PARTIAL is returned. It is assumed that the @rpms_to_check are different packages with the same $fixed_rpm_version for each. For example, @rpms_to_check might be cups and cups-devel, but the fix is version 1.1.0 for each (cups-1.1.0 and cups-devel-1.1.0).</p>
+</dd>
+</li>
+<dt><strong><a name="usage21" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::SUSE::securitySeverityPackageCheckNoError($title, $advisory_severity, $advisory_description, \@rpms_to_check, $fixed_rpm_version);</p>
+</dd>
+</li>
+<dt><strong><a name="input21" class="item">Input</a></strong>
+
+<dd>
+<p>$title (Short one or two word title of the Advisory; ie Kerberos, CUPS or IBM Java)</p>
+</dd>
+<dd>
+<p>$advisory_severity (The CVSS v2 Base Score Number)</p>
+</dd>
+<dd>
+<p>$advisory_description (The security advisory &quot;Vulnerability Type,&quot; ie &quot;Local privilege escalation&quot;)</p>
+</dd>
+<dd>
+<p>\@rpms_to_check (An array of rpm packages with the same version that are affected by the security advisory; ie cups, cups-libs, cups-devel)</p>
+</dd>
+<dd>
+<p>$fixed_rpm_version (The version of the @rpms_to_check in which the security vulnerabilty has been fixed, ie 1.1.23-40.38)</p>
+</dd>
+</li>
+<dt><strong><a name="output21" class="item">Output</a></strong>
+
+<dd>
+<p>1 if Package(s) is confirmed to be installed and fixed</p>
+</dd>
+<dd>
+<p>0 if Package(s) cannot be confirmed as installed and fixed</p>
+</dd>
+<dd>
+<p>@PATTERN_RESULTS (Adds the PKG key value pair)</p>
+</dd>
+</li>
+<dt><strong><a name="requires20" class="item">Requires</a></strong>
+
+<dd>
+<p>SDP::Core::setStatus()</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="securitykernelcheck">securityKernelCheck</a></h2>
+<dl>
+<dt><strong><a name="description22" class="item">Description</a></strong>
+
+<dd>
+<p>A function specific to checking kernel packages in a Security Advisory type format. The function returns a 1 if the system kernel is outside the scope specified.</p>
+</dd>
+</li>
+<dt><strong><a name="usage22" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::SUSE::securityKernelCheck($kernelMin, $kernelMax, $kernelFix, $advisoryNumber, $advisoryDescription);</p>
+</dd>
+</li>
+<dt><strong><a name="input22" class="item">Input</a></strong>
+
+<dd>
+<p>$kernelMin (The minimum kernel version in which the vulnerability is found. Provides the beginning scope in which to look.)</p>
+</dd>
+<dd>
+<p>$kernelMax (The maximum kernel version in which the vulnerability is found. Provides the ending scope in which to look.)</p>
+</dd>
+<dd>
+<p>$kernelFix (The kernel version in which the vulnerability is fixed.)</p>
+</dd>
+<dd>
+<p>$advisoryNumber (The security advisory &quot;Announcement ID,&quot; ie SUSE-SA:2009:007)</p>
+</dd>
+<dd>
+<p>$advisoryDescription (The security advisory &quot;Vulnerability Type,&quot; ie &quot;Local privilege escalation&quot;)</p>
+</dd>
+</li>
+<dt><strong><a name="output22" class="item">Output</a></strong>
+
+<dd>
+<p>0 if $kernelMin &lt;= System Kernel &lt; $kernelMax</p>
+</dd>
+<dd>
+<p>1 if System Kernel is outside $kernelMin/$kernelMax scope</p>
+</dd>
+<dd>
+<p>@PATTERN_RESULTS (Adds the CVE key value pair)</p>
+</dd>
+</li>
+<dt><strong><a name="requires21" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="securityseveritykernelcheck">securitySeverityKernelCheck</a></h2>
+<dl>
+<dt><strong><a name="description23" class="item">Description</a></strong>
+
+<dd>
+<p>A function specific to checking kernel packages in a Security Advisory type format. The function returns a 1 if the system kernel is outside the scope specified.</p>
+</dd>
+</li>
+<dt><strong><a name="usage23" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::SUSE::securitySeverityKernelCheck($kernelMin, $kernelMax, $kernelFix, $severityValue, $advisoryDescription);</p>
+</dd>
+</li>
+<dt><strong><a name="input23" class="item">Input</a></strong>
+
+<dd>
+<p>$kernelMin (The minimum kernel version in which the vulnerability is found. Provides the beginning scope in which to look.)</p>
+</dd>
+<dd>
+<p>$kernelMax (The maximum kernel version in which the vulnerability is found. Provides the ending scope in which to look.)</p>
+</dd>
+<dd>
+<p>$kernelFix (The kernel version in which the vulnerability is fixed.)</p>
+</dd>
+<dd>
+<p>$severityValue (The CVSS v2 Base Score Number)</p>
+</dd>
+<dd>
+<p>$advisoryDescription (The security advisory &quot;Vulnerability Type,&quot; ie &quot;Local privilege escalation&quot;)</p>
+</dd>
+</li>
+<dt><strong><a name="output23" class="item">Output</a></strong>
+
+<dd>
+<p>0 if $kernelMin &lt;= System Kernel &lt; $kernelMax</p>
+</dd>
+<dd>
+<p>1 if System Kernel is outside $kernelMin/$kernelMax scope</p>
+</dd>
+<dd>
+<p>@PATTERN_RESULTS (Adds the CVE key value pair)</p>
+</dd>
+</li>
+<dt><strong><a name="requires22" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="securityseveritykernelannouncement">securitySeverityKernelAnnouncement</a></h2>
+<dl>
+<dt><strong><a name="description24" class="item">Description</a></strong>
+
+<dd>
+<p>A function specific to checking kernel packages in a Security announcement type format. The function returns a 1 if the system kernel is outside the scope specified.</p>
+</dd>
+</li>
+<dt><strong><a name="usage24" class="item">Usage</a></strong>
+
+<dd>
+<p>SDP::SUSE::securitySeverityKernelAnnouncement($kernelMin, $kernelMax, $kernelFix, $severityValue, $advisoryID);</p>
+</dd>
+</li>
+<dt><strong><a name="input24" class="item">Input</a></strong>
+
+<dd>
+<p>$kernelMin (The minimum kernel version in which the vulnerability is found. Provides the beginning scope in which to look.)</p>
+</dd>
+<dd>
+<p>$kernelMax (The maximum kernel version in which the vulnerability is found. Provides the ending scope in which to look.)</p>
+</dd>
+<dd>
+<p>$kernelFix (The kernel version in which the vulnerability is fixed.)</p>
+</dd>
+<dd>
+<p>$severityValue (A severity string like &quot;Important&quot;)</p>
+</dd>
+<dd>
+<p>$announcementID (The security announcement ID, like &quot;SUSE-SU-2012:0153-2&quot;)</p>
+</dd>
+</li>
+<dt><strong><a name="output24" class="item">Output</a></strong>
+
+<dd>
+<p>0 if $kernelMin &lt;= System Kernel &lt; $kernelMax</p>
+</dd>
+<dd>
+<p>1 if System Kernel is outside $kernelMin/$kernelMax scope</p>
+</dd>
+<dd>
+<p>@PATTERN_RESULTS (Adds the CVE key value pair)</p>
+</dd>
+</li>
+<dt><strong><a name="requires23" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="functions__general">FUNCTIONS: General</a></h1>
+<hr><p>
+</p>
+<h2><a name="servicebootstate">serviceBootstate</a></h2>
+<dl>
+<dt><strong><a name="description25" class="item">Description</a></strong>
+
+<dd>
+<p>Checks if the daemon, boot or xinetd service is turned on at boot.</p>
+</dd>
+</li>
+<dt><strong><a name="usage25" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $service_name = 'autofs';
+        if ( SDP::SUSE::serviceBootstate($service_name) ) {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;Turned on at boot: $service_name&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_WARNING, &quot;Turned off at boot: $service_name&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input25" class="item">Input</a></strong>
+
+<dd>
+<p>$service_name (The daemon or service to check)</p>
+</dd>
+</li>
+<dt><strong><a name="output25" class="item">Output</a></strong>
+
+<dd>
+<p>1 if Service is turned on at boot</p>
+</dd>
+<dd>
+<p>0 if Service is turned off at boot</p>
+</dd>
+</li>
+<dt><strong><a name="requires24" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="servicestatus">serviceStatus</a></h2>
+<dl>
+<dt><strong><a name="description26" class="item">Description</a></strong>
+
+<dd>
+<p>Checks if the specified service is currently running</p>
+</dd>
+</li>
+<dt><strong><a name="usage26" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $file_name = 'fs-autofs.txt';
+        my $service_name = 'autofs';
+        if ( SDP::SUSE::serviceStatus($file_name, $service_name) &gt; 0 ) {
+                SDP::Core::updateStatus(STATUS_WARNING, &quot;NOT Running: $service_name&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;Running: $service_name&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input26" class="item">Input</a></strong>
+
+<dd>
+<p>$file_name (The file in which the &quot;$service_name status&quot; command was run)</p>
+</dd>
+<dd>
+<p>$service_name (The daemon or service to check)</p>
+</dd>
+</li>
+<dt><strong><a name="output26" class="item">Output</a></strong>
+
+<dd>
+<p>0 if Service is running</p>
+</dd>
+<dd>
+<p>1 if Service is unused</p>
+</dd>
+<dd>
+<p>2 if Service is down or dead</p>
+</dd>
+<dd>
+<p>3 if Service is in an unknown state</p>
+</dd>
+</li>
+<dt><strong><a name="requires25" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="servicehealth">serviceHealth</a></h2>
+<dl>
+<dt><strong><a name="description27" class="item">Description</a></strong>
+
+<dd>
+<p>Checks the basic service health; checking RPM validation, run state and chkconfig state. Limited to specific services that have dedicated information files.</p>
+</dd>
+</li>
+<dt><strong><a name="usage27" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my $FILE_OPEN = &quot;dns.txt&quot;;
+        my $CHECK_PACKAGE = &quot;bind&quot;;
+        my $CHECK_SERVICE = &quot;named&quot;;
+        my @EXCLUDES = ();
+        if ( packageInstalled($CHECK_PACKAGE) ) {
+                SDP::SUSE::serviceHealth($FILE_OPEN, $CHECK_PACKAGE, $CHECK_SERVICE, \@EXCLUDES);
+        } else {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;Basic Service Health; Package Not Installed: $CHECK_PACKAGE&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input27" class="item">Input</a></strong>
+
+<dd>
+<p>$FILE_OPEN (The file that contains the basic service health information)</p>
+</dd>
+<dd>
+<p>$CHECK_PACKAGE (The package name to check)</p>
+</dd>
+<dd>
+<p>$CHECK_SERVICE (The service name to check)</p>
+</dd>
+<dd>
+<p>@EXCLUDES (Array of files to exclude from an RPM validation check)</p>
+</dd>
+</li>
+<dt><strong><a name="output27" class="item">Output</a></strong>
+
+<dd>
+<p>0 if Service is healthy</p>
+</dd>
+<dd>
+<p>1 if Service is unhealthy</p>
+</dd>
+</li>
+<dt><strong><a name="requires26" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="xendomu">xenDomU</a></h2>
+<dl>
+<dt><strong><a name="description28" class="item">Description</a></strong>
+
+<dd>
+<p>Identifies a Xen DomU virtual machine</p>
+</dd>
+</li>
+<dt><strong><a name="usage28" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        if ( SDP::SUSE::xenDomU() ) {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;The server is a Xen DomU virtual machine&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;ABORT: Not a Xen DomU&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input28" class="item">Input</a></strong>
+
+<dd>
+<p>Non</p>
+</dd>
+</li>
+<dt><strong><a name="output28" class="item">Output</a></strong>
+
+<dd>
+<p>0 if server is NOT a DomU</p>
+</dd>
+<dd>
+<p>1 if server is a DomU</p>
+</dd>
+</li>
+<dt><strong><a name="requires27" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="xendom0installed">xenDom0installed</a></h2>
+<dl>
+<dt><strong><a name="description29" class="item">Description</a></strong>
+
+<dd>
+<p>Identifies an installed Xen Dom0 virtual machine server</p>
+</dd>
+</li>
+<dt><strong><a name="usage29" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        if ( SDP::SUSE::xenDom0installed() ) {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;The server has Xen Dom0 installed, buy may or may not be running.&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;ABORT: The server does not have Xen Dom0 installed&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input29" class="item">Input</a></strong>
+
+<dd>
+<p>Non</p>
+</dd>
+</li>
+<dt><strong><a name="output29" class="item">Output</a></strong>
+
+<dd>
+<p>0 if Xen Dom0 is NOT installed</p>
+</dd>
+<dd>
+<p>1 if Xen Dom0 is installed</p>
+</dd>
+</li>
+<dt><strong><a name="requires28" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="xendom0running">xenDom0running</a></h2>
+<dl>
+<dt><strong><a name="description30" class="item">Description</a></strong>
+
+<dd>
+<p>Identifies an installed Xen Dom0 virtual machine server</p>
+</dd>
+</li>
+<dt><strong><a name="usage30" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        if ( SDP::SUSE::xenDom0running() ) {
+                SDP::Core::updateStatus(STATUS_SUCCESS, &quot;The server has Xen Dom0 running.&quot;);
+        } else {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;ABORT: The server does not have Xen Dom0 running.&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input30" class="item">Input</a></strong>
+
+<dd>
+<p>Non</p>
+</dd>
+</li>
+<dt><strong><a name="output30" class="item">Output</a></strong>
+
+<dd>
+<p>0 if Xen Dom0 is NOT running</p>
+</dd>
+<dd>
+<p>1 if Xen Dom0 is running</p>
+</dd>
+</li>
+<dt><strong><a name="requires29" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="getsupportconfigrundate">getSupportconfigRunDate</a></h2>
+<dl>
+<dt><strong><a name="description31" class="item">Description</a></strong>
+
+<dd>
+<p>Returns the year, month and day that the supportconfig was run on the server. It also returns the number of days from 1970 Jan 01 to the run date.</p>
+</dd>
+</li>
+<dt><strong><a name="usage31" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my (undef, $SC_YEAR, $SC_MONTH, $SC_DAY) = split(/\t/, SDP::SUSE::getSupportconfigRunDate());
+        SDP::Core::updateStatus(STATUS_PARTIAL, &quot;Supportconfig run date: $SC_YEAR $SC_MONTH $SC_DAY&quot;);</pre>
+</dd>
+<dt><strong><a name="input31" class="item">Input</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+<dt><strong><a name="output31" class="item">Output</a></strong>
+
+<dd>
+<p>$DAYS</p>
+</dd>
+<dd>
+<p>$YEAR</p>
+</dd>
+<dd>
+<p>$MONTH</p>
+</dd>
+<dd>
+<p>$DAY</p>
+</dd>
+</li>
+<dt><strong><a name="requires30" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<hr><p>
+</p>
+<h2><a name="appcores">appCores</a></h2>
+<dl>
+<dt><strong><a name="description32" class="item">Description</a></strong>
+
+<dd>
+<p>Returns an array of hashes regarding application core file images found on the server.</p>
+</dd>
+</li>
+<dt><strong><a name="usage32" class="item">Usage</a></strong>
+
+<dd>
+<pre>
+        my @APP_CORE_INFO = ();
+        my $ROLE;</pre>
+</dd>
+<dd>
+<pre>
+        push(@APP_CORE_INFO, { filename =&gt; &quot;/core.5083&quot;, month =&gt; &quot;Aug&quot;, day =&gt; &quot;14&quot;, year =&gt; &quot;2009&quot;, days =&gt; &quot;1427717.81125&quot;, application =&gt; &quot;httpd&quot; } );
+        if ( SDP::SUSE::appCores(\@APP_CORE_INFO) ) {
+                for ( my $I=0; $I&lt;=$#APP_CORE_INFO; $I++) {
+                        print(&quot; ARRAY $I                        = &quot;);
+                        for $ROLE ( keys %{ $APP_CORE_INFO[$I] } ) {
+                                print(&quot;'$ROLE' =&gt; '$APP_CORE_INFO[$I]-&gt;{$ROLE}'  &quot;);
+                        }
+                        print(&quot;\n&quot;);
+                }
+        } else {
+                SDP::Core::updateStatus(STATUS_ERROR, &quot;Application core files NOT found&quot;);
+        }</pre>
+</dd>
+<dt><strong><a name="input32" class="item">Input</a></strong>
+
+<dd>
+<p>Address to an array</p>
+</dd>
+</li>
+<dt><strong><a name="output32" class="item">Output</a></strong>
+
+<dd>
+<p>Modifies the array reference given</p>
+</dd>
+</li>
+<dt><strong><a name="requires31" class="item">Requires</a></strong>
+
+<dd>
+<p>None</p>
+</dd>
+</li>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="contributors">CONTRIBUTORS</a></h1>
+<p>Jason Record &lt;lt&gt;<a href="mailto:jrecord@suse.com<gt>">jrecord@suse.com<gt></a></p>
+<p>
+</p>
+<hr />
+<h1><a name="copyright">COPYRIGHT</a></h1>
+<p>Copyright (C) 2013 SUSE Linux Products GmbH</p>
+<p>This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; version 2 of the License.</p>
+<p>This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License
+along with this program; if not, see &lt;http://www.gnu.org/licenses/&gt;.
+
+</body>
+
+</html>
