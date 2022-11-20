@@ -1,19 +1,131 @@
 <!DOCTYPE html>
-<HTML>
-<HEAD>
-	<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
-	<LINK REL="stylesheet" HREF="style.css">
-	<TITLE>SCA Pattern Libraries</TITLE>
-</HEAD>
-<BODY>
-<P CLASS="head_1" ALIGN="center">SCA Pattern Libraries</P>
+<html>
+<head>
+	<title>SCA Pattern Development Documentation</title>
+</head>
+<body>
+<h1 align='center'>SCA Pattern Development<br />Documentation</h1>
 
-<P>Libraries have been written to help write SCA Patterns.</P>
-<UL>
-<LI><A HREF="python/docs-python.html">Python Documentation</A></LI>
-<LI><A HREF="perl/docs-perl.html">Perl Documentation</A></LI>
-</UL>
+<h1>Tutorials</h1>
+The following tutorials demonstrate the details of pattern development.<br />
+<br />
+<a href="python/tutorial1.html" target="_blank">Pattern Writing Tutorial #1</a><br />
+<a href="python/tutorial2.html" target="_blank">Pattern Writing Tutorial #2</a><br />
+<br />
 
-</BODY>
-</HTML>
+<h1>Pattern Basics</h1>
+The Supportconfig Analysis (SCA) appliance and command line tool use scripts or programs to parse supportconfig archive files looking for specific known issues. The scripts or programs are patterns. You can create your own custom patterns for local use. The Supportconfig Analysis pattern database is used to manage and create pattern templates to speed up development time.<br />
+<br />
+Pattern library documentation is available for Python and Perl. Python is the preferred language.<br />
+<ul>
+<li><a href="python/docs-python.html" target="_blank">Python Documentation</a></li>
+<li><a href="perl/docs-perl.html" target="_blank">Perl Documentation</a></li>
+</ul>
+
+<h1>Pattern Requirements</h1>
+A Supportconfig Analysis pattern has the following requirements:<br />
+<ul>
+<li>Be executable, so bash can execute it by referencing the filename only</li>
+<li>Most patterns are written in Python. It has the most current libraries for pattern development.</li>
+<li>Accepts a -p start up parameter with the value of the path to the extracted supportconfig archive</li>
+<li>Writes a case sensitive, order dependent information string to stdout</li>
+<br />
+META_CLASS=&lt;string&gt;|META_CATEGORY=&lt;string&gt;|META_COMPONENT=&lt;string&gt;|PATTERN_ID=&lt;pattern_filename&gt;|PRIMARY_LINK=META_LINK_&lt;TAG&gt;|OVERALL=[0-6]|OVERALL_INFO=&lt;message string&gt;|META_LINK_&lt;TAG&gt;=&lt;URL&gt;[|META_LINK_&lt;TAG&gt;=&lt;URL&gt;]<br />
+<br />
+<li>A pattern supports a maximum of 12 solution links - one TID, one BUG and 10 custom links</li>
+<li>Provide at least one solution link</li>
+<li>Set the OVERALL status with the Core.updateStatus function using one of the following:</li>
+<br />
+STATUS_TEMPORARY = -2<br />
+STATUS_PARTIAL = -1<br />
+STATUS_SUCCESS = 0<br />
+STATUS_RECOMMEND = 1<br />
+STATUS_PROMOTION = 2<br />
+STATUS_WARNING = 3<br />
+STATUS_CRITICAL = 4<br />
+STATUS_ERROR = 5<br />
+STATUS_IGNORE = 6<br />
+<br />
+<li>Set the OVERALL_INFO value to the report's display string</li>
+</ul>
+
+<h1>Creating a Pattern</h1>
+<ol>
+<li>Read the TID, associated bug(s) and any other documentation to understand the issue</li>
+<li>Write the pseudocode code that identifies the issue from supportconfig text files</li>
+<li>Run <b>patgen</b> to create your initial python script. It will update the local cloned git repository and check for duplicate patterns.</li>
+<br />
+<b>NOTE:</b> If you don't use <b>patgen</b>, run <b>gitpatterns</b> and <b>chktid</b> to search for duplicate patterns.<br />
+<br />
+<li>Modify your script to fine tune its analysis of the supportconfig files</li>
+<li>Test your pattern with <b>pat</b> against a supportconfig archive with and without the issue</li>
+<li>Fix any bugs in the pattern</li>
+<li>Submit the pattern upstream in GitHub</li>
+</ol>
+<br />
+Refer to the <b>patgen</b> help screen.<br />
+<pre>
+##################################################
+# SCA Tool Python Pattern Generator v1.0.10
+##################################################
+Usage:
+  patgen [OPTIONS] <class,category,component,filename,tid#[,bug#]>
+
+Description:
+  Used to create an initial python3 script template for an SCA pattern. Modify the template script
+  to accurately identify the issue and record it on the SCA Report as needed.
+
+  Ordering, Stacked: kernel > package > service > conditions
+  Ordering, Flat:    kernel   package   service   conditions
+
+  Documentation: /usr/share/doc/packages/sca-patterns-devel/index.html
+
+OPTIONS
+  -c <0-3>, --conditions=<0-3>       Number of conditional functions to include, default=0
+  -k <ver>, --kernel-version=<ver>   The kernel's version where the issue is fixed
+  -r <name>, --rpm=<name>            The affected RPM package name
+  -o, --no-validation                Ignore invalid solution links
+  -p <ver>, --package-version=<ver>  The package's version where the issue is fixed
+  -s <name>, --service=<name>        The systemd service name affected
+  -u <[tag=]url>, --url=<[tag=]url>  Additional solution link URL. You can also enter a CVE number like "CVE-2022-23303"
+  -f, --flat                         All requested conditions are tested independently and not included in stacked order
+  -d, --no-duplicates                Don't check for duplicate patterns
+
+METADATA
+  class:        SLE,HAE,SUMA,Security,Custom
+  category:     Category name string
+  component:    Component name string
+  filename:     Pattern filename (TID number will be added automatically)
+  tid#:         TID number only
+  bug#:         Bug number only (optional)
+</pre>
+
+<h1>Testing a Pattern</h1>
+Once you have finished your pattern, you can test its effectiveness with a command line tool called <b>pat</b>.<br />
+<br />
+<ol>
+<li><b>Copy and extract</b> the supportconfig archives to test against into the archive directory (Default: <b>/var/opt/patdevel/archives</b>)</li>
+<li>If you already have supportconfig archives extracted in a different location, run <b>pat -a &lt;path_to_archives&gt;</b> to set the pattern tester archive location</li>
+<li>Change to the directory where your pattern is located (ie ~/patterns)</li>
+<li>Run <b>pat -v &lt;path_to_archives&gt;</b> to check the pattern against all supportconfigs in the <b>PATDEV_ARCH_DIR</b> directory as defined in <b>/etc/opt/patdevel/patdev.conf</b>.</li>
+<li>Compare the output to the <b>Pattern Requirements</b> above</li>
+<li>Review the <b>pat</b> output for any errors</li>
+</ol>
+
+<h1>Pattern Submission</h1>
+<ol>
+<li>If you don't already have one, create a personal <a href="https://github.com" target="_blank">GitHub</a> account and login</li>
+<li>Go to the pattern repository to which you want to submit additions or changes. The most common pattern repositories are: <a href="https://github.com/g23guy/sca-patterns-sle15/" target="_blank">sca-patterns-sle15</a>, <a href="https://github.com/g23guy/sca-patterns-sle12/" target="_blank">sca-patterns-sle12</a> and <a href="https://github.com/g23guy/sca-patterns-sle11/" target="_blank">sca-patterns-sle11</a>.</li>
+<li><b>Fork</b> the repository so you have your own copy to modify (<a href="https://docs.github.com/en/github/getting-started-with-github/fork-a-repo" target="_blank">GitHub Docs: Fork a Repo</a>)</li>
+<li><b>Clone</b> the forked repository to your <b>/var/opt/patdevel/forks</b> directory</li>
+<li>Once you have developed and tested your patterns, <b>copy</b> them to the appropriate location in the forked repository</li>
+<li>Update the <b>spec/*.changes</b> file with a description of your pattern(s) or changes</li>
+<li><b>Commit</b> your changes to your forked repository</li>
+<li>Create a <b>pull request</b> from the associated upstream repository comparing changes in your forked repository (<a href="https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork" target="_blank">GitHub Docs: Creating a Pull Request from a Fork</a>)</li>
+<li>Wait for the changes to be merged into the upstream repository</li>
+</ol>
+<br />
+</body>
+</html>
+
 

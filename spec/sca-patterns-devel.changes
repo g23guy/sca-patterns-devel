@@ -1,10 +1,11 @@
 -------------------------------------------------------------------
-Sat Nov 19 13:47:34 UTC 2022 - jason.record@suse.com
+Sun Nov 20 04:46:28 UTC 2022 - jason.record@suse.com
 
 - Changes to version 1.3.0
   + Moved aliases from .conf to docs directory
   + Added Perl and Python library documentation
   + Updated pat and patgen help screen with link to docs
+  + Added general python development documentation
 
 -------------------------------------------------------------------
 Fri Nov 18 13:12:54 UTC 2022 - jason.record@suse.com
