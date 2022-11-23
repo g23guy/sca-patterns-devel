@@ -6,23 +6,32 @@
 <body>
 <h1 align='center'>SCA Pattern Development<br />Documentation</h1>
 
-<h1>Tutorials</h1>
-The following tutorials demonstrate the details of pattern development.<br />
-<br />
-<a href="python/tutorial1.html" target="_blank">Pattern Writing Tutorial #1</a><br />
-<a href="python/tutorial2.html" target="_blank">Pattern Writing Tutorial #2</a><br />
-<br />
+<ul>
+<li><a href="#pattern_basics">Pattern Basics</a></li>
+<li><a href="#tutorials">Tutorials</a></li>
+<li><a href="#requirements">Pattern Requirements</a></li>
+<li><a href="#creating">Creating a Pattern</a></li>
+<li><a href="#testing">Testing a Pattern</a></li>
+<li><a href="#submission">Pattern Submission</a></li>
+</ul>
 
-<h1>Pattern Basics</h1>
+<h1 id="pattern_basics">Pattern Basics</h1>
 The Supportconfig Analysis (SCA) appliance and command line tool use scripts or programs to parse supportconfig archive files looking for specific known issues. The scripts or programs are patterns. You can create your own custom patterns for local use. The Supportconfig Analysis pattern database is used to manage and create pattern templates to speed up development time.<br />
 <br />
 Pattern library documentation is available for Python and Perl. Python is the preferred language.<br />
 <ul>
-<li><a href="python/docs-python.html" target="_blank">Python Documentation</a></li>
-<li><a href="perl/docs-perl.html" target="_blank">Perl Documentation</a></li>
+<li><a href="python/docs-python.html" target="_python_sca_pattern_library_docs">Python: SCA Pattern Library Documentation</a></li>
+<li><a href="perl/docs-perl.html" target="_perl_sca_pattern_library_docs">Perl: SCA Pattern Library Documentation</a></li>
 </ul>
 
-<h1>Pattern Requirements</h1>
+<h1 id="tutorials">Tutorials</h1>
+The following tutorials demonstrate the details of pattern development.<br />
+<br />
+<a href="python/tutorial1.html" target="_python_tutorial_1_docs">Pattern Writing Tutorial #1</a><br />
+<a href="python/tutorial2.html" target="_python_tutorial_2_docs">Pattern Writing Tutorial #2</a><br />
+<br />
+
+<h1 id="requirements">Pattern Requirements</h1>
 A Supportconfig Analysis pattern has the following requirements:<br />
 <ul>
 <li>Be executable, so bash can execute it by referencing the filename only</li>
@@ -49,18 +58,18 @@ STATUS_IGNORE = 6<br />
 <li>Set the OVERALL_INFO value to the report's display string</li>
 </ul>
 
-<h1>Creating a Pattern</h1>
+<h1 id="creating">Creating a Pattern</h1>
 <ol>
-<li>Read the TID, associated bug(s) and any other documentation to understand the issue</li>
-<li>Write the pseudocode code that identifies the issue from supportconfig text files</li>
-<li>Run <b>patgen</b> to create your initial python script. It will update the local cloned git repository and check for duplicate patterns.</li>
+<li><b>Read</b> the TID, associated bug(s) and any other documentation to understand the issue</li>
+<li>Write the <b>pseudocode code</b> that identifies the issue from supportconfig text files</li>
+<li>Run <b>patgen</b> to create your initial python script. It will update the local cloned git repositories, check for duplicate patterns for the TID number, and validate all solulition links.</li>
 <br />
-<b>NOTE:</b> If you don't use <b>patgen</b>, run <b>gitpatterns</b> and <b>chktid</b> to search for duplicate patterns.<br />
+<b>NOTE:</b> If you don't use <b>patgen</b>, run <b>gitpatterns</b> and <b>chktid &lt;tid_number&gt;</b> to search for duplicate patterns.<br />
 <br />
-<li>Modify your script to fine tune its analysis of the supportconfig files</li>
-<li>Test your pattern with <b>pat</b> against a supportconfig archive with and without the issue</li>
-<li>Fix any bugs in the pattern</li>
-<li>Submit the pattern upstream in GitHub</li>
+<li><b>Modify</b> your script to fine tune its analysis of the supportconfig files</li>
+<li><b>Test</b> your pattern with <b>pat</b> against a supportconfig archive with and without the issue</li>
+<li><b>Fix</b> any bugs in the pattern</li>
+<li><b>Submit</b> the pattern upstream in GitHub</li>
 </ol>
 <br />
 Refer to the <b>patgen</b> help screen.<br />
@@ -100,7 +109,7 @@ METADATA
   bug#:         Bug number only (optional)
 </pre>
 
-<h1>Testing a Pattern</h1>
+<h1 id="testing">Testing a Pattern</h1>
 Once you have finished your pattern, you can test its effectiveness with a command line tool called <b>pat</b>.<br />
 <br />
 <ol>
@@ -112,16 +121,16 @@ Once you have finished your pattern, you can test its effectiveness with a comma
 <li>Review the <b>pat</b> output for any errors</li>
 </ol>
 
-<h1>Pattern Submission</h1>
+<h1 id="submission">Pattern Submission</h1>
 <ol>
-<li>If you don't already have one, create a personal <a href="https://github.com" target="_blank">GitHub</a> account and login</li>
-<li>Go to the pattern repository to which you want to submit additions or changes. The most common pattern repositories are: <a href="https://github.com/g23guy/sca-patterns-sle15/" target="_blank">sca-patterns-sle15</a>, <a href="https://github.com/g23guy/sca-patterns-sle12/" target="_blank">sca-patterns-sle12</a> and <a href="https://github.com/g23guy/sca-patterns-sle11/" target="_blank">sca-patterns-sle11</a>.</li>
-<li><b>Fork</b> the repository so you have your own copy to modify (<a href="https://docs.github.com/en/github/getting-started-with-github/fork-a-repo" target="_blank">GitHub Docs: Fork a Repo</a>)</li>
+<li>If you don't already have one, create a personal <a href="https://github.com" target="_github_home">GitHub</a> account and login</li>
+<li>Go to the pattern repository to which you want to submit additions or changes. The most common pattern repositories are: <a href="https://github.com/g23guy/sca-patterns-sle15/" target="_github_repo_sca_patterns_sle15">sca-patterns-sle15</a>, <a href="https://github.com/g23guy/sca-patterns-sle12/" target="_github_repo_sca_patterns_sle12">sca-patterns-sle12</a> and <a href="https://github.com/g23guy/sca-patterns-sle11/" target="_github_repo_sca_patterns_sle11">sca-patterns-sle11</a>.</li>
+<li><b>Fork</b> the repository so you have your own copy to modify (See <a href="https://docs.github.com/en/github/getting-started-with-github/fork-a-repo" target="_github_docs_fork">GitHub Docs: Fork a Repo</a>)</li>
 <li><b>Clone</b> the forked repository to your <b>/var/opt/patdevel/forks</b> directory</li>
 <li>Once you have developed and tested your patterns, <b>copy</b> them to the appropriate location in the forked repository</li>
 <li>Update the <b>spec/*.changes</b> file with a description of your pattern(s) or changes</li>
 <li><b>Commit</b> your changes to your forked repository</li>
-<li>Create a <b>pull request</b> from the associated upstream repository comparing changes in your forked repository (<a href="https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork" target="_blank">GitHub Docs: Creating a Pull Request from a Fork</a>)</li>
+<li>Create a <b>pull request</b> from the associated upstream repository comparing changes in your forked repository (See <a href="https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork" target="_github_docs_pull">GitHub Docs: Creating a Pull Request from a Fork</a>)</li>
 <li>Wait for the changes to be merged into the upstream repository</li>
 </ol>
 <br />
