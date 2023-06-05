@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.10'
+SVER = '1.0.11'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2022 Nov 19
+# Modified:     2023 Jun 05
 #
 ##############################################################################
 #
@@ -263,7 +263,9 @@ self.title
 		self.content += "Core.init(meta_class, meta_category, meta_component, pattern_id, primary_link, overall, overall_info, other_links)\n\n"
 
 	def __create_footer(self):
-		self.content += "Core.printPatternResults()\n"
+		self.content += "\tCore.printPatternResults()\n\n"
+		self.content += "if __name__ == \"__main__\":\n"
+		self.content += "\tmain()\n\n"
 
 	def __create_condition_functions(self):
 		if( self.conditions > 0 ):
@@ -322,14 +324,15 @@ self.title
 		return these_conditions
 
 	def __test_prep(self):
+		base_indent = "\t"
 		if( self.kernel_version != "0" ):
-			self.content += "kernel_version_fixed = '" + self.kernel_version + "'\n"
+			self.content += base_indent + "kernel_version_fixed = '" + self.kernel_version + "'\n"
 		if( self.package_name != ''):
-			self.content += "package = '" + self.package_name + "'\n"
+			self.content += base_indent + "package = '" + self.package_name + "'\n"
 		if( self.package_version != "0" ):
-			self.content += "package_version_fixed = '" + self.package_version + "'\n"
+			self.content += base_indent + "package_version_fixed = '" + self.package_version + "'\n"
 		if( self.service_name != "" ):
-			self.content += "service_name = '" + self.service_name + "'\n"
+			self.content += base_indent + "service_name = '" + self.service_name + "'\n"
 		if not self.basic:
 			self.content += "\n"
 
@@ -391,14 +394,15 @@ self.title
 		self.content += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Service details not found: \" + str(service_name))\n"
 
 	def __create_pattern_main(self):
-		indent_kernel = 0
-		indent_package = 0
-		indent_service = 0
-		indent_conditions = 0
+		indent_kernel = 1
+		indent_package = 1
+		indent_service = 1
+		indent_conditions = 1
 
 		self.content += "##############################################################################\n"
 		self.content += "# Main\n"
 		self.content += "##############################################################################\n\n"
+		self.content += "def main():\n"
 		self.__test_prep()
 
 		if( self.flat ):
@@ -431,7 +435,7 @@ self.title
 		else:
 			if( self.kernel_version != "0" ):
 				# Priority order: kernel > package > service > conditions
-				indent_kernel = 0
+				indent_kernel = 1
 				indent_package = indent_kernel + 1
 				indent_conditions = indent_package + 1
 				self.__test_kernel(indent_kernel)
@@ -461,7 +465,7 @@ self.title
 				else:
 					self.content += self.__create_conditions_indented(1, self.conditions)
 			elif( self.package_name != ''):
-				indent_package = 0
+				indent_package = 1
 				self.__test_package_start(indent_package)
 				if( self.package_version != "0" ):
 					indent_service = indent_package + 2
