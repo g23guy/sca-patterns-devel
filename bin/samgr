@@ -1,0 +1,99 @@
+#!/usr/bin/python3
+# set noet ci pi sts=0 sw=4 ts=4
+##############################################################################
+# pdval - Validate all new patterns against supportconfigs
+# Copyright (C) 2023 SUSE LLC
+#
+# Description:  Runs new security patterns against supportconfigs in the
+#               archive directory using the pat tool.
+# Modified:     2023 Jul 03
+#
+##############################################################################
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; version 2 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, see <http://www.gnu.org/licenses/>.
+#
+#  Authors/Contributors:
+#     Jason Record <jason.record@suse.com>
+#
+##############################################################################
+
+import re
+import sys
+import os
+import configparser
+import patdevel as pd
+
+SVER='2.0.0_dev8'
+config_file = "/etc/opt/patdevel/patdev.ini"
+
+def usage():
+	print("samgr <action>\n")
+	print("Actions:")
+	print("  validate (vl)    Validate generated patterns")
+	print("  distribute (ds)  Distibute security patterns to associated repositories")
+	print("  remove (rm)      Remove uncommitted security patterns from repositories")
+	print("  update (up)      Update GitHub repository clones")
+	print("  config (cf)      Show the configuration file data")
+	print("  status (st)      Show the current status")
+	print()
+
+def update_patterns_from_github():
+	# Replaces gitpatterns, but put it in patdevel.py module and not here
+	pass
+
+def check_pattern_url_links():
+	# Replaces chklink, put in module if other binaries use it.
+	pass
+
+def main(argv):
+	global SVER, config_file
+
+	pd.title("SCA Security Announcement Pattern Manager", SVER)
+	if( os.path.exists(config_file) ):
+		config.read(config_file)
+	else:
+		print("Error: File not found - " + conf_file + "\n")
+		sys.exit(1)
+
+	pd.check_directories(config)
+	action_validate = re.compile("val*|vl", re.IGNORECASE)
+	action_distribute = re.compile("dist*|ds", re.IGNORECASE)
+	action_remove = re.compile("remove|rm|del*", re.IGNORECASE)
+	action_config = re.compile("config*|cf", re.IGNORECASE)
+	action_status = re.compile("status|st", re.IGNORECASE)
+	action_repos = re.compile("update|up", re.IGNORECASE)
+	if( len(argv) > 1 ):
+		opt = argv[1]
+	else:
+		opt = ''
+	if action_validate.search(opt):
+		pd.update_git_repos(config)
+		pd.validate_sa_patterns(config)
+	elif action_distribute.search(opt):
+		pd.distribute_sa_patterns(config)
+	elif action_remove.search(opt):
+		pd.remove_sa_patterns(config)
+	elif action_config.search(opt):
+		pd.show_config_file(config_file, config)
+	elif action_repos.search(opt):
+		pd.update_git_repos(config)
+	elif action_status.search(opt):
+		pd.show_status(config)
+	else:
+		usage()
+
+# Entry point
+if __name__ == "__main__":
+	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+	main(sys.argv)
+

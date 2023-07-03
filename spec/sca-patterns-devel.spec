@@ -1,6 +1,6 @@
 # spec file for package sca-patterns-devel
 #
-# Copyright (c) 2020-2022 SUSE LINUX GmbH, Nuernberg, Germany.
+# Copyright (c) 2020-2023 SUSE LINUX GmbH, Nuernberg, Germany.
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -15,9 +15,10 @@
 %define patdevbasedir %{_localstatedir}/opt/%{patdevbase}
 %define patdevconfdir %{_sysconfdir}/opt/%{patdevbase}
 %define patdocs %{_docdir}/%{name}
+%define pythondir python3.6
 
 Name:         sca-patterns-devel
-Version:      1.3.0
+Version:      2.0.0
 Release:      0
 Summary:      Supportconf Analysis Pattern Development Tools
 License:      GPL-2.0-only
@@ -41,6 +42,7 @@ Tools used in the creation and testing of supportconfig analysis patterns for th
 pwd;ls -la
 #install -d %{buildroot}%{_mandir}/man5
 #install -d %{buildroot}%{_mandir}/man8
+mkdir -p %{buildroot}%{_libdir}/%{pythondir}
 mkdir -p %{buildroot}/usr/local/bin
 mkdir -p %{buildroot}/usr/local/sbin
 mkdir -p %{buildroot}%{patdevbasedir}
@@ -48,6 +50,9 @@ mkdir -p %{buildroot}%{patdevbasedir}/repos
 mkdir -p %{buildroot}%{patdevbasedir}/patterns
 mkdir -p %{buildroot}%{patdevbasedir}/forks
 mkdir -p %{buildroot}%{patdevbasedir}/archives
+mkdir -p %{buildroot}%{patdevbasedir}/duplicates
+mkdir -p %{buildroot}%{patdevbasedir}/errors
+mkdir -p %{buildroot}%{patdevbasedir}/logs
 mkdir -p %{buildroot}%{patdevconfdir}
 mkdir -p %{buildroot}%{patdocs}
 mkdir -p %{buildroot}%{patdocs}/python
@@ -55,6 +60,7 @@ mkdir -p %{buildroot}%{patdocs}/perl
 install -m 755 bin/* %{buildroot}/usr/local/bin
 install -m 755 sbin/* %{buildroot}/usr/local/sbin
 install -m 664 conf/* %{buildroot}%{patdevconfdir}
+install -m 644 lib/* %{buildroot}%{_libdir}/%{pythondir}
 install -m 644 docs/python/* %{buildroot}%{patdocs}/python
 install -m 644 docs/perl/* %{buildroot}%{patdocs}/perl
 install -m 644 docs/alias %{buildroot}%{patdocs}
@@ -68,6 +74,7 @@ install -m 644 docs/index.html %{buildroot}%{patdocs}
 %{patdevbasedir}/*
 /usr/local/bin/*
 /usr/local/sbin/*
+%{_libdir}/%{pythondir}/*
 %{patdocs}/*
 %{patdocs}/python/*
 %{patdocs}/perl/*
@@ -75,6 +82,9 @@ install -m 644 docs/index.html %{buildroot}%{patdocs}
 %attr(775,root,users) %{patdevbasedir}/forks
 %attr(775,root,users) %{patdevbasedir}/patterns
 %attr(775,root,users) %{patdevbasedir}/archives
+%attr(775,root,users) %{patdevbasedir}/duplicates
+%attr(775,root,users) %{patdevbasedir}/errors
+%attr(775,root,users) %{patdevbasedir}/logs
 %config %attr(664,root,users) %{patdevconfdir}/*
 
 %post

@@ -1,0 +1,515 @@
+#!/usr/bin/python3
+SVER = '2.0.7_dev2'
+##############################################################################
+# sagen.py - Security Advisory Announcement Pattern Generator
+# Copyright (C) 2022-2023 SUSE LLC
+#
+# Description:  Creates a python security advisory pattern from HTML page
+# Modified:     2023 Jun 29
+#
+##############################################################################
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; version 2 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, see <http://www.gnu.org/licenses/>.
+#
+#  Authors/Contributors:
+#     Jason Record <jason.record@suse.com>
+#
+##############################################################################
+
+import sys
+import os
+import re
+import getopt
+import datetime
+import requests
+import signal
+import configparser
+import patdevel as pd
+from pathlib import Path
+
+# Global Options
+today = datetime.datetime.today()
+config_file = "/etc/opt/patdevel/patdev.ini"
+pat_dir = ''
+pat_logs_dir = ''
+manifest_file = '' # Records the security URL and target URLs processed successfully
+single_file = ''
+range_string = ''
+url_base = ''
+url_date = ''
+target_url = ''
+said_file_pairs = {}
+all_counters = {'pattern_count_current': 0, 'pattern_count_total': 0, 'a_errors': 0, 'patterns_evaluated': 0, 'patterns_generated': 0, 'patterns_duplicated': 0, 'p_errors': 0}
+
+# Functions and Classes
+def usage():
+	"Displays usage information"
+	print("Usage: sagen.py [options] [Month][Year]")
+	print()
+	print("Options:")
+	print("  -h           Display this help")
+	print("  -f <file>    Process a single securty announcement HTML file for debugging.")
+	print("               NOTE: Url data may not be accurate.")
+	print("  -q           Do not display output, run quietly")
+	print("  -l <level>   Set log level, default: Minimal")
+	print("  -r <range_string>")
+	print("               Date range for security announcements. Format: first:last,next")
+	print("     0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug")
+	print()
+
+def signal_handler(sig, frame):
+	print("\n\nAborting...")
+	show_summary()
+	clean_up()
+	sys.exit(0)
+
+def initialize_manifest():
+	msg.verbose("Initializing Manifest", manifest_file)
+	manifest['metadata'] = {}
+	manifest['metadata']['run_date'] = today.strftime("%c")
+	manifest['metadata']['pattern_count_total'] = str(0)
+	manifest['metadata']['pattern_count_current'] = str(0)
+	manifest['metadata']['percent_complete'] = str(0)
+	manifest['metadata']['patterns_evaluated'] = str(0)
+	manifest['metadata']['patterns_generated'] = str(0)
+	manifest['metadata']['patterns_duplicated'] = str(0)
+	manifest['metadata']['url_date'] = url_date
+	manifest['metadata']['url_base'] = url_base
+	manifest['metadata']['target_url'] = target_url
+	manifest['metadata']['pat_logs_dir'] = pat_logs_dir
+	manifest['metadata']['pat_dir'] = pat_dir
+
+def load_manifest():
+	"Load the manifest_file into the configparser object"
+	msg.verbose("Loading Manifest", manifest_file)
+	if( os.path.exists(manifest_file) ):
+		manifest.read(manifest_file)
+		status = True
+	else:
+		status = False
+	return status
+
+def save_manifest():
+	"Save the configuration to manifest_file"
+	msg.verbose("Saving Manifest", manifest_file + "\n")
+	with open(manifest_file, 'w') as configfile:
+		manifest.write(configfile)
+
+def create_sles_patterns(security):
+	"Create SLES specific patterns available in the security class instance"
+	slespats = security.get_list('SUSE Linux Enterprise Server [1-9]|SUSE Linux Enterprise Module for Basesystem [1-9]')
+	pat_tag = 'sles'
+	msg.debug("Pattern indeces", str(pat_tag) + str(slespats))
+	security.create_patterns(slespats, pat_tag)
+
+def delete_manifest_files():
+	"Delete all files logged in the manifest_file"
+	for section in manifest.sections():
+		if( section == "metadata" ):
+			continue
+		else:
+			for sectionkey, sectionvalue in dict(manifest.items(section)).items():
+				if( sectionkey.lower() == "status" ):
+					continue
+				else:
+					delete_file = manifest['metadata']['pat_dir'] + sectionkey
+					if( os.path.exists(delete_file) ):
+						msg.verbose("Deleting", delete_file)
+						os.unlink(delete_file)
+					else:
+						msg.verbose("Not found", delete_file)
+			delete_section = manifest['metadata']['pat_logs_dir'] + section
+			if( os.path.exists(delete_section) ):
+				msg.verbose("Deleting", delete_section)
+				os.unlink(delete_section)
+			else:
+				msg.verbose("Not found", delete_section)
+	if( os.path.exists(manifest_file) ):
+		msg.verbose("Deleting", manifest_file)
+		os.unlink(manifest_file)
+	else:
+		msg.verbose("Not found", manifest_file)
+	msg.normal("Delete manifest files", "Complete")
+
+def evaluate_manifest():
+	"Configure the manifest to start with the correct file from the list of announcements needing processing"
+	if( manifest.getint('metadata', 'pattern_count_total') > 0 ):
+		pass
+	else:
+		msg.debug("Security Announcement files for processing", "Assign All")
+		for said, safile in said_file_pairs.items():
+			manifest[safile] = {}
+			manifest[safile]['status'] = 'Assigned'
+
+
+def how_to_proceed(question, default='abort'):
+	"Prompt to restart, continue or abort"
+	rc = -1
+	RC_CONTINUE = 0
+	RC_RESET = 1
+	RC_ABORT = 2
+
+	valid = {"r": RC_RESET, "reset": RC_RESET, "c": RC_CONTINUE, "continue": RC_CONTINUE, "cont": RC_CONTINUE, "a": RC_ABORT, "abort": RC_ABORT}
+
+	if default == 'continue':
+		prompt = " [Reset, (C)ontinue, Abort]? "
+	elif default == 'reset':
+		prompt = " [(R)eset, Continue, Abort]? "
+	elif default == 'abort':
+		prompt = " [Reset, Continue, (A)bort]? "
+	else:
+		raise ValueError("Invalid default answer: '%s'" % default)
+
+	while( rc < 0 ):
+		sys.stdout.write(question + prompt)
+		choice = input().lower()
+		if default is not None and choice == "":
+			rc = valid[default]
+		elif choice in valid:
+			rc = valid[choice]
+		else:
+			sys.stdout.write("Please respond with 'r' to reset, 'c' to continue or 'a' to abort.\n")
+
+	if( rc == RC_ABORT ):
+		sys.exit(5)
+	elif( rc == RC_RESET ):
+		delete_manifest_files()
+		initialize_manifest()
+		evaluate_manifest()
+	elif( rc == RC_CONTINUE ):
+		evaluate_manifest()
+
+
+def prep_archive_threads():
+	"Prepare the archive threads and manifest with announcements for the selected archive location"
+	IDX_FILENAME = 1
+	IDX_SAIDPART = 2
+	IDX_SAID = 0
+
+	try:
+		x = requests.get(target_url)
+	except Exception as error:
+		msg.min(' ERROR', "Cannot download " + str(target_url) + ": " + str(error))
+		sys.exit(2)
+
+	if( x.status_code == 200 ):
+		data = x.text.split('\n')
+		distrotag = re.compile('\<LI>\<A HREF.*>SUSE-SU-', re.IGNORECASE)
+		for line in data:
+			if distrotag.search(line):
+				# Example: <LI><A HREF="011729.html">SUSE-SU-2022:2608-1: important: Security update for booth
+				htmlfile = line.split('"')[IDX_FILENAME] # parse out the HREF filename
+				htmlsaid = line.split('"')[IDX_SAIDPART].split()[IDX_SAID].strip('>:')
+				said_file_pairs[htmlsaid] = htmlfile
+	else:
+		msg.min("ERROR " + str(x.status_code), "URL download failure - " + str(target_url))
+		sys.exit(2)
+
+	msg.debug("File Dictionary", str(said_file_pairs))
+
+	all_counters['pattern_count_total'] = len(said_file_pairs)
+	manifest_pattern_count_total = manifest.getint('metadata', 'pattern_count_total') 
+	manifest_pattern_count_current = manifest.getint('metadata', 'pattern_count_current')
+#	print("manifest_pattern_count_current=" + str(manifest_pattern_count_current))
+#	print("manifest_pattern_count_total=" + str(manifest_pattern_count_total))
+#	print("all_counters['pattern_count_total']=" + str(all_counters['pattern_count_total']))
+	if( manifest_pattern_count_total == 0 ):
+		initialize_manifest()
+		evaluate_manifest()
+		manifest['metadata']['pattern_count_total'] = str(all_counters['pattern_count_total'])
+		manifest['metadata']['pattern_count_current'] = str(all_counters['pattern_count_current'])
+	elif( manifest_pattern_count_current < manifest_pattern_count_total ):
+		how_to_proceed("Previous run incomplete", default='abort')
+	elif( manifest_pattern_count_total != all_counters['pattern_count_total']):
+		newcount = all_counters['pattern_count_total'] - manifest_pattern_count_total
+		how_to_proceed("Additional announcements found since last run: " + str(newcount), default='continue')
+	elif( manifest_pattern_count_current == manifest_pattern_count_total and manifest_pattern_count_total == all_counters['pattern_count_total']):
+		how_to_proceed("No new announcements to process", default='abort')
+	else:
+		how_to_proceed("Unknown manifest data", default='reset')
+
+def process_archive_threads():
+	"Process the security announcement thread archive"
+	msg.min('Announcement Source', url_date)
+	progress_bar_width = 50
+
+	zsize = len(str(all_counters['pattern_count_total']))
+	msg.min("Announcements to Process", str(all_counters['pattern_count_total']) + "\n")
+	if( pd.log_level == pd.LOG_MIN ):
+		bar = pd.ProgressBar("Processing: ", progress_bar_width, all_counters['pattern_count_total'])
+
+	for sa_id, sa_file in said_file_pairs.items():
+		sa_url = target_url + sa_file
+		all_counters['pattern_count_current'] += 1
+		if( manifest[sa_file]['status'] == 'Found' ):
+			continue
+		else:
+			manifest[sa_file]['status'] = 'Pending'
+		msg.verbose("\n= Get Security URL", str(sa_id) + " (" + str(sa_file) + ")")
+		try:
+			msg.debug("Security URL", sa_url)
+			url = requests.get(sa_url)
+		except Exception as error:
+			manifest[sa_file]['status'] = 'Download_Error'
+			msg.summary(' ERROR', "Cannot download " + str(sa_url) + ": " + str(error))
+			continue
+
+		if( url.status_code == 200 ):
+			sa_local = pat_logs_dir + sa_file
+			msg.debug("Security file", sa_local)
+			try:
+				f = open(sa_local, 'wb')
+				f.write(url.content)
+				f.close()
+			except Exception as error:
+				msg.normal(' ERROR', "Cannot write file " + str(sa_url) + ": " + str(error))
+				continue
+			security = pd.SecurityAnnouncement(msg, config, target_url, sa_file, SVER)
+			create_sles_patterns(security)
+			announcement_counters = security.get_stats()
+			patterns_written = security.get_patterns()
+			if( pd.log_level == pd.LOG_MIN ):
+				bar.update(all_counters['pattern_count_current'])
+			else:
+				msg.normal("Processed File [" +
+				str(all_counters['pattern_count_current']).zfill(zsize) + "/" +
+				str(all_counters['pattern_count_total']) + "]", str(sa_id) + " (" + str(sa_file) + "), Patterns Generated: " + str(announcement_counters['patterns_generated']) + ", Duplicates: " + str(announcement_counters['patterns_duplicated']))
+
+			manifest['metadata']['pattern_count_current'] = str(all_counters['pattern_count_current'])
+			manifest['metadata']['percent_complete'] = str(int(all_counters['pattern_count_current']*100/all_counters['pattern_count_total']))
+			for key, value in dict(patterns_written).items():
+				manifest[sa_file][key] = str(value)
+			for key in announcement_counters.keys():
+				all_counters[key] += announcement_counters[key]
+			msg.debug("All Counters", str(all_counters))
+			manifest[sa_file]['status'] = 'Complete'
+
+	if( pd.log_level == pd.LOG_MIN ):
+		bar.finish()
+	manifest['metadata']['patterns_evaluated'] = str(all_counters['patterns_evaluated'])
+	manifest['metadata']['patterns_generated'] = str(all_counters['patterns_generated'])
+	manifest['metadata']['patterns_duplicated'] = str(all_counters['patterns_duplicated'])
+# DEBUG HERE
+#		if( all_counters['pattern_count_current'] > 1 ):
+#			break
+# DEBUG HERE
+
+def show_summary():
+	DISPLAY = " {0:25} = {1}"
+	print("Summary")
+	print(DISPLAY.format("Processed", all_counters['pattern_count_current']))
+	print(DISPLAY.format("Patterns Evaluated", all_counters['patterns_evaluated']))
+	print(DISPLAY.format("Patterns Generated", all_counters['patterns_generated']))
+	print(DISPLAY.format("Duplicate Patterns", all_counters['patterns_duplicated']))
+	print(DISPLAY.format("Announcement Errors", all_counters['a_errors']))
+	print(DISPLAY.format("Pattern Errors", all_counters['p_errors']))
+	print("\nDetails")
+	print(DISPLAY.format("Announcements URL", target_url))
+	print(DISPLAY.format("Log Directory", pat_logs_dir))
+	print(DISPLAY.format("Pattern Directory", pat_dir))
+	#print("List Configuration Data")
+	#for section in manifest.sections():
+	#	print("[%s]" % section)
+	#	for options in manifest.options(section):
+	#		print("%s = %s" % (options, manifest.get(section, options)))
+	#	print()
+
+def clean_up():
+	save_manifest()
+	
+def extract_range_list(str_to_extract):
+	MONTHS_INT = {'January': 1, 'February': 2, 'March': 3, 'April': 4, 'May': 5, 'June': 6, 
+	'July': 7, 'August': 8, 'September': 9, 'October': 10, 'November': 11, 'December': 12}
+	FIRST_MONTH = 1
+	LAST_MONTH = 13
+	this_list = []
+	if( len(str_to_extract) > 0 ):
+		parts = str_to_extract.split(',')
+	else:
+		return this_list
+
+	for part in parts:
+		if ':' in part:
+			msg.debug("Range spanning element", str(part))
+			range_part = part.split(':')
+			if( len(range_part) > 2 ):
+				print("ERROR: Invalid range - " + part + "\n")
+				usage()
+				sys.exit(6)
+			else:
+				start_year,start_month = pd.convert_sa_date(range_part[0], today, msg).split('-')
+				end_year,end_month = pd.convert_sa_date(range_part[1], today, msg).split('-')
+				if( start_year == end_year ):
+					use_start_month = MONTHS_INT[start_month]
+					use_end_month = MONTHS_INT[end_month] + 1
+					for current_month in range(use_start_month, use_end_month):
+						this_date = pd.convert_sa_date(str(end_year) + "-" + str(current_month), today, msg)
+						msg.debug("  + Adding to list", str(this_date))
+						this_list.append(this_date)
+				else:
+					if( int(start_year) < int(end_year) ):
+						use_start_year = int(start_year)
+						use_end_year = int(end_year) + 1
+					else:
+						# Put the year and months in chronological order
+						use_start_year = int(end_year)
+						use_end_year = int(start_year) + 1
+						tmp_start_month = start_month
+						start_month = end_month
+						end_month = tmp_start_month
+					for current_year in range(use_start_year, use_end_year):
+						if( current_year == use_start_year ):
+							use_start_month = MONTHS_INT[start_month]
+							use_end_month = LAST_MONTH
+						elif( current_year == use_end_year - 1 ):
+							use_start_month = FIRST_MONTH
+							use_end_month = MONTHS_INT[end_month] + 1
+						else:
+							use_start_month = FIRST_MONTH
+							use_end_month = LAST_MONTH
+						for current_month in range(use_start_month, use_end_month):
+							this_date = pd.convert_sa_date(str(current_year) + "-" + str(current_month), today, msg)
+							msg.debug("  + Adding to list", str(this_date))
+							this_list.append(this_date)
+		else:
+			msg.debug("Range single element", str(part))
+			this_list.append(pd.convert_sa_date(part, today, msg))
+
+	msg.debug("Range list", this_list)
+	return this_list
+
+##############################################################################
+# Main
+##############################################################################
+
+def main(argv):
+	"main entry point"
+	global today, config_file, all_counters, target_url, pat_logs_dir, pat_dir, single_file
+	global url_base, url_date, manifest_file, said_file_pairs, range_string, SVER
+	range_list = []
+	add_separator_line = False
+	title_string = "Security Advisory Announcement Pattern Generator"
+
+	if( os.path.exists(config_file) ):
+		config.read(config_file)
+		url_base = config.get("Security", "archive_url").strip('\"\'')
+		pat_dir = config.get("Security", "pat_dir")
+		pat_logs_dir = config.get("Security", "pat_logs")
+	else:
+		pd.title(title_string, SVER)
+		print("Error: File not found - " + config_file + "\n")
+		sys.exit(1)
+
+	user_logging = -1
+	try:
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hql:r:f:")
+	except getopt.GetoptError as exc:
+		pd.title(title_string, SVER)
+		print("Error:", exc, file=sys.stderr)
+		print("\n")
+		usage()
+		sys.exit(2)
+	for opt in optlist:
+		if opt[0] in {"-h"}:
+			pd.title(title_string, SVER)
+			usage()
+			sys.exit(0)
+		elif opt[0] in {"-q"}:
+			pd.log_level = pd.LOG_QUIET
+		elif opt[0] in {"-l"}:
+			if( opt[1].isdigit() ):
+				user_logging = int(opt[1])
+			else:
+				if( opt[1].lower().startswith("qui") ):
+					pd.log_level = pd.LOG_QUIET
+				elif( opt[1].lower().startswith("min") ):
+					pd.log_level = pd.LOG_MIN
+				elif( opt[1].lower().startswith("norm") ):
+					pd.log_level = pd.LOG_NORMAL
+				elif( opt[1].lower().startswith("verb") ):
+					pd.log_level = pd.LOG_VERBOSE
+				elif( opt[1].lower().startswith("debug") ):
+					pd.log_level = pd.LOG_DEBUG
+				else:
+					print("Invalid log level, using default")
+		elif opt[0] in {"-f"}:
+			single_file = opt[1]
+		elif opt[0] in {"-r"}:
+			range_string = opt[1]
+
+	if len(args) > 0:
+		given_date = '-'.join(args)
+	else:
+		given_date = ''
+
+	if( user_logging >= pd.LOG_QUIET ):
+		pd.log_level = user_logging
+
+	if( pd.log_level > pd.LOG_QUIET ):
+		pd.title(title_string, SVER)
+
+	msg.set_level(pd.log_level)
+	range_list = extract_range_list(range_string)
+	if( len(range_list) > 0 ):
+		if( len(range_list) > 1 ):
+				add_separator_line = True
+		if( len(given_date) > 0 ):
+			range_list.append(pd.convert_sa_date(given_date, today, msg))
+	else:
+		range_list.append(pd.convert_sa_date(given_date, today, msg))
+
+	if add_separator_line:
+		msg.min("Processing Announcements", " ".join(range_list))
+	if( len(single_file) > 0 ):
+		msg.min("Processing single file", single_file)
+		url_date = pd.convert_sa_date(given_date, today, msg)
+		target_url = url_base + url_date + "/"
+		target_url = ''
+		sa_file = single_file
+		security = pd.SecurityAnnouncement(msg, config, target_url, sa_file, SVER)
+		create_sles_patterns(security)
+	else:
+		for url_date in range_list:
+			all_counters = {'pattern_count_current': 0, 'pattern_count_total': 0, 'a_errors': 0, 'patterns_evaluated': 0, 'patterns_generated': 0, 'patterns_duplicated': 0, 'p_errors': 0}
+			said_file_pairs = {}
+			target_url = url_base + url_date + "/"
+			#print(msg)
+			manifest_file = pat_logs_dir + "manifest-sagen_" + url_date + ".cfg"
+			if not ( load_manifest() ):
+				initialize_manifest()
+		#	else:
+		#		print("List Configuration Data")
+		#		for section in manifest.sections():
+		#			print("[%s]" % section)
+		#			for options in manifest.options(section):
+		#				print("%s = %s" % (options, manifest.get(section, options)))
+		#			print()
+
+			prep_archive_threads()
+			process_archive_threads()
+			if( pd.log_level > pd.LOG_QUIET ):
+				show_summary()
+				if add_separator_line:
+					pd.separator_line("-")
+			clean_up()
+
+# Entry point
+if __name__ == "__main__":
+	manifest = configparser.ConfigParser()
+	manifest.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
+	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+	signal.signal(signal.SIGINT, signal_handler)
+	msg = pd.DisplayMessages(config)
+	main(sys.argv)
+
+

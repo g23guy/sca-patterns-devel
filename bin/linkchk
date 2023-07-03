@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.6'
+SVER = '1.0.6_dev1'
 ##############################################################################
 # linkchk.py - SCA Pattern Link Verification Tool
 # Copyright (C) 2022 SUSE LLC
 #
 # Description:  Validates META_LINK solution URLs to ensure they are valid.
 #               Supports python and perl patterns with *.py and *.pl extensions.
-# Modified:     2022 Oct 27
+# Modified:     2023 Jun 30
 #
 ##############################################################################
 #
@@ -31,9 +31,9 @@ import sys
 import os
 import re
 import getopt
-import requests
 import signal
 import subprocess
+import patdevel as pd
 from datetime import timedelta
 from timeit import default_timer as timer
 
@@ -56,13 +56,6 @@ end = 0
 # Functions
 ##############################################################################
 
-def title():
-	"Display the program title"
-	print("#############################################################################")
-	print("# SCA Pattern Link Verification Tool v" + str(SVER))
-	print("# for the SCA Tool")
-	print("#############################################################################")
-
 def usage():
 	"Displays usage information"
 	print("Usage: linkchk.py [options] [filepath]")
@@ -77,141 +70,6 @@ def signal_handler(sig, frame):
 	print("\n\nAborting...\n")
 	show_summary()
 	sys.exit(1)
-
-class ProgressBar():
-	"Initialize and update progress bar class"
-	def __init__(self, prefix, bar_width, total):
-		self.prefix = prefix
-		self.bar_width = bar_width
-		self.total = total
-		self.out = sys.stdout
-
-	def __str__(self):
-		return 'class %s(\n  prefix=%r \n  bar_width=%r \n  total=%r\n)' % (self.__class__.__name__, self.prefix, self.bar_width, self.total)
-
-	def update(self, count):
-		percent_complete = int(100*count/self.total)
-		current_progress = int(self.bar_width*count/self.total)
-		print("{}[{}{}] {:3g}% {:3g}/{}".format(self.prefix, "#"*current_progress, "."*(self.bar_width-current_progress), percent_complete, count, self.total), end='\r', file=self.out, flush=True)
-
-	def finish(self):
-		print("\n", flush=True, file=self.out)
-
-def get_pattern_list(this_path):
-	this_list = []
-	include_file = re.compile(".py$|.pl$")
-	for dirpath, subdirs, files in os.walk(this_path, topdown = True):
-		for file in files:
-			if include_file.search(file):
-				this_list.append(os.path.join(dirpath, file))
-		if not recurse_directory:
-			break
-	return this_list
-
-def get_url_list(this_pattern):
-	these_urls = []
-	try:
-		f = open(this_pattern, "r")
-	except Exception as error:
-		print("Error: Cannot open pattern: ", str(error))
-		return these_urls
-
-	type_python = False
-	type_perl = False
-	
-	for line in f.readlines():
-		line = line.strip("\n")
-		if type_python:
-			if find_links.search(line):
-				links = line.split('"')[1].split("|")
-				for link in links:
-					url = link.split('=', 1)[1]
-					these_urls.append(url)
-		elif type_perl:
-			if find_links.search(line):
-				url = line.split('=', 1)[1].rstrip("\",'")
-				these_urls.append(url)
-		else:
-			if "#!/usr/bin/python" in line:
-				type_python = True
-				find_links = re.compile('^OTHER_LINKS = "', re.IGNORECASE)
-			elif "#!/usr/bin/perl" in line:
-				type_perl = True
-				find_links = re.compile('^.*"META_LINK_.*=', re.IGNORECASE)
-	f.close()
-#	print(these_urls)
-
-	return these_urls
-
-def validate(link_list):
-	bad_links = {}
-	vdisplay = "  {0:23} {1}"
-	oldhosts = re.compile("novell.com|microfocus.com", re.IGNORECASE)
-	for link in link_list:
-		c_['link_total'] += 1
-		status = "+ Confirmed"
-		c_['active_link'] = link
-		try:
-			x = requests.get(link, timeout=10)
-			x.raise_for_status()
-		except requests.exceptions.HTTPError as errh:
-			status = "- Invalid URL"
-			c_['badurl'] += 1
-			bad_links[link] = "Invalid URL"
-			if verbose:
-				print(vdisplay.format(status, link))
-			continue
-		except requests.exceptions.ConnectionError as errc:
-			status = "- Invalid Connection"
-			c_['badconnection'] += 1
-			bad_links[link] = "Invalid Connection"
-			if verbose:
-				print(vdisplay.format(status, link))
-			continue
-		except requests.exceptions.Timeout as errt:
-			status = "- Server Timeout"
-			c_['ping'] += 1
-			bad_links[link] = "Server Timeout"
-			if verbose:
-				print(vdisplay.format(status, link))
-			continue
-		except requests.exceptions.RequestException as err:
-			status = "- Invalid URL"
-			c_['badurl'] += 1
-			bad_links[link] = "Invalid URL"
-			if verbose:
-				print(vdisplay.format(status, link))
-			continue
-		except Exception as error:
-			status = "- Unknown Error"
-			c_['ping'] += 1
-			bad_links[link] = "Unknown Error"
-			if verbose:
-				print(vdisplay.format(status, link))
-			continue
-
-
-		urlhost = link.split('/')[2]
-		if oldhosts.search(urlhost):
-			status = "- Old Host"
-			c_['oldhosts'] += 1
-			bad_links[link] = "Old Host"
-			if verbose:
-				print(vdisplay.format(status, link))
-			continue
-
-		if( x.status_code == 200 ):
-			data = x.text.split('\n')
-			badlink = re.compile('Invalid Bug ID')
-			for line in data:
-				if badlink.search(line):
-					status = "- Invalid BUG"
-					c_['bugid'] += 1
-					bad_links[link] = "Invalid BUG"
-					break
-		if verbose:
-			print(vdisplay.format(status, link))
-	return bad_links
 
 def show_summary():
 	display = "{0:26} {1}"
@@ -256,12 +114,12 @@ def main(argv):
 	try:
 		(optlist, args) = getopt.gnu_getopt(argv[1:], "hrv", ["help", "recurse", "verbose"])
 	except getopt.GetoptError as exc:
-		title()
+		pd.title("SCA Pattern Link Verification Tool", SVER)
 		print("Error:", exc, file=sys.stderr)
 		sys.exit(2)
 	for opt in optlist:
 		if opt[0] in {"-h", "--help"}:
-			title()
+			pd.title("SCA Pattern Link Verification Tool", SVER)
 			usage()
 			sys.exit(0)
 		elif opt[0] in {"-r", "--recurse"}:
@@ -269,7 +127,7 @@ def main(argv):
 		elif opt[0] in {"-v", "--verbose"}:
 			verbose = True
 
-	title()
+	pd.title("SCA Pattern Link Verification Tool", SVER)
 	print("Loading patterns...")
 	given_file = ''
 	if len(args) > 0:
@@ -277,7 +135,7 @@ def main(argv):
 		given_file = args[0]
 		if os.path.isdir(given_file):
 			path = os.path.abspath(given_file)
-			pattern_list = get_pattern_list(path)
+			pattern_list = pd.get_pattern_list(path, recurse_directory)
 			if recurse_directory:
 				print("Recursively Processing " + path)
 			else:
@@ -295,38 +153,48 @@ def main(argv):
 			print("Recursively Processing " + path)
 		else:
 			print("Processing " + path)
-		pattern_list = get_pattern_list(path)
+		pattern_list = pd.get_pattern_list(path, recurse_directory)
 
 	c_['pat_total'] = len(pattern_list)
 	vdisplay = "  {0:23} {1}"
 	csize = len(str(c_['pat_total']))
 	cdisplay = "{0:0" + str(csize) + "d}/{1} {2}"
 	if not verbose:
-		bar = ProgressBar(" Validating links: ", progress_bar_width, c_['pat_total'])
+		bar = pd.ProgressBar(" Validating links: ", progress_bar_width, c_['pat_total'])
 	for pattern in pattern_list:
 		c_['current'] += 1
 		if verbose:
 			print(cdisplay.format(c_['current'], c_['pat_total'], pattern))
 		c_['active_pattern'] = pattern
 		bad_urls = []
-		url_list = get_url_list(pattern)
-		bad_urls = validate(url_list)
-		if len(bad_urls) > 0:
-			invalid_links[pattern] = bad_urls
-			if( len(bad_urls) == len(url_list) ):
-				invalid_links[pattern]['nosolutions'] = True
-				c_['nosolutions'] += 1
-				status = "! No Solutions"
-				if verbose:
-					print(vdisplay.format(status, pattern))
-			else:
-				invalid_links[pattern]['nosolutions'] = False
+		url_list = pd.get_links_from_pattern_file(pattern)
+		if( len(url_list) > 0 ):
+			bad_urls, c_ = pd.validate_link_list(url_list, c_, verbose)
+			if( len(bad_urls) > 0):
+				invalid_links[pattern] = bad_urls
+				if( len(bad_urls) == len(url_list) ):
+					invalid_links[pattern]['nosolutions'] = True
+					c_['nosolutions'] += 1
+					status = "! No Solutions"
+					if verbose:
+						print(vdisplay.format(status, pattern))
+				else:
+					invalid_links[pattern]['nosolutions'] = False
+		else:
+			invalid_links[pattern] = {}
+			invalid_links[pattern]['nosolutions'] = True
+			c_['nosolutions'] += 1
+			status = "! No Solution Links"
+			if verbose:
+				print(vdisplay.format(status, pattern))
+		#print(invalid_links)
+		
 		if not verbose:
 			bar.update(c_['current'])
 	if not verbose:
 		bar.finish()
-	c_['active_pattern'] = "None"
-	c_['active_link'] = "None"
+	c_['active_pattern'] = "None" # Shows the active pattern file if linkchk is aborted
+	c_['active_link'] = "None" # Shows the active link being checked if linkchk is aborted
 	end = timer()
 	elapsed = str(timedelta(seconds=end-start))
 	if verbose:
