@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.11'
+SVER = '1.0.12'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
-# Copyright (C) 2022 SUSE LLC
+# Copyright (C) 2023 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2023 Jun 05
+# Modified:     2023 Jul 03
 #
 ##############################################################################
 #
@@ -35,18 +35,14 @@ import re
 import getopt
 import datetime
 import requests
+import configparser
+import patdevel as pd
 
 # Global Options
 script_name = "SCA Tool Python Pattern Generator"
-conf_file = "/etc/opt/patdevel/patdev.conf"
-conf_file_dict = {}
+conf_file = "/etc/opt/patdevel/patdev.ini"
 
 # Class and Function Definitions
-
-def title():
-	print("\n##################################################")
-	print(("# " + script_name + " v" + str(SVER)))
-	print("##################################################")
 
 def usage():
 	print("Usage:")
@@ -82,14 +78,12 @@ def usage():
 	print()
 
 class PatternTemplate():
-	TID_BASE_URL = "https://www.suse.com/support/kb/doc/?id="
-	BUG_BASE_URL = "https://bugzilla.suse.com/show_bug.cgi?id="
 	content = ''
 	content_kernel = ''
 	content_package = ''
 	content_service = ''
 
-	def __init__(self, script_name, config):
+	def __init__(self, script_name, _config):
 		self.meta_class = ''
 		self.meta_category = ''
 		self.meta_component = ''
@@ -112,8 +106,11 @@ class PatternTemplate():
 		self.primary_link = "META_LINK_TID"
 		self.title = ''
 		self.script_name = script_name
-		self.config = config
-		self.author = self.config['PATDEV_EMAIL']
+		self._config = _config
+		self.author = _config.get("Common", "author").strip('\"\'')
+		self.tid_base_url = _config.get("Common", "tid_base_url").strip('\"\'')
+		self.bug_base_url = _config.get("Common", "bug_base_url").strip('\"\'')
+		self.pat_repos_dir = _config.get("Common", "sca_repo_dir").strip('\"\'')
 		self.check_duplicates = True
 		self.links = ''
 
@@ -144,14 +141,14 @@ self.title
 	def __check_for_duplicates(self):
 		"Checks for pre-existing patterns with the same TID and/or BUG number"
 		print("Updating Pattern Repositories")
-		repos = subprocess.getoutput("gitpatterns")
+		pd.update_git_repos(self._config)
 
 		print("Checking for Duplicates")
 		these_duplicates = {}
 		output_string = ''
-		duplicate_tids = subprocess.getoutput("find " + self.config['PATDEV_REPOS_DIR'] + " -type f -exec grep " + self.tid_number + " {} \+ | grep META_LINK_TID")
+		duplicate_tids = subprocess.getoutput("find " + self.pat_repos_dir + " -type f -exec grep " + self.tid_number + " {} \+ | grep META_LINK_TID")
 		if len(self.bug_number) > 1:
-			duplicate_bugs = subprocess.getoutput("find " + self.config['PATDEV_REPOS_DIR'] + " -type f -exec grep " + self.bug_number + " {} \+ | grep META_LINK_BUG")
+			duplicate_bugs = subprocess.getoutput("find " + self.pat_repos_dir + " -type f -exec grep " + self.bug_number + " {} \+ | grep META_LINK_BUG")
 		else:
 			duplicate_bugs = ''
 
@@ -515,13 +512,13 @@ self.title
 		self.meta_component = mdlist[IDX_COMPONENT]
 		self.pattern_base = mdlist[IDX_FILENAME]
 		self.tid_number = str(mdlist[IDX_TID])
-		self.tid_url = self.TID_BASE_URL + self.tid_number
+		self.tid_url = self.tid_base_url + self.tid_number
 		self.pattern_filename = self.pattern_dir + "/" + self.pattern_base + "-" + self.tid_number + ".py"
 		self.links = "META_LINK_TID=" + self.tid_url
 		if( len(mdlist) > mdcount_min ):
 			self.bug_number = str(mdlist[IDX_BUG])
 			if( len(self.bug_number) > 1 ):
-				self.bug_url = self.BUG_BASE_URL + self.bug_number
+				self.bug_url = self.bug_base_url + self.bug_number
 				self.links = self.links + "|META_LINK_BUG=" + self.bug_url
 		if( len(self.other_url) > 0 ):
 			self.links = self.links + "|" + self.other_url
@@ -633,7 +630,7 @@ def option_error(msg):
 
 def main(argv):
 	"main entry point"
-	global SVER, script_name
+	global SVER, script_name, conf_file
 
 	given_conditions = 0
 	conditions_min = 1
@@ -643,27 +640,39 @@ def main(argv):
 	package_name = ''
 	package_version = '0'
 
+	if( os.path.exists(conf_file) ):
+		config.read(conf_file)
+		url_base = config.get("Security", "archive_url").strip('\"\'')
+		pat_dir = config.get("Security", "pat_dir")
+		pat_logs_dir = config.get("Security", "pat_logs")
+	else:
+		pd.title(script_name, SVER)
+		print("Error: File not found - " + conf_file + "\n")
+		sys.exit(1)
+
+	pat = PatternTemplate(script_name, config)
+
 	try:
 		(optlist, args) = getopt.gnu_getopt(argv[1:], "hc:dfk:r:p:s:u:o", ["help", "conditions=", "no-duplicates", "flat", "kernel-version=", "rpm=", "package-version=", "service=", "url=", "no-validation"])
 	except getopt.GetoptError as exc:
-		title()
+		pd.title(script_name, SVER)
 		print("Error:", exc, file=sys.stderr)
 		sys.exit(2)
 	for option, arguement in optlist:
 		if option in {"-h", "--help"}:
-			title()
+			pd.title(script_name, SVER)
 			usage()
 			sys.exit(0)
 		elif option in {"-c", "--conditions"}:
 			if( arguement.isdigit() ):
 				given_conditions = int(arguement)
 				if( given_conditions > conditions_max ):
-					title()
+					pd.title(script_name, SVER)
 					option_error("Error: Invalid number of conditions, range is 0-3")
 				else:
 					pat.set_conditions(given_conditions)
 			else:
-				title()
+				pd.title(script_name, SVER)
 				option_error("Error: Integer required for conditions, range is 0-3")
 		elif option in {"-d", "--no-duplicates"}:
 			pat.set_check_duplicates(False)
@@ -682,7 +691,7 @@ def main(argv):
 		elif option in {"-o", "--no-validation"}:
 			pat.set_override_validation(True)
 
-	title()
+	pd.title(script_name, SVER)
 
 	if( len(package_name) > 0 ): # package_name without a package_version is ok
 		pat.set_package(package_name, package_version)
@@ -705,25 +714,7 @@ def main(argv):
 
 # Entry point
 if __name__ == "__main__":
-	try:
-		f = open(conf_file, "r")
-	except Exception as error:
-		title()
-		print("ERROR: Missing configuration file: ", str(error))
-		print()
-		sys.exit(3)
-
-	skipped_line = re.compile("^#|^$", re.IGNORECASE)
-	for line in f.readlines():
-		line = line.strip(" \n")
-		if skipped_line.search(line):
-			continue
-		key, value = line.split('=')
-		value = value.strip('"')
-		conf_file_dict[key] = value.strip('"\'')
-	f.close()
-
-	pat = PatternTemplate(script_name, conf_file_dict)
+	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 	main(sys.argv)
 
 

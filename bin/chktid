@@ -1,13 +1,14 @@
-#!/bin/bash
-SVER='1.0.3'
-
+#!/usr/bin/python3
+SVER = '1.0.0'
 ##############################################################################
-#  chktid - TID Checker
-#  Copyright (C) 2020-2022 SUSE LLC
+# chktid - Checks for Existing or Suggested TIDs
+# Copyright (C) 2023 SUSE LLC
 #
-# Description:  Checks existing patterns for the string given, usually a TID
-#               number.
-# Modified:     2022 Nov 01
+# Description:  Searches all current patterns for a given search string to see
+#               if a pattern has already been written. Likewise, it can search
+#               the SUSE support site for TIDs that currently don't have a 
+#               pattern.
+# Modified:     2023 Jul 06
 #
 ##############################################################################
 #
@@ -28,14 +29,353 @@ SVER='1.0.3'
 #
 ##############################################################################
 
+import sys
+import os
+import re
+import getopt
+import signal
+import configparser
+import requests
+import patdevel as pd
 
-LCONF='/etc/opt/patdevel/patdev.conf'
-[[ -s $LCONF ]] && . $LCONF || { echo "ERROR: File not found, $LCONF"; echo; exit 1; }
+# Global Definitions
+title_string = "Check for Existing or Suggested TIDs"
+config_file = "/etc/opt/patdevel/patdev.ini"
+sca_repo_dir = ''
+target_url = ''
+progress_bar_width = 51
+web_range_min = 0
+web_range_max = 12
 
-clear
-echo "Checking Patterns for $1"
-echo "Pattern Root Directory: $PATDEV_REPOS_DIR"
-cd ${PATDEV_REPOS_DIR}
-find ${PATDEV_REPOS_DIR}/ -type f | grep patterns | sort | xargs grep "$1"
-echo
+def usage():
+	"Displays usage information"
+	print("Usage: chktid [options] [<search_string> | -s [-p]]")
+	print()
+	print("Options:")
+	print("  -h           Display this help")
+	print("  -l <level>   Set log level, default: Minimal")
+	print("     0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug")
+	print("  -s           Get suggested TIDs from SUSE support website")
+	print("  -p <0-" + str(web_range_max) + ">    SUSE support web number of pages to evaluate, default: 1")
+	print()
+
+def signal_handler(sig, frame):
+	print("\n\nAborting...\n")
+	sys.exit(0)
+
+def search_file_content(filepath, _check_pattern):
+	result = False
+	fd = open(filepath, "r")
+	lines = fd.readlines()
+	for line in lines:
+		if _check_pattern.search(line):
+			result = True
+			break
+	fd.close()
+	return result
+
+def retrieve_pattern_file_list():
+	pattern_list_filtered = []
+	pattern_list = pd.get_pattern_list(sca_repo_dir, _recurse=True)
+	include_pattern = re.compile("/sca-patterns.*/patterns")
+	for filename in pattern_list:
+		if include_pattern.search(filename):
+			pattern_list_filtered.append(filename)
+	return pattern_list_filtered
+
+def search_patterns(_search):
+	pattern_list = []
+	matching_filenames = []
+	matching_file_content = []
+	total_matches_found = 0
+	general_matches = {}
+
+	msg.min("Searching Patterns for", "'" + _search + "'")
+	msg.min("Repository Directory", sca_repo_dir)
+	msg.normal("\nRetrieving pattern file list")
+	pattern_list = retrieve_pattern_file_list()
+	check_pattern = re.compile(_search)
+	msg.verbose("\nSearching for Matching Filenames")
+	for filename in pattern_list:
+		if check_pattern.search(filename):
+			matching_filenames.append(filename)
+			general_matches[filename] = True
+	for i in matching_filenames:
+		msg.verbose("Matched Filename", i)
+
+	msg.verbose("\nSearching for Files with Matching Content")
+	for filename in pattern_list:
+		if search_file_content(filename, check_pattern):
+			matching_file_content.append(filename)
+			general_matches[filename] = True
+	for i in matching_file_content:
+		msg.verbose("Matched File Content", i)
+	
+	matching_filenames_count = len(matching_filenames)
+	matching_file_content_count = len(matching_file_content)
+	general_matches_count = len(general_matches)
+
+	if( pd.log_level >= pd.LOG_VERBOSE ):
+		total_matches_found = matching_filenames_count + matching_file_content_count
+		if( total_matches_found > 0 ):
+			msg.verbose()
+		msg.min("Total Matches Found", str(total_matches_found))
+		msg.min("+ Filename matches", str(matching_filenames_count))
+		msg.min("+ File content matches", str(matching_file_content_count))
+	else:
+		total_matches_found = general_matches_count
+		if( total_matches_found > 0 ):
+			if( pd.log_level >= pd.LOG_NORMAL ):
+				for key in general_matches.keys():
+					msg.normal("Match found", key)
+			msg.normal()
+		msg.quiet("Total Matches Found", str(total_matches_found))
+
+def get_web_data(_url):
+	try:
+		x = requests.get(_url)
+	except Exception as error:
+		msg.normal('  - ERROR', "Cannot download " + str(_url) + ": " + str(error))
+		this_data = []
+		return this_data
+
+	if( x.status_code == 200 ):
+		this_data = x.text.split('\n')
+	else:
+		msg.normal("  - ERROR " + str(x.status_code), "URL download failure - " + str(_url))
+		this_data = []
+
+	return this_data
+
+def get_suggestions_from_web(pages):
+	check_tid_dict = {}
+	suggestion_list = {}
+	c_ = {'count': 0, 'total': 0, 'suggested': 0, 'web': 0, 'dup': 0, 'prod': 0 }
+	page_entries = 25
+	maxIndex = 300
+	data = []
+
+	msg.min("Retrieving TIDs from SUSE Support")
+	if( pd.log_level == pd.LOG_MIN and pages > 1 ):
+		bar = pd.ProgressBar("Progress:   ", progress_bar_width, pages)
+
+	msg.normal("+ SUSE support pages to evaluate: {}".format(pages))
+	for page in range(pages):
+		counted_page = page + 1
+		msg.verbose("+ Loading Page", str(counted_page) + " of " + str(pages))
+		startIndex = ( page * page_entries ) + 1
+		page_url = target_url + '?maxIndex=' + str(maxIndex) + '&startIndex=' + str(startIndex)
+		this_page = get_web_data(page_url)
+		if( len(this_page) > 0 ):
+			data = data + this_page
+		else:
+			c_['web'] += 1
+		if( pd.log_level == pd.LOG_MIN and pages > 1 ):
+			bar.update(counted_page)
+	if( pd.log_level == pd.LOG_MIN and pages > 1 ):
+		bar.finish()
+
+	if( len(data) > 0 ):
+		recent_tid = re.compile('class="tid".*\([0-9]*\)', re.IGNORECASE)
+		for line in data:
+			if recent_tid.search(line):
+				# Example: <a href="/support/kb/doc?id=000021120">Bootstrap repo creation fails with error <span class="tid">(000021120)</span></a>
+				# Extracts only the TID number
+				tid_id = line.split('(')[-1].split(')')[0]
+				tid_url = target_url + '/doc?id=' + tid_id
+				tid_title = line.split('>')[1].split('<')[0].strip()
+				check_tid_dict[tid_id] = {}
+				check_tid_dict[tid_id]['url'] = tid_url
+				check_tid_dict[tid_id]['title'] = tid_title
+				check_tid_dict[tid_id]['prod'] = "Unknown"
+		c_['total'] = len(check_tid_dict.keys())
+		msg.normal("+ Total TIDs to evaluate: {}".format(c_['total']))
+		msg.normal("Retrieving Pattern List")
+		pattern_list = retrieve_pattern_file_list()
+		msg.normal("Searching for Suggestions")
+		for tid_id in check_tid_dict.keys():
+			if( pd.log_level == pd.LOG_MIN ):
+				bar = pd.ProgressBar("Evaluating: ", progress_bar_width, c_['total'])
+			msg.normal("+ Evaluating TID [{}/{}]".format(c_['count'], c_['total']), tid_id)
+			check_pattern = re.compile(tid_id)
+			suggestion_list[tid_id] = True
+			for filename in pattern_list:
+				if check_pattern.search(filename):
+					msg.normal("  - Pre-existing TID", filename)
+					c_['dup'] += 1
+					suggestion_list[tid_id] = False
+					break
+				if search_file_content(filename, check_pattern):
+					msg.normal("  - Pre-existing TID Found", filename)
+					c_['dup'] += 1
+					suggestion_list[tid_id] = False
+					break
+			in_state = False
+			get_state = re.compile("\>Modified Date:\<")
+#			get_state = re.compile("Modified Date", re.IGNORECASE)
+			end_state = re.compile("</ul>")
+			if( suggestion_list[tid_id] == True ):
+				msg.verbose("  Loading", check_tid_dict[tid_id]['url'])
+				tid_data = get_web_data(check_tid_dict[tid_id]['url'])
+				if( len(tid_data) > 0 ):
+					for tid_line in tid_data:
+						tid_line = tid_line.strip()
+						if( in_state):
+							if( end_state.search(tid_line) ):
+								break
+							elif "SUSE Linux Enterprise Server" in tid_line:
+								check_tid_dict[tid_id]['prod'] = "SLES"
+								break
+							elif "SUSE Linux Enterprise High Avail" in tid_line:
+								check_tid_dict[tid_id]['prod'] = "HAE"
+								break
+							elif "SUSE Linux Enterprise Desktop" in tid_line:
+								check_tid_dict[tid_id]['prod'] = "SLED"
+								break
+							elif "SUSE Manager" in tid_line:
+								check_tid_dict[tid_id]['prod'] = "SUMA"
+								break
+							elif "SUSE Enterprise Storage" in tid_line:
+								check_tid_dict[tid_id]['prod'] = "SES"
+								break
+							elif "SUSE Rancher" in tid_line:
+								del suggestion_list[tid_id]
+								msg.normal("  - Product Skipped", "Rancher")
+								c_['prod'] += 1
+								break
+							elif "SUSE NeuVector" in tid_line:
+								del suggestion_list[tid_id]
+								msg.normal("  - Product Skipped", "NeuVector")
+								c_['prod'] += 1
+								break
+						elif( get_state.search(tid_line) ):
+							in_state = True
+				else:
+					msg.normal("  - No TID data")
+					c_['web'] += 1
+			else:
+				del suggestion_list[tid_id]
+
+			c_['count'] += 1
+			if( pd.log_level == pd.LOG_MIN ):
+				bar.update(c_['count'])
+			msg.verbose()
+			
+		if( pd.log_level == pd.LOG_MIN ):
+			bar.finish()
+		elif( pd.log_level > pd.LOG_MIN ):
+			msg.normal()
+
+		c_['suggested'] = len(suggestion_list)
+		msg.min("Suggested TIDs for New Patterns")
+		for suggested_tid_id in suggestion_list.keys():
+			msg.min("TID{} - {}\n + Product: {}\n + {}\n".format(suggested_tid_id, check_tid_dict[suggested_tid_id]['title'], check_tid_dict[suggested_tid_id]['prod'], check_tid_dict[suggested_tid_id]['url']))
+
+	msg.min("TID Suggestion Summary")
+	msg.min(" Evaluated", str(c_['total']))
+	msg.min(" Suggested", str(c_['suggested']))
+	msg.min(" Web Errors", str(c_['web']))
+	msg.min(" Pre-existing TIDs", str(c_['dup']))
+	msg.min(" Skipped Products", str(c_['prod']))
+	msg.min()
+
+
+##############################################################################
+# Main
+##############################################################################
+
+def main(argv):
+	"main entry point"
+	global SVER, config_file, sca_repo_dir, target_url, progress_bar_width, web_range_min, web_range_max, title_string
+	get_suggestions = False
+
+	pd.log_level = pd.LOG_MIN
+	user_logging = -1
+	web_pages = 1
+	if( os.path.exists(config_file) ):
+		config.read(config_file)
+		sca_repo_dir = config.get("Common", "sca_repo_dir")
+		target_url = config.get("Common", "suse_support_url").strip("\'\"")
+	else:
+		pd.title(title_string, SVER)
+		print("Error: File not found - " + config_file + "\n")
+		sys.exit(1)
+
+	try:
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hl:sp:")
+	except getopt.GetoptError as exc:
+		pd.title(title_string, SVER)
+		print("Error:", exc, file=sys.stderr)
+		print("\n")
+		usage()
+		sys.exit(2)
+	for opt in optlist:
+		if opt[0] in {"-h"}:
+			pd.title(title_string, SVER)
+			usage()
+			sys.exit(0)
+		elif opt[0] in {"-l"}:
+			if( opt[1].isdigit() ):
+				user_logging = int(opt[1])
+			else:
+				if( opt[1].lower().startswith("qui") ):
+					pd.log_level = pd.LOG_QUIET
+				elif( opt[1].lower().startswith("min") ):
+					pd.log_level = pd.LOG_MIN
+				elif( opt[1].lower().startswith("norm") ):
+					pd.log_level = pd.LOG_NORMAL
+				elif( opt[1].lower().startswith("verb") ):
+					pd.log_level = pd.LOG_VERBOSE
+				elif( opt[1].lower().startswith("debug") ):
+					pd.log_level = pd.LOG_DEBUG
+				else:
+					print("Invalid log level, using default")
+		elif opt[0] in {"-s"}:
+			get_suggestions = True
+		elif opt[0] in {"-p"}:
+			if( opt[1].isdigit() ):
+				web_pages = int(opt[1])
+				if( web_pages < web_range_min or web_pages > web_range_max ):
+					pd.title(title_string, SVER)
+					print("Invalid web page range value: {}".format(opt[1]))
+					print("Valid range is 1-" + str(web_range_max) + ", where 0 is max pages\n")
+					usage()
+					sys.exit(5)
+				elif( web_pages == 0 ):
+					web_pages = web_range_max
+			else:
+				pd.title(title_string, SVER)
+				print("Invalid web page range value: {}".format(opt[1]))
+				print("Valid range is 1-" + str(web_range_max) + ", where 0 is max pages\n")
+				usage()
+				sys.exit(5)
+
+	if len(args) > 0:
+		search_string = ' '.join(args)
+	else:
+		if not get_suggestions:
+			pd.title(title_string, SVER)
+			print("Error: Search string not found\n")
+			usage()
+			sys.exit(3)
+
+	if( user_logging >= pd.LOG_QUIET ):
+		pd.log_level = user_logging
+
+	if( pd.log_level > pd.LOG_QUIET ):
+		pd.title(title_string, SVER)
+
+	msg.set_level(pd.log_level)
+	if get_suggestions:
+		get_suggestions_from_web(web_pages)
+	else:
+		search_patterns(search_string)
+
+# Entry point
+if __name__ == "__main__":
+	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+	signal.signal(signal.SIGINT, signal_handler)
+	msg = pd.DisplayMessages(config)
+	main(sys.argv)
+
 

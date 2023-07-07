@@ -33,7 +33,7 @@ import os
 import configparser
 import patdevel as pd
 
-SVER='2.0.0_dev8'
+SVER='2.0.0_beta1'
 config_file = "/etc/opt/patdevel/patdev.ini"
 
 def usage():
@@ -77,17 +77,23 @@ def main(argv):
 	else:
 		opt = ''
 	if action_validate.search(opt):
+		pd.sub_title("Validate Security Patterns")
 		pd.update_git_repos(config)
 		pd.validate_sa_patterns(config)
 	elif action_distribute.search(opt):
+		pd.sub_title("Distribute Patterns")
 		pd.distribute_sa_patterns(config)
 	elif action_remove.search(opt):
+		pd.sub_title("Distribute Patterns")
 		pd.remove_sa_patterns(config)
 	elif action_config.search(opt):
+		pd.sub_title("Remove Uncommitted Patterns")
 		pd.show_config_file(config_file, config)
 	elif action_repos.search(opt):
+		pd.sub_title("Update Pattern Repositories")
 		pd.update_git_repos(config)
 	elif action_status.search(opt):
+		pd.sub_title("Security Pattern Status")
 		pd.show_status(config)
 	else:
 		usage()
