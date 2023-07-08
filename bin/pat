@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.8'
+SVER = '2.0.10'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
-# Copyright (C) 2022 SUSE LLC
+# Copyright (C) 2023 SUSE LLC
 #
 # Description:  Runs a pattern or patterns against supportconfig directories to
 #               check the pattern's output based on the supportconfig directory.
-# Modified:     2022 Nov 19
+# Modified:     2023 Jul 08
 #
 ##############################################################################
 #
@@ -33,6 +33,7 @@ import re
 import getopt
 import signal
 import subprocess
+import patdevel as pd
 from datetime import timedelta
 from timeit import default_timer as timer
 
@@ -48,29 +49,19 @@ usepath = {'archives': '', 'patterns': '', 'scalib': ''}
 overall_dict = {"-2": "Temporary", "-1": "Partial", "0": "Success", "1": "Recommend", "2": "Promotion", "3": "Warning", "4": "Critical", "5": "Error", "6": "Ignore"}
 c_ = {'current': 0, 'total': 0, 'total_pat': 0, 'total_arch': 0, "active_pattern": '', "active_archive": '', 'skipped': 0, 'Fatal': 0, 'Temporary': 0, 'Partial': 0, 'Success': 0, 'Recommend': 0, 'Promotion': 0, 'Warning': 0, 'Critical': 0, 'Error': 0, 'Ignore': 0}
 meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False, 'notsca': False}
-progress_bar_width = 65
 invalid_patterns = []
 invalid_pattern_shortlist = {}
 log_level = {'quiet': 0, 'normal': 1, 'verbose': 2}
 logging = log_level['normal']
 elapsed = -1
-hbar_length = 90
 conf_file = "/etc/opt/patdevel/patdev.conf"
 conf_file_dict = {}
+title_string = "SCA Pattern Checker"
 
 
 ##############################################################################
 # Functions
 ##############################################################################
-
-def hbar(_type):
-	print("{}".format(_type*hbar_length))
-
-def title():
-	"Display the program title"
-	hbar("#")
-	print("# SCA Pattern Checker v" + str(SVER))
-	hbar("#")
 
 def usage():
 	"Displays usage information"
@@ -93,25 +84,6 @@ def signal_handler(sig, frame):
 	print("\n\nAborting...\n")
 	show_summary()
 	sys.exit(1)
-
-class ProgressBar():
-	"Initialize and update progress bar class"
-	def __init__(self, prefix, bar_width, total):
-		self.prefix = prefix
-		self.bar_width = bar_width
-		self.total = total
-		self.out = sys.stdout
-
-	def __str__(self):
-		return 'class %s(\n  prefix=%r \n  bar_width=%r \n  total=%r\n)' % (self.__class__.__name__, self.prefix, self.bar_width, self.total)
-
-	def update(self, count):
-		percent_complete = int(100*count/self.total)
-		current_progress = int(self.bar_width*count/self.total)
-		print("{}[{}{}] {:3g}% {:3g}/{}".format(self.prefix, "#"*current_progress, "."*(self.bar_width-current_progress), percent_complete, count, self.total), end='\r', file=self.out, flush=True)
-
-	def finish(self):
-		print("\n", flush=True, file=self.out)
 
 def show_summary():
 	display = "{0:26} {1}"
@@ -394,13 +366,13 @@ def main(argv):
 	try:
 		(optlist, args) = getopt.gnu_getopt(argv[1:], "ha:qrv", ["help", "archives=", "quiet", "recurse", "verbose"])
 	except getopt.GetoptError as exc:
-		title()
+		pd.title(title_string, SVER)
 		usage()
 		print("Error:", exc, file=sys.stderr)
 		sys.exit(2)
 	for opt in optlist:
 		if opt[0] in {"-h", "--help"}:
-			title()
+			pd.title(title_string, SVER)
 			usage()
 			sys.exit(0)
 		elif opt[0] in {"-a", "--archives"}:
@@ -414,7 +386,7 @@ def main(argv):
 			logging = log_level['quiet']
 
 	if logging > log_level['quiet']:
-		title()
+		pd.title(title_string, SVER)
 	set_environment()
 	archive_list = prepare_archives()
 	c_['total_arch'] = len(archive_list)
@@ -434,7 +406,7 @@ def main(argv):
 		print()
 
 	if logging == log_level['normal']:
-		bar = ProgressBar(" Checking: ", progress_bar_width, c_['total'])
+		bar = pd.ProgressBar(" Checking: ", c_['total'])
 
 	for pattern in pattern_list:
 		for archive in archive_list:
@@ -466,7 +438,7 @@ if __name__ == "__main__":
 	try:
 		f = open(conf_file, "rt")
 	except Exception as error:
-		title()
+		pd.title(title_string, SVER)
 		print("{0} {1}, {2}".format("ERROR: Missing configuration file: ", conf_file, str(error)))
 		print()
 		sys.exit(3)

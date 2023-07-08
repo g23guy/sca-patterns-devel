@@ -2,7 +2,7 @@
 r"""Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Jul 03
+ Modified:     2023 Jul 07
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,9 +37,9 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 
-SUMMARY_FMT = "{0:25} {1:g}"
+SUMMARY_FMT = "{0:30} {1:g}"
 distribution_log_filename = "distribution.log"
 distribution_log_section = "metadata"
 seperator_len = 77
@@ -60,7 +60,7 @@ def sub_title(subtitle_str):
 	print("# {}".format(subtitle_str))
 	separator_line("-")
 
-def separator_line(use_char):
+def separator_line(use_char = '#'):
 	print("{}".format(use_char*seperator_len))
 
 def check_directories(_config):
@@ -113,11 +113,15 @@ class LogFile():
 
 class ProgressBar():
 	"""Initialize and update progress bar class"""
-	def __init__(self, prefix, bar_width, total):
+	def __init__(self, prefix, total, bar_width = separator_line):
+		self.BASE_BAR_WIDTH = 77 # This valud must equal the value of separator_line defined above.
 		self.prefix = prefix
-		self.bar_width = bar_width
 		self.total = total
 		self.out = sys.stdout
+		if ( bar_width == separator_line ):
+			self.bar_width = self.BASE_BAR_WIDTH - len(self.prefix) - 2
+		else:
+			self.bar_width = bar_width
 
 	def __str__(self):
 		return 'class %s(\n  prefix=%r \n  bar_width=%r \n  total=%r\n)' % (self.__class__.__name__, self.prefix, self.bar_width, self.total)
@@ -265,7 +269,7 @@ def validate_sa_patterns(_config):
 	duplicates = []
 	valid = 0
 	bar_width = 50
-	bar = ProgressBar("Validating: ", bar_width, total)
+	bar = ProgressBar("Validating: ", total)
 	for pattern in patterns:
 		count += 1
 		pattern_file = os.path.basename(pattern)
@@ -407,8 +411,8 @@ class DisplayMessages():
 	LOG_NORMAL	= 2	# normal, but significant, messages
 	LOG_VERBOSE	= 3	# detailed messages
 	LOG_DEBUG	= 4	# debug-level messages
-	DISPLAY_PAIR    = "{0:25} = {1}"
-	DISPLAY         = "{0:25}"
+	DISPLAY_PAIR    = "{0:30} = {1}"
+	DISPLAY         = "{0:30}"
 	
 
 	def __init__(self, level=LOG_MIN):
@@ -1002,10 +1006,17 @@ def validate_link_list(link_list, _c_, _verbose):
 			print(vdisplay.format(status, link))
 	return bad_links, _c_
 
+def config_entry(_entry, trailer = ''):
+	formatted_entry = _entry.strip('\"\'')
+	if( len(trailer) > 0 ):
+		if not formatted_entry.endswith(trailer):
+			formatted_entry = formatted_entry + str(trailer)
+	return formatted_entry
+
 def update_git_repos(_config):
-	sca_repo_dir = _config.get("Common", "sca_repo_dir")
-	github_uri_base = _config.get("GitHub", "uri_base").strip('\"\'')
-	patdev_repos = _config.get("GitHub", "patdev_repos").strip('\"\'').split(',')
+	sca_repo_dir = config_entry(_config.get("Common", "sca_repo_dir"))
+	github_uri_base = config_entry(_config.get("GitHub", "uri_base"))
+	patdev_repos = config_entry(_config.get("GitHub", "patdev_repos")).split(',')
 
 	for repo in patdev_repos:
 		repo_path = sca_repo_dir + repo

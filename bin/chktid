@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '1.0.0'
+SVER = '1.0.1'
 ##############################################################################
 # chktid - Checks for Existing or Suggested TIDs
 # Copyright (C) 2023 SUSE LLC
@@ -8,7 +8,7 @@ SVER = '1.0.0'
 #               if a pattern has already been written. Likewise, it can search
 #               the SUSE support site for TIDs that currently don't have a 
 #               pattern.
-# Modified:     2023 Jul 06
+# Modified:     2023 Jul 07
 #
 ##############################################################################
 #
@@ -43,7 +43,7 @@ title_string = "Check for Existing or Suggested TIDs"
 config_file = "/etc/opt/patdevel/patdev.ini"
 sca_repo_dir = ''
 target_url = ''
-progress_bar_width = 51
+target_tid_url = ''
 web_range_min = 0
 web_range_max = 12
 
@@ -147,7 +147,7 @@ def get_web_data(_url):
 
 	return this_data
 
-def get_suggestions_from_web(pages):
+def get_suggestions_from_web(pages, _log_file):
 	check_tid_dict = {}
 	suggestion_list = {}
 	c_ = {'count': 0, 'total': 0, 'suggested': 0, 'web': 0, 'dup': 0, 'prod': 0 }
@@ -155,16 +155,19 @@ def get_suggestions_from_web(pages):
 	maxIndex = 300
 	data = []
 
+	log = configparser.ConfigParser()
+	log.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
+
 	msg.min("Retrieving TIDs from SUSE Support")
 	if( pd.log_level == pd.LOG_MIN and pages > 1 ):
-		bar = pd.ProgressBar("Progress:   ", progress_bar_width, pages)
+		bar = pd.ProgressBar(" Progress: ", pages)
 
 	msg.normal("+ SUSE support pages to evaluate: {}".format(pages))
 	for page in range(pages):
 		counted_page = page + 1
-		msg.verbose("+ Loading Page", str(counted_page) + " of " + str(pages))
 		startIndex = ( page * page_entries ) + 1
 		page_url = target_url + '?maxIndex=' + str(maxIndex) + '&startIndex=' + str(startIndex)
+		msg.verbose("+ Loading URL {}/{}".format(counted_page, pages), page_url)
 		this_page = get_web_data(page_url)
 		if( len(this_page) > 0 ):
 			data = data + this_page
@@ -180,9 +183,9 @@ def get_suggestions_from_web(pages):
 		for line in data:
 			if recent_tid.search(line):
 				# Example: <a href="/support/kb/doc?id=000021120">Bootstrap repo creation fails with error <span class="tid">(000021120)</span></a>
-				# Extracts only the TID number
+				# Extracts the title, TID number and builds the TID URL. The prod is set to Unknown by default until TID page is evalauted below.
 				tid_id = line.split('(')[-1].split(')')[0]
-				tid_url = target_url + '/doc?id=' + tid_id
+				tid_url = target_tid_url + tid_id
 				tid_title = line.split('>')[1].split('<')[0].strip()
 				check_tid_dict[tid_id] = {}
 				check_tid_dict[tid_id]['url'] = tid_url
@@ -195,27 +198,27 @@ def get_suggestions_from_web(pages):
 		msg.normal("Searching for Suggestions")
 		for tid_id in check_tid_dict.keys():
 			if( pd.log_level == pd.LOG_MIN ):
-				bar = pd.ProgressBar("Evaluating: ", progress_bar_width, c_['total'])
+				bar = pd.ProgressBar(" Evaluating: ", c_['total'])
 			msg.normal("+ Evaluating TID [{}/{}]".format(c_['count'], c_['total']), tid_id)
 			check_pattern = re.compile(tid_id)
-			suggestion_list[tid_id] = True
+			suggestion_list[tid_id] = check_tid_dict[tid_id]
 			for filename in pattern_list:
 				if check_pattern.search(filename):
 					msg.normal("  - Pre-existing TID", filename)
 					c_['dup'] += 1
-					suggestion_list[tid_id] = False
+					del suggestion_list[tid_id]
 					break
 				if search_file_content(filename, check_pattern):
 					msg.normal("  - Pre-existing TID Found", filename)
 					c_['dup'] += 1
-					suggestion_list[tid_id] = False
+					del suggestion_list[tid_id]
 					break
 			in_state = False
 			get_state = re.compile("\>Modified Date:\<")
-#			get_state = re.compile("Modified Date", re.IGNORECASE)
 			end_state = re.compile("</ul>")
-			if( suggestion_list[tid_id] == True ):
-				msg.verbose("  Loading", check_tid_dict[tid_id]['url'])
+			if( tid_id in suggestion_list ):
+				msg.verbose("  Loading URL", check_tid_dict[tid_id]['url'])
+				suggestion_list[tid_id]['prod'] = "Unknown"
 				tid_data = get_web_data(check_tid_dict[tid_id]['url'])
 				if( len(tid_data) > 0 ):
 					for tid_line in tid_data:
@@ -224,19 +227,22 @@ def get_suggestions_from_web(pages):
 							if( end_state.search(tid_line) ):
 								break
 							elif "SUSE Linux Enterprise Server" in tid_line:
-								check_tid_dict[tid_id]['prod'] = "SLES"
+								suggestion_list[tid_id]['prod'] = "SLES"
 								break
 							elif "SUSE Linux Enterprise High Avail" in tid_line:
-								check_tid_dict[tid_id]['prod'] = "HAE"
+								suggestion_list[tid_id]['prod'] = "HAE"
 								break
 							elif "SUSE Linux Enterprise Desktop" in tid_line:
-								check_tid_dict[tid_id]['prod'] = "SLED"
+								suggestion_list[tid_id]['prod'] = "SLED"
 								break
 							elif "SUSE Manager" in tid_line:
-								check_tid_dict[tid_id]['prod'] = "SUMA"
+								suggestion_list[tid_id]['prod'] = "SUMA"
 								break
 							elif "SUSE Enterprise Storage" in tid_line:
-								check_tid_dict[tid_id]['prod'] = "SES"
+								suggestion_list[tid_id]['prod'] = "SES"
+								break
+							elif "SUSE Linux Enterprise Micro" in tid_line:
+								suggestion_list[tid_id]['prod'] = "Micro"
 								break
 							elif "SUSE Rancher" in tid_line:
 								del suggestion_list[tid_id]
@@ -254,7 +260,8 @@ def get_suggestions_from_web(pages):
 					msg.normal("  - No TID data")
 					c_['web'] += 1
 			else:
-				del suggestion_list[tid_id]
+				if ( tid_id in suggestion_list ):
+					del suggestion_list[tid_id]
 
 			c_['count'] += 1
 			if( pd.log_level == pd.LOG_MIN ):
@@ -266,17 +273,32 @@ def get_suggestions_from_web(pages):
 		elif( pd.log_level > pd.LOG_MIN ):
 			msg.normal()
 
+		# Build a sorted index list of suggested TIDs
+		tid_index = []
+		for key, value in suggestion_list.items():
+			sort_key = str(value['prod']) + ":" + str(key)
+			tid_index.append(sort_key)
+		tid_index.sort()
+
 		c_['suggested'] = len(suggestion_list)
 		msg.min("Suggested TIDs for New Patterns")
-		for suggested_tid_id in suggestion_list.keys():
-			msg.min("TID{} - {}\n + Product: {}\n + {}\n".format(suggested_tid_id, check_tid_dict[suggested_tid_id]['title'], check_tid_dict[suggested_tid_id]['prod'], check_tid_dict[suggested_tid_id]['url']))
+		for i in tid_index:
+			tid = i.split(':')[-1]
+			msg.min("TID{} - {}\n + Product: {}\n + {}\n".format(tid, suggestion_list[tid]['title'], suggestion_list[tid]['prod'], suggestion_list[tid]['url']))
+			log.add_section(tid)
+			log[tid]['Title'] = suggestion_list[tid]['title']
+			log[tid]['Status'] = 'New'
+			log[tid]['Product'] = suggestion_list[tid]['prod']
+			log[tid]['URL'] = suggestion_list[tid]['url']
+		with open(_log_file, 'w') as logfile:
+			log.write(logfile)
 
 	msg.min("TID Suggestion Summary")
 	msg.min(" Evaluated", str(c_['total']))
 	msg.min(" Suggested", str(c_['suggested']))
 	msg.min(" Web Errors", str(c_['web']))
 	msg.min(" Pre-existing TIDs", str(c_['dup']))
-	msg.min(" Skipped Products", str(c_['prod']))
+	msg.min(" Products Skipped", str(c_['prod']))
 	msg.min()
 
 
@@ -286,7 +308,7 @@ def get_suggestions_from_web(pages):
 
 def main(argv):
 	"main entry point"
-	global SVER, config_file, sca_repo_dir, target_url, progress_bar_width, web_range_min, web_range_max, title_string
+	global SVER, config_file, sca_repo_dir, target_url, target_tid_url, web_range_min, web_range_max, title_string
 	get_suggestions = False
 
 	pd.log_level = pd.LOG_MIN
@@ -294,8 +316,11 @@ def main(argv):
 	web_pages = 1
 	if( os.path.exists(config_file) ):
 		config.read(config_file)
-		sca_repo_dir = config.get("Common", "sca_repo_dir")
-		target_url = config.get("Common", "suse_support_url").strip("\'\"")
+		sca_repo_dir = pd.config_entry(config.get("Common", "sca_repo_dir"), '/')
+		target_url = pd.config_entry(config.get("Common", "suse_support_url"))
+		target_tid_url = pd.config_entry(config.get("Common", "tid_base_url"))
+		log_dir = pd.config_entry(config.get("Security", "pat_logs"), '/')
+		log_file = log_dir + "suggested_tids.log"
 	else:
 		pd.title(title_string, SVER)
 		print("Error: File not found - " + config_file + "\n")
@@ -367,7 +392,7 @@ def main(argv):
 
 	msg.set_level(pd.log_level)
 	if get_suggestions:
-		get_suggestions_from_web(web_pages)
+		get_suggestions_from_web(web_pages, log_file)
 	else:
 		search_patterns(search_string)
 

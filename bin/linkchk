@@ -45,7 +45,6 @@ recurse_directory = False
 given_file = ''
 pattern_list = []
 c_ = {'current': 0, 'pat_total': 0, 'link_total': 0, 'nosolutions': 0, 'badconnection': 0, "badurl": 0, "bugid": 0, "ping": 0, "oldhosts": 0, "active_pattern": '', "active_link": ''}
-progress_bar_width = 57
 invalid_links = {}
 verbose = False
 elapsed = -1
@@ -160,7 +159,7 @@ def main(argv):
 	csize = len(str(c_['pat_total']))
 	cdisplay = "{0:0" + str(csize) + "d}/{1} {2}"
 	if not verbose:
-		bar = pd.ProgressBar(" Validating links: ", progress_bar_width, c_['pat_total'])
+		bar = pd.ProgressBar(" Validating links: ", c_['pat_total'])
 	for pattern in pattern_list:
 		c_['current'] += 1
 		if verbose:

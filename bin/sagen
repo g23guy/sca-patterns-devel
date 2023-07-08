@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-SVER = '2.0.8'
+SVER = '2.0.9'
 ##############################################################################
 # sagen.py - Security Advisory Announcement Pattern Generator
 # Copyright (C) 2022-2023 SUSE LLC
 #
 # Description:  Creates a python security advisory pattern from HTML page
-# Modified:     2023 Jul 04
+# Modified:     2023 Jul 08
 #
 ##############################################################################
 #
@@ -241,12 +241,11 @@ def prep_archive_threads():
 def process_archive_threads():
 	"Process the security announcement thread archive"
 	msg.min('Announcement Source', url_date)
-	progress_bar_width = 50
 
 	zsize = len(str(all_counters['pattern_count_total']))
 	msg.min("Announcements to Process", str(all_counters['pattern_count_total']) + "\n")
 	if( pd.log_level == pd.LOG_MIN ):
-		bar = pd.ProgressBar("Processing: ", progress_bar_width, all_counters['pattern_count_total'])
+		bar = pd.ProgressBar(" Processing: ", all_counters['pattern_count_total'])
 
 	for sa_id, sa_file in said_file_pairs.items():
 		sa_url = target_url + sa_file
