@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.10'
+SVER = '2.0.10_dev1'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Runs a pattern or patterns against supportconfig directories to
 #               check the pattern's output based on the supportconfig directory.
-# Modified:     2023 Jul 08
+# Modified:     2023 Jul 10
 #
 ##############################################################################
 #
@@ -34,6 +34,7 @@ import getopt
 import signal
 import subprocess
 import patdevel as pd
+import configparser
 from datetime import timedelta
 from timeit import default_timer as timer
 
@@ -45,7 +46,7 @@ recurse_archives = False
 recurse_patterns = False
 pattern_list = []
 archive_list = []
-usepath = {'archives': '', 'patterns': '', 'scalib': ''}
+usepath = {'archives': '', 'patterns': '', 'scalib': '', 'log_dir': '', 'log_file': 'pattern-check.log'}
 overall_dict = {"-2": "Temporary", "-1": "Partial", "0": "Success", "1": "Recommend", "2": "Promotion", "3": "Warning", "4": "Critical", "5": "Error", "6": "Ignore"}
 c_ = {'current': 0, 'total': 0, 'total_pat': 0, 'total_arch': 0, "active_pattern": '', "active_archive": '', 'skipped': 0, 'Fatal': 0, 'Temporary': 0, 'Partial': 0, 'Success': 0, 'Recommend': 0, 'Promotion': 0, 'Warning': 0, 'Critical': 0, 'Error': 0, 'Ignore': 0}
 meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False, 'notsca': False}
@@ -54,8 +55,7 @@ invalid_pattern_shortlist = {}
 log_level = {'quiet': 0, 'normal': 1, 'verbose': 2}
 logging = log_level['normal']
 elapsed = -1
-conf_file = "/etc/opt/patdevel/patdev.conf"
-conf_file_dict = {}
+config_file = "/etc/opt/patdevel/patdev.ini"
 title_string = "SCA Pattern Checker"
 
 
@@ -88,7 +88,7 @@ def signal_handler(sig, frame):
 def show_summary():
 	display = "{0:26} {1}"
 	print("Summary")
-	hbar("-")
+	pd.separator_line('-')
 	print(display.format("Elsapsed Runtime", str(elapsed).split('.')[0]))
 	print(display.format("Pattern Directory", usepath['patterns']))
 	print(display.format("Archive Directory", usepath['archives']))
@@ -111,12 +111,12 @@ def show_summary():
 		print(display.format("Active Archive", c_['active_archive']))
 	print()
 	print("Fatal Pattern Short List")
-	hbar("-")
+	pd.separator_line('-')
 	for pattern in invalid_pattern_shortlist.keys():
 		print(pattern)
 	print()
 	print("Fatal Pattern Details")
-	hbar("-")
+	pd.separator_line('-')
 	ldisplay = "  {0:25} {1}"
 	if len(invalid_patterns) > 0:
 		for invalid_pattern in invalid_patterns:
@@ -359,10 +359,22 @@ def run_pattern(this_pattern, this_archive):
 
 def main(argv):
 	"main entry point"
-	global SVER, pattern_list, archive_list, recurse_archives, recurse_patterns, c, conf_file, conf_file_dict
-	global invalid_patterns, invalid_pattern_shortlist, logging, log_level, elapsed, defpath, usepath, hbar_length, meta_error
+	global SVER, pattern_list, archive_list, recurse_archives, recurse_patterns, c, config_file
+	global invalid_patterns, invalid_pattern_shortlist, elapsed, defpath, usepath, meta_error
 	start = timer()
 	
+	if( os.path.exists(config_file) ):
+		config.read(config_file)
+		usepath['archives'] = pd.config_entry(config.get("Common", "sca_arch_dir"), '/')
+		usepath['scalib'] = pd.config_entry(config.get("Common", "sca_lib_dir"), '/')
+		usepath['log_dir'] = pd.config_entry(config.get("Security", "pat_logs"), '/')
+		usepath['log_file'] = usepath['log_dir'] + usepath['log_file']
+	else:
+		pd.title(title_string, SVER)
+		print("Error: File not found - " + config_file + "\n")
+		sys.exit(1)
+
+	user_logging = -1
 	try:
 		(optlist, args) = getopt.gnu_getopt(argv[1:], "ha:qrv", ["help", "archives=", "quiet", "recurse", "verbose"])
 	except getopt.GetoptError as exc:
@@ -385,8 +397,32 @@ def main(argv):
 		elif opt[0] in {"-q", "--quiet"}:
 			logging = log_level['quiet']
 
-	if logging > log_level['quiet']:
+		elif opt[0] in {"-l", "--log_level"}:
+			if( opt[1].isdigit() ):
+				user_logging = int(opt[1])
+			else:
+				if( opt[1].lower().startswith("qui") ):
+					pd.log_level = pd.LOG_QUIET
+				elif( opt[1].lower().startswith("min") ):
+					pd.log_level = pd.LOG_MIN
+				elif( opt[1].lower().startswith("norm") ):
+					pd.log_level = pd.LOG_NORMAL
+				elif( opt[1].lower().startswith("verb") ):
+					pd.log_level = pd.LOG_VERBOSE
+				elif( opt[1].lower().startswith("debug") ):
+					pd.log_level = pd.LOG_DEBUG
+				else:
+					print("Invalid log level, using default")
+
+
+	if( user_logging >= pd.LOG_QUIET ):
+		pd.log_level = user_logging
+
+	if( pd.log_level > pd.LOG_QUIET ):
 		pd.title(title_string, SVER)
+
+	msg.set_level(pd.log_level)
+
 	set_environment()
 	archive_list = prepare_archives()
 	c_['total_arch'] = len(archive_list)
@@ -435,26 +471,8 @@ def main(argv):
 # Entry point
 if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
-	try:
-		f = open(conf_file, "rt")
-	except Exception as error:
-		pd.title(title_string, SVER)
-		print("{0} {1}, {2}".format("ERROR: Missing configuration file: ", conf_file, str(error)))
-		print()
-		sys.exit(3)
-
-	skipped_line = re.compile("^#|^$", re.IGNORECASE)
-	for line in f.readlines():
-		line = line.strip("\n")
-		if skipped_line.search(line):
-			continue
-		key, value = line.split('=')
-		value = value.strip('"')
-		conf_file_dict[key] = value.strip('"\'')
-	f.close()
-	usepath['archives'] = conf_file_dict['PATDEV_ARCH_DIR']
-	usepath['scalib'] = conf_file_dict['SCALIB_DIR']
-
+	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+	msg = pd.DisplayMessages(config)
 	main(sys.argv)
 	sys.exit(c_['Fatal'])
 

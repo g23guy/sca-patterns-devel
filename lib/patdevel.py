@@ -37,12 +37,12 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "0.0.8"
+__version__ = "0.0.9"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 distribution_log_filename = "distribution.log"
 distribution_log_section = "metadata"
-seperator_len = 77
+seperator_len = 85 # Needs to be the same as ProgressBar class BASE_BAR_WIDTH
 LOG_QUIET = 0	# turns off messages
 LOG_MIN = 1	# minimum messages with progress bar
 LOG_NORMAL = 2	# normal messages without progress bar
@@ -62,6 +62,29 @@ def sub_title(subtitle_str):
 
 def separator_line(use_char = '#'):
 	print("{}".format(use_char*seperator_len))
+
+class ProgressBar():
+	"""Initialize and update progress bar class"""
+	def __init__(self, prefix, total, bar_width = separator_line):
+		self.BASE_BAR_WIDTH = 85 # Needs to be the same as separator_line
+		self.prefix = prefix
+		self.total = total
+		self.out = sys.stdout
+		if ( bar_width == separator_line ):
+			self.bar_width = self.BASE_BAR_WIDTH - len(self.prefix) - 2
+		else:
+			self.bar_width = bar_width
+
+	def __str__(self):
+		return 'class %s(\n  prefix=%r \n  bar_width=%r \n  total=%r\n)' % (self.__class__.__name__, self.prefix, self.bar_width, self.total)
+
+	def update(self, count):
+		percent_complete = int(100*count/self.total)
+		current_progress = int(self.bar_width*count/self.total)
+		print("{}[{}{}] {:3g}% {:3g}/{}".format(self.prefix, "#"*current_progress, "."*(self.bar_width-current_progress), percent_complete, count, self.total), end='\r', file=self.out, flush=True)
+
+	def finish(self):
+		print("\n", flush=True, file=self.out)
 
 def check_directories(_config):
 	"""check_directories(configparser_object)
@@ -110,29 +133,6 @@ class LogFile():
 	def msgn():
 		pass
 
-
-class ProgressBar():
-	"""Initialize and update progress bar class"""
-	def __init__(self, prefix, total, bar_width = separator_line):
-		self.BASE_BAR_WIDTH = 77 # This valud must equal the value of separator_line defined above.
-		self.prefix = prefix
-		self.total = total
-		self.out = sys.stdout
-		if ( bar_width == separator_line ):
-			self.bar_width = self.BASE_BAR_WIDTH - len(self.prefix) - 2
-		else:
-			self.bar_width = bar_width
-
-	def __str__(self):
-		return 'class %s(\n  prefix=%r \n  bar_width=%r \n  total=%r\n)' % (self.__class__.__name__, self.prefix, self.bar_width, self.total)
-
-	def update(self, count):
-		percent_complete = int(100*count/self.total)
-		current_progress = int(self.bar_width*count/self.total)
-		print("{}[{}{}] {:3g}% {:3g}/{}".format(self.prefix, "#"*current_progress, "."*(self.bar_width-current_progress), percent_complete, count, self.total), end='\r', file=self.out, flush=True)
-
-	def finish(self):
-		print("\n", flush=True, file=self.out)
 
 def get_uncommitted_repo_list():
 	print("Searching for local uncommitted security patterns")

@@ -426,7 +426,7 @@ def main(argv):
 		elif opt[0] in {"-q"}:
 			pd.log_level = pd.LOG_QUIET
 		elif opt[0] in {"-l"}:
-			if( opt[1].isnumeric() ):
+			if( opt[1].isdigit() ):
 				user_logging = int(opt[1])
 			else:
 				if( opt[1].lower().startswith("qui") ):
