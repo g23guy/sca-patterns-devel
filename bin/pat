@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.10_dev1'
+SVER = '2.0.10_dev3'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Runs a pattern or patterns against supportconfig directories to
 #               check the pattern's output based on the supportconfig directory.
-# Modified:     2023 Jul 10
+# Modified:     2023 Jul 20
 #
 ##############################################################################
 #
@@ -48,12 +48,12 @@ pattern_list = []
 archive_list = []
 usepath = {'archives': '', 'patterns': '', 'scalib': '', 'log_dir': '', 'log_file': 'pattern-check.log'}
 overall_dict = {"-2": "Temporary", "-1": "Partial", "0": "Success", "1": "Recommend", "2": "Promotion", "3": "Warning", "4": "Critical", "5": "Error", "6": "Ignore"}
-c_ = {'current': 0, 'total': 0, 'total_pat': 0, 'total_arch': 0, "active_pattern": '', "active_archive": '', 'skipped': 0, 'Fatal': 0, 'Temporary': 0, 'Partial': 0, 'Success': 0, 'Recommend': 0, 'Promotion': 0, 'Warning': 0, 'Critical': 0, 'Error': 0, 'Ignore': 0}
+c_ = {'current': 0, 'total': 0, 'total_pat': 0, 'total_fails': 0, 'total_skipped': 0, 'total_arch': 0, "active_pattern": '', "active_archive": '', 'checks_skipped': 0, 'Fatal': 0, 'Temporary': 0, 'Partial': 0, 'Success': 0, 'Recommend': 0, 'Promotion': 0, 'Warning': 0, 'Critical': 0, 'Error': 0, 'Ignore': 0}
 meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False, 'notsca': False}
 invalid_patterns = []
 invalid_pattern_shortlist = {}
-log_level = {'quiet': 0, 'normal': 1, 'verbose': 2}
-logging = log_level['normal']
+failed_pattern_shortlist = {}
+skipped_pattern_shortlist = {}
 elapsed = -1
 config_file = "/etc/opt/patdevel/patdev.ini"
 title_string = "SCA Pattern Checker"
@@ -76,8 +76,9 @@ def usage():
 	print("  -h, --help     Display this help")
 	print("  -a, --archives Root directory for supportconfig archives to be used for testing")
 	print("  -r, --recurse  Validate patterns and archives recursively found in the directory structures")
-	print("  -q, --quiet    Not output is displayed. The number of fatal patterns is returned as the exit status")
-	print("  -v, --verbose  Display verbose logging messages")
+	print("  -l <level>, --log_level <level>  Set log level, default: Minimal")
+	print("                 0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug")
+
 	print()
 
 def signal_handler(sig, frame):
@@ -86,44 +87,49 @@ def signal_handler(sig, frame):
 	sys.exit(1)
 
 def show_summary():
-	display = "{0:26} {1}"
-	print("Summary")
-	pd.separator_line('-')
-	print(display.format("Elsapsed Runtime", str(elapsed).split('.')[0]))
-	print(display.format("Pattern Directory", usepath['patterns']))
-	print(display.format("Archive Directory", usepath['archives']))
-	print(display.format("SCA Library Directory", usepath['scalib']))
-	print(display.format("Patterns Checked", c_['total_pat']))
-	print(display.format("Archives Tested", c_['total_arch']))
-	print(display.format("Total Checks", c_['total']))
-	print(display.format("Files Skipped", c_['skipped']))
-	print(display.format("Fatal", c_['Fatal']))
-	print(display.format("Errors", c_['Error']))
-	print(display.format("Ignored", c_['Ignore']))
-	print(display.format("Critical", c_['Critical']))
-	print(display.format("Warning", c_['Warning']))
-	print(display.format("Proactive", c_['Promotion']))
-	print(display.format("Recommended", c_['Recommend']))
-	print(display.format("Success", c_['Success']))
+	msg.min()
+	msg.min("Summary")
+	if pd.log_level >= pd.LOG_MIN:
+		pd.separator_line('-')
+	msg.normal("Elsapsed Runtime", str(elapsed).split('.')[0])
+	msg.normal("Pattern Directory", usepath['patterns'])
+	msg.normal("Archive Directory", usepath['archives'])
+	msg.normal("SCA Library Directory", usepath['scalib'])
+	msg.min("Patterns Checked", str(c_['total_pat']))
+	msg.min("Patterns Failed", str(c_['total_fails']))
+	msg.min("Patterns Skipped", str(c_['total_skipped']))
+	msg.min("Archives Used", str(c_['total_arch']))
+	msg.normal("Total Checks", str(c_['total']))
+	msg.min("Checks Skipped", str(c_['checks_skipped']))
+	msg.normal("Fatal Checks", str(c_['Fatal']))
+	msg.normal("Errors", str(c_['Error']))
+	msg.normal("Ignored", str(c_['Ignore']))
+	msg.normal("Critical", str(c_['Critical']))
+	msg.normal("Warning", str(c_['Warning']))
+	msg.normal("Proactive", str(c_['Promotion']))
+	msg.normal("Recommended", str(c_['Recommend']))
+	msg.normal("Success", str(c_['Success']))
 	if len(c_['active_pattern']) > 0:
-		print(display.format("Active Pattern", c_['active_pattern']))
+		msg.min("Active Pattern", c_['active_pattern'])
 	if len(c_['active_archive']) > 0:
-		print(display.format("Active Archive", c_['active_archive']))
-	print()
-	print("Fatal Pattern Short List")
-	pd.separator_line('-')
-	for pattern in invalid_pattern_shortlist.keys():
-		print(pattern)
-	print()
-	print("Fatal Pattern Details")
-	pd.separator_line('-')
-	ldisplay = "  {0:25} {1}"
-	if len(invalid_patterns) > 0:
-		for invalid_pattern in invalid_patterns:
-			print("clear; pat -va " + invalid_pattern[1] + " " + invalid_pattern[0])
-	else:
-		print("None")
-	print()
+		msg.min("Active Archive", c_['active_archive'])
+	if len(invalid_pattern_shortlist) > 0:
+		msg.min()
+		msg.min("Fatal Pattern Short List")
+		if pd.log_level >= pd.LOG_MIN:
+			pd.separator_line('-')
+		for pattern in invalid_pattern_shortlist.keys():
+			msg.min(pattern)
+		msg.min()
+		msg.min("Fatal Pattern Details")
+		if pd.log_level >= pd.LOG_MIN:
+			pd.separator_line('-')
+		if len(invalid_patterns) > 0:
+			for invalid_pattern in invalid_patterns:
+				msg.min("clear; /home/opt/scatools/sca-patterns-devel/bin/pat -a " + invalid_pattern[1] + " " + invalid_pattern[0] + " -l debug")
+		else:
+			msg.min("None")
+	msg.min()
 
 def set_environment():
 	os.environ['PERL5LIB'] = usepath['scalib'] + '/perl'
@@ -153,11 +159,10 @@ def prepare_archives():
 	these_archives = []
 	if os.path.isdir(usepath['archives']):
 		usepath['archives'] = os.path.abspath(usepath['archives'])
-		if logging > log_level['quiet']:
-			if recurse_archives:
-				print("Recursively Loading Archives from " + usepath['archives'])
-			else:
-				print("Loading Archives from " + usepath['archives'])
+		if recurse_archives:
+			msg.normal("Recursively Loading Archives", usepath['archives'])
+		else:
+			msg.normal("Loading Archives", usepath['archives'])
 		these_archives = get_archive_list(usepath['archives'])
 	else:
 		print("Error: Invalid archive path - " + usepath['archives'] + "\n")
@@ -166,32 +171,20 @@ def prepare_archives():
 
 	return these_archives
 
-def get_pattern_list():
-	this_list = []
-	include_file = re.compile(".py$|.pl$")
-	for dirpath, subdirs, files in os.walk(usepath['patterns'], topdown = True):
-		for file in files:
-			if include_file.search(file):
-				this_list.append(os.path.join(dirpath, file))
-		if not recurse_patterns:
-			break
-	return this_list
-
 def prepare_patterns():
 	these_patterns = []
 
 	if os.path.isdir(usepath['patterns']):
 		usepath['patterns'] = os.path.abspath(usepath['patterns'])
-		if logging > log_level['quiet']:
-			if recurse_patterns:
-				print("Recursively Processing " + usepath['patterns'])
-			else:
-				print("Processing " + usepath['patterns'])
-		these_patterns = get_pattern_list()
+		if recurse_patterns:
+			msg.normal("Recursively Processing Dir", usepath['patterns'])
+			these_patterns = pd.get_pattern_list(usepath['patterns'], _recurse=True)
+		else:
+			msg.normal("Processing Dir", usepath['patterns'])
+			these_patterns = pd.get_pattern_list(usepath['patterns'], _recurse=False)
 	elif os.path.isfile(usepath['patterns']):
 		usepath['patterns'] = os.path.abspath(usepath['patterns'])
-		if logging > log_level['quiet']:
-			print("Processing file " + usepath['patterns'])
+		msg.min("Processing File", usepath['patterns'])
 		these_patterns.append(usepath['patterns'])
 	else:
 		print("Error: Invalid pattern file or path - " + usepath['patterns'] + "\n")
@@ -232,6 +225,7 @@ def validate_pattern(this_pattern):
 			break
 
 	if not scafile:
+		meta_error['any'] = True
 		meta_error['notsca'] = True
 		return
 
@@ -244,85 +238,99 @@ def validate_pattern(this_pattern):
 		meta_error['hpl'] = True
 
 def show_meta_errors():
-	edisplay = "- {0}"
 	if meta_error['any']:
-		if logging > log_level['normal']:
-			if meta_error['dos']:
-				print(edisplay.format("Detected DOS file format, use dos2unix to convert"))
-			if meta_error['mode']:
-				print(edisplay.format("Missing execute permission"))
-			if meta_error['hpl']:
-				print(edisplay.format("Missing or invalid hash pling"))
-			if meta_error['out']:
-				print(edisplay.format("Invalid pattern output string, review Pattern Requirements"))
-			if meta_error['bin']:
-				print(edisplay.format("Pattern execution error, pattern returned non-zero"))
+		if meta_error['dos']:
+			msg.normal("  + Detected DOS file format, use dos2unix to convert")
+		if meta_error['mode']:
+			msg.normal("  + Missing execute permission")
+		if meta_error['hpl']:
+			msg.normal("  + Missing or invalid hash pling")
+		if meta_error['out']:
+			msg.normal("  + Invalid pattern output string, review Pattern Requirements")
+		if meta_error['bin']:
+			msg.normal("  + Pattern execution error, pattern returned non-zero")
+		if meta_error['notsca']:
+			msg.normal("  + Not an SCA Pattern")
 
 def run_pattern(this_pattern, this_archive):
 	global meta_error
-	run_display = "Running: {0} -p {1}\n"
 	IDX_OVERALL = 5
 	IDX_LAST = -1
 	output = []
 	status = ''
-	status_display = "Status: {0}"
+	status_display = "Status: {}"
 	valid_output = re.compile("^META_CLASS=.*|META_CATEGORY=.*|META_COMPONENT=.*|PATTERN_ID=.*|PRIMARY_LINK=META_LINK_.*|OVERALL=.*|OVERALL_INFO=.*|META_LINK_")
 	meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False, 'notsca': False}
 
+	msg.normal("Evaluating Pattern [{}/{}]".format(c_['current'], c_['total']), this_pattern)
 	validate_pattern(this_pattern)
 
-	if logging > log_level['normal']:
-		print(run_display.format(this_pattern, this_archive))
 
 	if meta_error['notsca']:
-		c_['skipped'] += 1
-		status = 'Skipped, Not an SCA Pattern'
-		if logging > log_level['normal']:
-			print(status_display.format(status))
-			hbar("-")
+		c_['checks_skipped'] += 1
+		skipped_pattern_shortlist[this_pattern] = True
+		invalid_pattern_shortlist[this_pattern] = True
+		invalid_patterns.append([this_pattern, this_archive])
+		status = 'Skipped'
+		if pd.log_level >= pd.LOG_NORMAL:
+			msg.normal("+ Archive Used", this_archive)
+			show_meta_errors()
+			msg.normal(status_display.format(status))
+			pd.separator_line('-')
 			print()
 		return
 
 
 	if meta_error['any']:
+		failed_pattern_shortlist[this_pattern] = True
 		status = 'Fatal'
 		c_['Fatal'] += 1
 
 	try:
 		p = subprocess.run([this_pattern, '-p', this_archive], universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	except Exception as e:
-#		print('Exception') ### DEBUG
+		msg.debug('  <> subprocess.run Exception')
 		meta_error['bin'] = True # not working
 		if not meta_error['any']:
 			c_['Fatal'] += 1
 		status = 'Fatal'
 		meta_error['any'] = True
 
-		if logging > log_level['normal']:
-			print(str(e) + "\n")
+		if pd.log_level >= pd.LOG_NORMAL:
+			msg.normal("+ Archive Used", this_archive)
 			show_meta_errors()
+			msg.normal()
+			print(str(e) + "\n")
 			print(status_display.format(status))
-			hbar("-")
+			pd.separator_line('-')
 			print()
 		if meta_error['any']:
+			failed_pattern_shortlist[this_pattern] = True
 			invalid_patterns.append([this_pattern, this_archive])
 			invalid_pattern_shortlist[this_pattern] = True
 		return
 
 	if p.returncode > 0:
-#		print('None-Zero Return Code') ### DEBUG
+		msg.debug("  <> Non-Zero return code, p.returncode > 0")
 		if not meta_error['any']:
 			c_['Fatal'] += 1
 		status = 'Fatal'
 		meta_error['any'] = True
 		meta_error['bin'] = True
 
-		if logging > log_level['normal']:
+		if pd.log_level >= pd.LOG_NORMAL:
+			msg.normal("+ Archive Used", this_archive)
+			show_meta_errors()
+			msg.normal()
 			print(p.stdout)
 			print(p.stderr)
+			msg.normal()
+			print(status_display.format(status))
+			pd.separator_line('-')
+			print()
 	else:
 		if valid_output.search(p.stdout):
-#			print('Valid Execution, Output Found') ### DEBUG
+			msg.debug('  <> Valid Execution, Output Found')
 			lines = p.stdout.splitlines()
 			if len(lines) > 1:
 				meta_error['any'] = True
@@ -334,10 +342,12 @@ def run_pattern(this_pattern, this_archive):
 				overall = output[IDX_OVERALL].split("=")[IDX_LAST]
 				c_[overall_dict[overall]] += 1
 				status = overall_dict[overall]
-			if logging > log_level['normal']:
+			if pd.log_level >= pd.LOG_VERBOSE:
+				msg.verbose("+ Archive Used", this_archive)
+				msg.verbose()			
 				print(p.stdout)
 		else:
-#			print('Valid Execution, Output MISSING') ### DEBUG
+			msg.debug('  <> Valid Execution, Output MISSING')
 			if not meta_error['any']:
 				c_['Fatal'] += 1
 			status = 'Fatal'
@@ -345,13 +355,15 @@ def run_pattern(this_pattern, this_archive):
 			meta_error['out'] = True
 
 	if meta_error['any']:
+		failed_pattern_shortlist[this_pattern] = True
 		invalid_patterns.append([this_pattern, this_archive])
 		invalid_pattern_shortlist[this_pattern] = True
-	if logging > log_level['normal']:
-		show_meta_errors()
-		print(status_display.format(status))
-		hbar("-")
-		print()
+	else:
+		if pd.log_level >= pd.LOG_VERBOSE:
+			show_meta_errors()
+			print(status_display.format(status))
+			pd.separator_line('-')
+			print()
 
 ##############################################################################
 # Main
@@ -376,7 +388,7 @@ def main(argv):
 
 	user_logging = -1
 	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "ha:qrv", ["help", "archives=", "quiet", "recurse", "verbose"])
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "ha:rl:", ["help", "archives=", "recurse", "log_level="])
 	except getopt.GetoptError as exc:
 		pd.title(title_string, SVER)
 		usage()
@@ -392,11 +404,6 @@ def main(argv):
 		elif opt[0] in {"-r", "--recurse"}:
 			recurse_archives = True
 			recurse_patterns = True
-		elif opt[0] in {"-v", "--verbose"}:
-			logging = log_level['verbose']
-		elif opt[0] in {"-q", "--quiet"}:
-			logging = log_level['quiet']
-
 		elif opt[0] in {"-l", "--log_level"}:
 			if( opt[1].isdigit() ):
 				user_logging = int(opt[1])
@@ -422,6 +429,7 @@ def main(argv):
 		pd.title(title_string, SVER)
 
 	msg.set_level(pd.log_level)
+	msg.normal("Log Level", msg.get_level_str())
 
 	set_environment()
 	archive_list = prepare_archives()
@@ -438,10 +446,10 @@ def main(argv):
 	pattern_list = prepare_patterns()
 	c_['total_pat'] = len(pattern_list)
 	c_['total'] = c_['total_pat'] * c_['total_arch']
-	if logging > log_level['quiet']:
+	if pd.log_level > pd.LOG_QUIET:
 		print()
 
-	if logging == log_level['normal']:
+	if pd.log_level == pd.LOG_MIN:
 		bar = pd.ProgressBar(" Checking: ", c_['total'])
 
 	for pattern in pattern_list:
@@ -450,19 +458,22 @@ def main(argv):
 			c_['active_pattern'] = pattern
 			c_['active_archive'] = archive
 			run_pattern(pattern, archive)
-			if logging == log_level['normal']:
+			if pd.log_level == pd.LOG_MIN:
 				bar.update(c_['current'])
+	c_['total_fails'] = len(failed_pattern_shortlist)
+	c_['total_skipped'] = len(skipped_pattern_shortlist)
+
 	c_['active_pattern'] = ''
 	c_['active_archive'] = ''
 
-	if logging == log_level['normal']:
+	if pd.log_level == pd.LOG_MIN:
 		bar.finish()
 
 	end = timer()
 	elapsed = str(timedelta(seconds=end-start))
-	if logging == log_level['verbose']:
+	if pd.log_level == pd.LOG_VERBOSE:
 		print()
-	if logging > log_level['quiet']:
+	if pd.log_level > pd.LOG_QUIET:
 		if c_['total_pat'] > 0:
 			show_summary()
 		else:

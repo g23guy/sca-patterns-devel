@@ -2,7 +2,7 @@
 r"""Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Jul 07
+ Modified:     2023 Jul 20
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "0.0.9"
+__version__ = "0.0.10"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 distribution_log_filename = "distribution.log"
@@ -411,6 +411,7 @@ class DisplayMessages():
 	LOG_NORMAL	= 2	# normal, but significant, messages
 	LOG_VERBOSE	= 3	# detailed messages
 	LOG_DEBUG	= 4	# debug-level messages
+	LOG_LEVELS      = {0: "Quiet", 1: "Minimal", 2: "Normal", 3: "Verbose", 4: "Debug" }
 	DISPLAY_PAIR    = "{0:30} = {1}"
 	DISPLAY         = "{0:30}"
 	
@@ -422,6 +423,9 @@ class DisplayMessages():
 
 	def get_level(self):
 		return self.level
+
+	def get_level_str(self):
+		return self.LOG_LEVELS[self.level]
 
 	def set_level(self, level):
 		if( level >= self.LOG_DEBUG ):

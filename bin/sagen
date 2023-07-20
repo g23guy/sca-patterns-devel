@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-SVER = '2.0.9'
+SVER = '2.0.10'
 ##############################################################################
 # sagen.py - Security Advisory Announcement Pattern Generator
 # Copyright (C) 2022-2023 SUSE LLC
 #
 # Description:  Creates a python security advisory pattern from HTML page
-# Modified:     2023 Jul 08
+# Modified:     2023 Jul 19
 #
 ##############################################################################
 #
@@ -61,10 +61,10 @@ def usage():
 	print("  -f <file>    Process a single securty announcement HTML file for debugging.")
 	print("               NOTE: Url data may not be accurate.")
 	print("  -q           Do not display output, run quietly")
-	print("  -l <level>   Set log level, default: Minimal")
 	print("  -r <range_string>")
 	print("               Date range for security announcements. Format: first:last,next")
-	print("     0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug")
+	print("  -l <level>   Set log level, default: Minimal")
+	print("               0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug")
 	print()
 
 def signal_handler(sig, frame):
