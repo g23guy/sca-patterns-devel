@@ -2,7 +2,7 @@
 r"""Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Jul 20
+ Modified:     2023 Jul 22
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ Copyright (C) 2023 SUSE LLC
 import os
 import re
 import sys
+import stat
 import datetime
 import requests
 import configparser
@@ -37,19 +38,12 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "0.0.10"
+__version__ = "0.0.13"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 distribution_log_filename = "distribution.log"
 distribution_log_section = "metadata"
-seperator_len = 85 # Needs to be the same as ProgressBar class BASE_BAR_WIDTH
-LOG_QUIET = 0	# turns off messages
-LOG_MIN = 1	# minimum messages with progress bar
-LOG_NORMAL = 2	# normal messages without progress bar
-LOG_VERBOSE = 3	# detailed messages
-LOG_DEBUG = 4	# debug-level messages
-log_level = LOG_MIN
-
+seperator_len = 85
 
 def title(title_str, version_str):
 	separator_line("#")
@@ -65,56 +59,632 @@ def separator_line(use_char = '#'):
 
 class ProgressBar():
 	"""Initialize and update progress bar class"""
-	def __init__(self, prefix, total, bar_width = separator_line):
-		self.BASE_BAR_WIDTH = 85 # Needs to be the same as separator_line
+	def __init__(self, prefix, total, bar_width = seperator_len):
+		self.base_len = seperator_len
+		self.bar_width_orig = bar_width
+		self.bar_width = bar_width
 		self.prefix = prefix
 		self.total = total
+		self.count = 0
 		self.out = sys.stdout
-		if ( bar_width == separator_line ):
-			self.bar_width = self.BASE_BAR_WIDTH - len(self.prefix) - 2
-		else:
-			self.bar_width = bar_width
+		if ( self.bar_width_orig == self.base_len ):
+			self.bar_width = self.base_len - len(self.prefix) - 2
 
 	def __str__(self):
 		return 'class %s(\n  prefix=%r \n  bar_width=%r \n  total=%r\n)' % (self.__class__.__name__, self.prefix, self.bar_width, self.total)
 
-	def update(self, count):
-		percent_complete = int(100*count/self.total)
-		current_progress = int(self.bar_width*count/self.total)
-		print("{}[{}{}] {:3g}% {:3g}/{}".format(self.prefix, "#"*current_progress, "."*(self.bar_width-current_progress), percent_complete, count, self.total), end='\r', file=self.out, flush=True)
+	def set_prefix(self, _prefix):
+		self.prefix = _prefix
+		if ( self.bar_width_orig == self.base_len ):
+			self.bar_width = self.base_len - len(self.prefix) - 2
+		else:
+			self.bar_width = self.bar_width_orig
+
+	def set_total(self, _new_total):
+		self.total = _new_total
+
+	def inc_count(self, increment = 1):
+		"""Increments one by default"""
+		self.count += increment
+
+	def get_total(self):
+		return self.total
+
+	def get_count(self):
+		return self.count
+
+	def update(self):
+		percent_complete = int(100*self.count/self.total)
+		current_progress = int(self.bar_width*self.count/self.total)
+		print("{}[{}{}] {:3g}% {:3g}/{}".format(self.prefix, "#"*current_progress, "."*(self.bar_width-current_progress), percent_complete, self.count, self.total), end='\r', file=self.out, flush=True)
 
 	def finish(self):
 		print("\n", flush=True, file=self.out)
 
-def check_directories(_config):
-	"""check_directories(configparser_object)
-	Checks if the config file directories are present. Returns True if they are and False otherwise."""
-	dir_list = []
-	dir_list_errors = []
-	dir_list.append(_config.get("Common", "sca_arch_dir"))
-	dir_list.append(_config.get("Common", "sca_lib_dir"))
-	dir_list = dir_list + _config.get("Security", "dir_list").split(',')
-	for dir in dir_list:
-		if not os.path.isdir(dir):
-			dir_list_errors.append(dir)
-	if( len(dir_list_errors) > 0 ):
-		print("Error: Missing directories")
-		for dir in dir_list_errors:
-			print("  + {0}".format(dir))
-		return False
-	else:
-		return True
+class PatternTemplate():
+	content = ''
+	content_kernel = ''
+	content_package = ''
+	content_service = ''
 
+	def __init__(self, script_name, script_version, _config, _msg):
+		self.meta_class = ''
+		self.meta_category = ''
+		self.meta_component = ''
+		self.pattern_base = ''
+		self.pattern_filename = ''
+		self.tid_number = '0'
+		self.bug_number = '0'
+		self.conditions = 0
+		self.flat = False
+		self.basic = True
+		self.override_validation = False
+		self.kernel_version = '0'
+		self.package_name = ''
+		self.package_version = '0'
+		self.service_name = ''
+		self.tid_url = ''
+		self.bug_url = ''
+		self.other_url = ''
+		self.primary_link = "META_LINK_TID"
+		self.title = ''
+		self.script_name = script_name
+		self.script_version = script_version
+		self._config = _config
+		self.msg = _msg
+		self.link_results = []
+		self.duplicate_patterns = {}
+		self.author = config_entry(_config.get("Common", "author"))
+		self.tid_base_url = config_entry(_config.get("Common", "tid_base_url"))
+		self.bug_base_url = config_entry(_config.get("Common", "bug_base_url"))
+		self.pat_repos_dir = config_entry(_config.get("Common", "sca_repo_dir"))
+		self.pattern_dir = config_entry(_config.get("Security", "pat_dir"), '/')
+		self.patdev_repos = config_entry(_config.get("GitHub", "patdev_repos")).split(',')
+		self.check_duplicates = True
+		self.links = ''
+		self.bar_total = len(self.patdev_repos) + 3
+		self.bar = ProgressBar('Generating Pattern: ', self.bar_total)
 
-def show_config_file(_config_file, _config):
-	"""Dump the current configuration file object"""
-	sub_title("List Configuration Data")
-	print("Config File: {0}\n".format(_config_file))
-	for section in _config.sections():
-		print("[%s]" % section)
-		for options in _config.options(section):
-			print("%s = %s" % (options, _config.get(section, options)))
-		print()
+	def __str__ (self):
+		return "class %s(\n  meta_class=%r, \n  meta_category=%r, \n  meta_component=%r, \n  pattern_base=%r, \n  tid_number=%r, \n  bug_number=%r, \n  conditions=%r, \n  flat=%r, \n  kernel_version=%r, \n  package_name=%r, \n  package_version=%r, \n  service_name=%r, \n  tid_url=%r,\n  bug_url=%r,\n  other_url=%r,\n  primary_link=%r,\n  links=%r,\n  pattern_filename=%r,\n  title=%r\n)" % \
+(self.__class__.__name__, 
+self.meta_class, 
+self.meta_category, 
+self.meta_component, 
+self.pattern_base, 
+self.tid_number, 
+self.bug_number, 
+self.conditions, 
+self.flat,
+self.kernel_version, 
+self.package_name, 
+self.package_version, 
+self.service_name, 
+self.tid_url, 
+self.bug_url, 
+self.other_url, 
+self.primary_link,
+self.links,
+self.pattern_filename,
+self.title
+)
+
+	def __check_for_duplicates(self):
+		"Checks for pre-existing patterns with the same TID and/or BUG number"
+		if self.check_duplicates:
+			self.msg.normal("Updating Pattern Repositories")
+			if self.msg.get_level() >= self.msg.LOG_VERBOSE:
+				update_git_repos(self._config, self.msg, self.bar)
+			else:
+				update_git_repos(self._config, self.msg, self.bar)
+
+			self.msg.normal("Checking for Duplicates")
+			self.duplicate_patterns = {}
+			output_string = ''
+			duplicate_tids = sp.getoutput("find " + self.pat_repos_dir + " -type f -exec grep " + self.tid_number + " {} \+ | grep META_LINK_TID")
+			if len(self.bug_number) > 1:
+				duplicate_bugs = sp.getoutput("find " + self.pat_repos_dir + " -type f -exec grep " + self.bug_number + " {} \+ | grep META_LINK_BUG")
+			else:
+				duplicate_bugs = ''
+
+			if len(duplicate_tids) > 0:
+				for dup in duplicate_tids.split("\n"):
+					self.duplicate_patterns[dup.split(':')[0]] = True
+			if len(duplicate_bugs) > 0:
+				for dup in duplicate_bugs.split("\n"):
+					self.duplicate_patterns[dup.split(':')[0]] = True
+
+			if len(self.duplicate_patterns) > 0:
+				if len(duplicate_bugs) > 0:
+					self.msg.normal("+ Duplicate(s) found using TID{0} or BUG{1}".format(self.tid_number, self.bug_number))
+				else:
+					self.msg.normal("+ Duplicate(s) found using TID{0}".format(self.tid_number))
+				for dup in self.duplicate_patterns.keys():
+					self.msg.normal("  - " + dup)
+		else:
+			self.msg.normal("Checking for Duplicates")
+			self.msg.normal("+ Skipped by User")
+			self.bar.inc_count(len(self.patdev_repos))
+		if( self.msg.get_level() == self.msg.LOG_MIN ):
+			self.bar.update()
+
+	def __validate_links(self):
+		"Validate URLs built from user inputs"
+		self.msg.normal("Validating Solution Links")
+		DISPLAY = "{0:21} {1:25} {2}"
+		invalid = False
+		link_list = self.links.split("|")
+		for link in link_list:
+			_result = {}
+			_result['tag'], _result['url'] = link.split("=", 1)
+			_result['status'] = "+ Confirmed"
+			_result['valid'] = True
+			self.msg.verbose("+ Checking", _result['url'])
+			try:
+				x = requests.get(_result['url'])
+			except Exception as error:
+				_result['status'] = "- Invalid Connection"
+				_result['valid'] = False
+
+			if( x.status_code != 200 ):
+				_result['status'] = "- Invalid URL"
+				invalid = True
+				_result['valid'] = False
+			else:
+				data = x.text.split('\n')
+				badlink = re.compile('Invalid Bug ID|You must enter a valid bug number', re.IGNORECASE)
+				for line in data:
+					if badlink.search(line):
+						_result['status'] = "- Invalid Content"
+						invalid = True
+						_result['valid'] = False
+						break
+			self.link_results.append(_result)
+			self.bar.inc_count()
+			if( self.msg.get_level() == self.msg.LOG_MIN ):
+				self.bar.update()
+
+		for result in self.link_results:
+			self.msg.normal(DISPLAY.format(result['status'], result['tag'], result['url']))
+
+	def __get_tid_title(self):
+		self.msg.normal("Retrieving TID Title")
+		this_title = "Unknown - Manually enter the TID title"
+		try:
+			x = requests.get(self.tid_url)
+		except Exception as error:
+			self.msg.normal("+ Warning: Couldn't connect to the TID URL, manually enter the title.")
+
+		if( x.status_code == 200 ):
+			data = x.text.split('\n')
+			urltitle = re.compile('\<title\>.*\</title\>', re.IGNORECASE)
+			for line in data:
+				if urltitle.search(line):
+					this_title = line.split('<title>')[1].split('</title>')[0].replace(' | Support | SUSE', '')
+		else:
+			self.msg.normal("+ Warning: Couldn't get title from TID URL, enter in manually.")
+
+		return this_title
+
+	def __create_header(self):
+		today = datetime.date.today()
+		self.content = "#!/usr/bin/python3\n#\n"
+		self.content += "# Title:       " + self.title + "\n"
+		self.content += "# Description: Pattern for TID" + self.tid_number + "\n"
+		self.content += "# Template:    " + self.script_name + " v" + str(self.script_version) + "\n"
+		self.content += "# Modified:    " + str(today.strftime("%Y %b %d")) + "\n"
+		self.content += "#\n##############################################################################\n"
+		self.content += "# Copyright (C) " + str(today.year) + " SUSE LLC\n"
+		self.content += "##############################################################################\n#\n"
+		self.content += "# This program is free software; you can redistribute it and/or modify\n"
+		self.content += "# it under the terms of the GNU General Public License as published by\n"
+		self.content += "# the Free Software Foundation; version 2 of the License.\n#\n"
+		self.content += "# This program is distributed in the hope that it will be useful,\n"
+		self.content += "# but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+		self.content += "# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the\n"
+		self.content += "# GNU General Public License for more details.\n#\n"
+		self.content += "# You should have received a copy of the GNU General Public License\n"
+		self.content += "# along with this program; if not, see <http://www.gnu.org/licenses/>.\n#\n"
+		self.content += "#  Authors/Contributors:\n#   " + self.author + "\n#\n"
+		self.content += "##############################################################################\n\n"
+		if( self.conditions > 0 ):
+			self.content += "import re\n"
+		self.content += "import os\n"
+		self.content += "import Core\n"
+		if( len(self.kernel_version) > 1 or len(self.service_name) > 0 or len(self.package_name) > 0 ):
+			self.content += "import SUSE\n"
+		self.content += "\nmeta_class = \"" + self.meta_class + "\"\n"
+		self.content += "meta_category = \"" + self.meta_category + "\"\n"
+		self.content += "meta_component = \"" + self.meta_component + "\"\n"
+		self.content += "pattern_id = os.path.basename(__file__)\n"
+		self.content += "primary_link = \"" + self.primary_link + "\"\n"
+		self.content += "overall = Core.TEMP\n"
+		self.content += "overall_info = \"NOT SET\"\n"
+		self.content += "other_links = \"" + self.links + "\"\n"
+		self.content += "Core.init(meta_class, meta_category, meta_component, pattern_id, primary_link, overall, overall_info, other_links)\n\n"
+
+	def __create_footer(self):
+		self.content += "\tCore.printPatternResults()\n\n"
+		self.content += "if __name__ == \"__main__\":\n"
+		self.content += "\tmain()\n\n"
+
+	def __create_condition_functions(self):
+		if( self.conditions > 0 ):
+			limit = self.conditions + 1
+			self.content += "##############################################################################\n"
+			self.content += "# Local Function Definitions\n"
+			self.content += "##############################################################################\n\n"
+
+			for condition in range(1, limit):
+				self.content += "def condition" + str(condition) + "():\n"
+				self.content += "\tfile_open = \"filename.txt\"\n"
+				self.content += "\tsection = \"CommandToIdentifyFileSection\"\n"
+				self.content += "\tcontent = []\n"
+				self.content += "\tconfirmed = re.compile(\"\", re.IGNORECASE)\n"
+				self.content += "\tif Core.isFileActive(file_open):\n"
+				self.content += "\t\tif Core.getRegExSection(file_open, section, content):\n"
+				self.content += "\t\t\tfor line in content:\n"
+				self.content += "\t\t\t\tif confirmed.search(line):\n"
+				self.content += "\t\t\t\t\treturn True\n"
+				self.content += "\treturn False\n\n"
+
+	def __create_conditions_indented(self, indent_to_level, condition_count):
+		indent = ''
+		these_conditions = ''
+
+		for i in range(int(indent_to_level)):
+			indent += '\t'
+
+		if( condition_count == 0 ):
+			these_conditions += str(indent) + "Core.updateStatus(Core.WARN, \"No conditions required\")\n"
+		elif( condition_count == 1 ):
+			these_conditions += str(indent) + "if( condition1() ):\n"
+			these_conditions += str(indent) + "\tCore.updateStatus(Core.CRIT, \"Condition1 Met\")\n"
+			these_conditions += str(indent) + "else:\n"
+			these_conditions += str(indent) + "\tCore.updateStatus(Core.WARN, \"Condition1 not found\")\n"
+		elif( condition_count == 2 ):
+			these_conditions += str(indent) + "if( condition1() ):\n"
+			these_conditions += str(indent) + "\tif( condition2() ):\n"
+			these_conditions += str(indent) + "\t\tCore.updateStatus(Core.CRIT, \"Condition2 Met\")\n"
+			these_conditions += str(indent) + "\telse:\n"
+			these_conditions += str(indent) + "\t\tCore.updateStatus(Core.WARN, \"Condition2 not found\")\n"
+			these_conditions += str(indent) + "else:\n"
+			these_conditions += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Condition1 not found\")\n"
+		elif( condition_count == 3 ):
+			these_conditions += str(indent) + "if( condition1() ):\n"
+			these_conditions += str(indent) + "\tif( condition2() ):\n"
+			these_conditions += str(indent) + "\t\tif( condition3() ):\n"
+			these_conditions += str(indent) + "\t\t\tCore.updateStatus(Core.CRIT, \"Condition3 Met\")\n"
+			these_conditions += str(indent) + "\t\telse:\n"
+			these_conditions += str(indent) + "\t\t\tCore.updateStatus(Core.WARN, \"Condition3 not found\")\n"
+			these_conditions += str(indent) + "\telse:\n"
+			these_conditions += str(indent) + "\t\tCore.updateStatus(Core.ERROR, \"Condition2 not found\")\n"
+			these_conditions += str(indent) + "else:\n"
+			these_conditions += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Condition1 not found\")\n"
+
+		return these_conditions
+
+	def __test_prep(self):
+		base_indent = "\t"
+		if( self.kernel_version != "0" ):
+			self.content += base_indent + "kernel_version_fixed = '" + self.kernel_version + "'\n"
+		if( self.package_name != ''):
+			self.content += base_indent + "package = '" + self.package_name + "'\n"
+		if( self.package_version != "0" ):
+			self.content += base_indent + "package_version_fixed = '" + self.package_version + "'\n"
+		if( self.service_name != "" ):
+			self.content += base_indent + "service_name = '" + self.service_name + "'\n"
+		if not self.basic:
+			self.content += "\n"
+
+	def __test_kernel(self, indent_to_level):
+		indent = ''
+
+		for i in range(int(indent_to_level)):
+			indent += '\t'
+
+		self.content += str(indent) + "kernel_version_installed = SUSE.compareKernel(kernel_version_fixed)\n"
+		self.content += str(indent) + "if( kernel_version_installed >= 0 ):\n"
+		self.content += str(indent) + "\tCore.updateStatus(Core.IGNORE, \"Bug fixes applied in kernel version \" + kernel_version_fixed + \" or higher\")\n"
+		self.content += str(indent) + "else:\n"
+
+	def __test_package_start(self, indent_to_level):
+		indent = ''
+
+		for i in range(int(indent_to_level)):
+			indent += '\t'
+
+		self.content += str(indent) + "if( SUSE.packageInstalled(package) ):\n"
+		if( self.package_version != "0" ):
+			self.content += str(indent) + "\tpackage_version_installed = SUSE.compareRPM(package, package_version_fixed)\n"
+			self.content += str(indent) + "\tif( package_version_installed >= 0 ):\n"
+			self.content += str(indent) + "\t\tCore.updateStatus(Core.IGNORE, \"Bug fixes applied for \" + package + \"\")\n"
+			self.content += str(indent) + "\telse:\n"
+
+	def __test_package_finish(self, indent_to_level):
+		indent = ''
+
+		for i in range(int(indent_to_level)):
+			indent += '\t'
+
+		self.content += str(indent) + "else:\n"
+		self.content += str(indent) + "\tCore.updateStatus(Core.ERROR, \"ERROR: RPM package \" + package + \" not installed\")\n"
+
+	def __test_service_start(self, indent_to_level):
+		indent = ''
+
+		for i in range(int(indent_to_level)):
+			indent += '\t'
+
+		self.content += str(indent) + "service_info = SUSE.getServiceDInfo(service_name)\n"
+		self.content += str(indent) + "if( service_info ):\n"
+		self.content += str(indent) + "\tif( service_info['UnitFileState'] == 'enabled' ):\n"
+		self.content += str(indent) + "\t\tif( service_info['SubState'] == 'failed' ):\n"
+
+	def __test_service_finish(self, indent_to_level):
+		indent = ''
+
+		for i in range(int(indent_to_level)):
+			indent += '\t'
+
+		self.content += str(indent) + "\t\telse:\n"
+		self.content += str(indent) + "\t\t\tCore.updateStatus(Core.IGNORE, \"Service did not fail: \" + str(service_name))\n"
+		self.content += str(indent) + "\telse:\n"
+		self.content += str(indent) + "\t\tCore.updateStatus(Core.ERROR, \"Service is disabled: \" + str(service_name))\n"
+		self.content += str(indent) + "else:\n"
+		self.content += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Service details not found: \" + str(service_name))\n"
+
+	def __create_pattern_main(self):
+		indent_kernel = 1
+		indent_package = 1
+		indent_service = 1
+		indent_conditions = 1
+
+		self.content += "##############################################################################\n"
+		self.content += "# Main\n"
+		self.content += "##############################################################################\n\n"
+		self.content += "def main():\n"
+		self.__test_prep()
+
+		if( self.flat ):
+			if( self.kernel_version != "0" ):
+				indent_conditions = indent_kernel + 1
+				self.__test_kernel(indent_kernel)
+				self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+				self.content += "\n"
+
+			if( self.package_name != ''):
+				self.__test_package_start(indent_package)
+				if( self.package_version != "0" ):
+					indent_conditions = indent_package + 2
+					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+				else:
+					indent_conditions = indent_package + 1
+					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+				self.__test_package_finish(indent_package)
+				self.content += "\n"
+
+			if( self.service_name != "" ):
+				indent_conditions = indent_service + 3
+				self.__test_service_start(indent_service)
+				self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+				self.__test_service_finish(indent_service)
+				self.content += "\n"
+
+			if( self.basic ):
+				self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+		else:
+			if( self.kernel_version != "0" ):
+				# Priority order: kernel > package > service > conditions
+				indent_kernel = 1
+				indent_package = indent_kernel + 1
+				indent_conditions = indent_package + 1
+				self.__test_kernel(indent_kernel)
+				if( self.package_name != ''):
+					self.__test_package_start(indent_package)
+					if( self.package_version != "0" ):
+						indent_service = indent_package + 2
+						indent_conditions = indent_package + 2
+					else:
+						indent_service = indent_package + 1
+						indent_conditions = indent_package + 1
+
+					if( self.service_name != "" ):
+						indent_conditions = indent_service + 3
+						self.__test_service_start(indent_service)
+						self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+						self.__test_service_finish(indent_service)
+					else:
+						self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+					self.__test_package_finish(indent_package)
+				elif( self.service_name != "" ):
+					indent_service = indent_kernel + 1
+					indent_conditions = indent_service + 3
+					self.__test_service_start(indent_service)
+					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+					self.__test_service_finish(indent_service)
+				else:
+					self.content += self.__create_conditions_indented(1, self.conditions)
+			elif( self.package_name != ''):
+				indent_package = 1
+				self.__test_package_start(indent_package)
+				if( self.package_version != "0" ):
+					indent_service = indent_package + 2
+					indent_conditions = indent_package + 2
+				else:
+					indent_service = indent_package + 1
+					indent_conditions = indent_package + 1
+
+				if( self.service_name != "" ):
+					indent_conditions = indent_service + 3
+					self.__test_service_start(indent_service)
+					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+					self.__test_service_finish(indent_service)
+				else:
+					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+				self.__test_package_finish(indent_package)
+			elif( self.service_name != "" ):
+					indent_conditions = indent_service + 3
+					self.__test_service_start(indent_service)
+					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+					self.__test_service_finish(indent_service)
+			else:
+				self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
+		self.content += "\n"
+		
+	def __save_pattern(self):
+		try:
+			file_open = open(self.pattern_filename, "w")
+			file_open.write(self.content)
+			file_open.close()
+			os.chmod(self.pattern_filename, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+			self.bar.inc_count()
+			if( self.msg.get_level() == self.msg.LOG_MIN ):
+				self.bar.update()
+		except OSError:
+			print((" ERROR: Cannot create " + str(self.pattern_filename) + ": " + str(error)))
+
+	def set_metadata(self, mdlist):
+		"Set the metadata values from the ordered list mdlist"
+		IDX_CLASS = 0
+		IDX_CATEGORY = 1
+		IDX_COMPONENT = 2
+		IDX_FILENAME = 3
+		IDX_TID = 4
+		IDX_BUG = 5
+		mdcount_min = 5
+
+		self.meta_class = mdlist[IDX_CLASS]
+		self.meta_category = mdlist[IDX_CATEGORY]
+		self.meta_component = mdlist[IDX_COMPONENT]
+		self.pattern_base = mdlist[IDX_FILENAME]
+		self.tid_number = str(mdlist[IDX_TID])
+		self.msg.min("Evaluating TID", str(self.tid_number))
+		self.tid_url = self.tid_base_url + self.tid_number
+		self.pattern_filename = self.pattern_dir + self.pattern_base + "-" + self.tid_number + ".py"
+		self.links = "META_LINK_TID=" + self.tid_url
+		if( len(mdlist) > mdcount_min ):
+			self.bug_number = str(mdlist[IDX_BUG])
+			if( len(self.bug_number) > 1 ):
+				self.bug_url = self.bug_base_url + self.bug_number
+				self.links = self.links + "|META_LINK_BUG=" + self.bug_url
+		if( len(self.other_url) > 0 ):
+			self.links = self.links + "|" + self.other_url
+		link_list = self.links.split("|")
+		self.bar.set_total(self.bar.get_total() + len(link_list))
+		if( self.msg.get_level() == self.msg.LOG_MIN ):
+			self.msg.min()
+			self.bar.update()
+		self.__validate_links()
+		self.__check_for_duplicates()
+		self.title = self.__get_tid_title()
+		self.bar.inc_count()
+		if( self.msg.get_level() == self.msg.LOG_MIN ):
+			self.bar.update()
+
+	def set_conditions(self, conditions):
+		self.conditions = conditions
+
+	def set_flat(self, status):
+		self.flat = status
+		
+	def set_override_validation(self, status):
+		self.override_validation = status
+
+	def set_check_duplicates(self, status):
+		self.check_duplicates = status
+
+	def set_kernel(self, kernel_version):
+		self.kernel_version = kernel_version
+		if( self.kernel_version != "0" ):
+			self.basic = False
+
+	def set_package(self, package_name, package_version):
+		self.package_name = package_name
+		self.package_version = package_version
+		if( self.package_name != ''):
+			self.basic = False
+
+	def set_service(self, service_name):
+		self.service_name = service_name
+		if( self.service_name != "" ):
+			self.basic = False
+
+	def set_other_url(self, other_url):
+		url_parts = other_url.split("=")
+		if( len(url_parts) > 1 ):
+			url_tag = "META_LINK_" + str(url_parts[0])
+			url_body = url_parts[1]
+		else:
+			url_body = url_parts[0]
+			if( "documentation.suse.com" in url_body ):
+				url_tag = "META_LINK_DOC"
+			elif( "www.suse.com/support/kb" in url_body ):
+				url_tag = "META_LINK_TID2"
+			elif( url_body.startswith("CVE-") ):
+				url_tag = "META_LINK_" + str(url_body)
+				url_body = "https://www.suse.com/security/cve/" + url_body + "/"
+			else:
+				url_tag = "META_LINK_OTHER"
+
+		self.other_url = url_tag + "=" + url_body
+
+	def create_pattern(self):
+		"Create and save the pattern. Requires set_metadata to be called first."
+		self.__create_header()
+		if( self.basic ):
+			if( self.conditions < 1 ):
+				self.set_conditions(1)
+		self.__create_condition_functions()
+		self.__create_pattern_main()
+		self.__create_footer()
+		self.__save_pattern()
+		self.bar.inc_count()
+		if( self.msg.get_level() == self.msg.LOG_MIN ):
+			self.bar.update()
+		self.msg.debug("  <> Pattern", self.pattern_filename)
+		self.msg.debug("  <> Content", self.content)
+		
+	def show_summary(self):
+		"Show a summary of the pattern created"
+
+		if( self.msg.get_level() == self.msg.LOG_MIN ):
+			self.bar.finish()
+		else:
+			self.msg.normal()
+			separator_line('-')
+		self.msg.min("Title", self.title)
+		self.msg.min("Pattern", self.pattern_filename)
+		self.msg.min("Basic", self.basic)
+		self.msg.min("Solution Links", len(self.link_results))
+		for this_link in self.link_results:
+			if not this_link['valid']:
+				self.msg.min(this_link['status'], this_link['url'])
+		self.msg.min("Duplicate Patterns", str(len(self.duplicate_patterns)))
+		for this_pattern in self.duplicate_patterns.keys():
+			self.msg.min("+ Duplicate", this_pattern)
+		if( self.flat ):
+			self.msg.min("Ordering", "Flat")
+		else:
+			self.msg.min("Ordering", "Stacked")
+		if( self.kernel_version != "0" ):
+			self.msg.min("Kernel Version", self.kernel_version)
+		else:
+			self.msg.min("Kernel Version", "None")
+		if( self.package_name != ''):
+			self.msg.min("Package Name", self.package_name)
+		else:
+			self.msg.min("Package Name", "None")
+		if( self.package_version != "0"):
+			self.msg.min("Package Version", self.package_version)
+		else:
+			self.msg.min("Package Version", "None")
+		if( self.service_name != "" ):
+			self.msg.min("Service Name", self.service_name)
+		else:
+			self.msg.min("Service Name", "None")
+		self.msg.min("Conditions", self.conditions)
+		self.msg.min()
 
 class LogFile():
 	"""Initialize and write data to a log file"""
@@ -134,290 +704,21 @@ class LogFile():
 		pass
 
 
-def get_uncommitted_repo_list():
-	print("Searching for local uncommitted security patterns")
-	patterns = []
-	prog = "git status"
-	pattern_file = re.compile("patterns/.*_SUSE-SU")
-
-	p = sp.run(prog, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
-	# There are two possible output formats from this command:
-	# 	new file:   patterns/SLE/sle15sp4/xterm_SUSE-SU-2023_0221-1_sles_15.4.py
-	#   patterns/SLE/sle15sp4/xterm_SUSE-SU-2023_0221-1_sles_15.4.py
-	# This currently handles both formats
-
-	for l in p.stdout.splitlines():
-		line = l.lstrip()
-		if pattern_file.search(line):
-			patterns.append(line.split()[-1])
-	if( patterns ):
-		print("  + Found {0} patterns".format(len(patterns)))
-	return patterns
-
-def _get_committed_repo_range():
-	prog = "git --no-pager branch -a"
-	head_remote = ''
-	head_local = ''
-	repo_range = ''
-	head_name = re.compile("HEAD.*origin/")
-
-	p = sp.run(prog, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
-
-	for l in p.stdout.splitlines():
-		line = l.lstrip()
-		if head_name.search(line):
-			head_remote = line.split()[-1]
-
-	head_local = head_remote.split("/")[-1]
-	repo_range = head_remote + ".." + head_local
-
-	return repo_range
-	
-def _get_committed_repo_uuid_list(_repo_range):
-	prog = "git --no-pager log " + _repo_range
-	commits_to_check = []
-
-	p = sp.run(prog, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
-
-	for l in p.stdout.splitlines():
-		line = l.lstrip()
-		if( line.startswith("commit ") ):
-			commits_to_check.append(line.split()[1])
-	
-	return commits_to_check
-
-
-def get_committed_repo_list():
-	print("Searching for local committed security patterns not pushed")
-	prog = "git diff-tree --no-commit-id --name-only -r "
-	patterns = []
-	repo_range = _get_committed_repo_range()
-	commit_list = _get_committed_repo_uuid_list(repo_range)
-	pattern = re.compile("patterns/.*_SUSE-SU")
-	
-	for _commit in commit_list:
-		p = sp.run(prog + _commit, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
-
-		for l in p.stdout.splitlines():
-			line = l.lstrip()
-			if pattern.search(line):
-				patterns.append(line)
-	if( patterns ):
-		print("  + Found {0} patterns".format(len(patterns)))
-	return patterns
-
-def get_repo_spec_ver(filepath):
-	version_str = "Unknown"
-	this_version = ""
-	version = re.compile("^Version:\s.*[0-9]", re.IGNORECASE)
-	spec_file = os.path.basename(filepath)
-
-	fd = open(filepath, "r")
-	lines = fd.readlines()
-	for line in lines:
-		if version.search(line):
-			this_version = line.split()[-1]
-			break
-	fd.close()
-	if( this_version ):
-		parts = this_version.split('.')
-		bumped = str(int(parts[-1]) + 1)
-		parts[-1] = str(bumped)
-		bumped_version = '.'.join(parts)
-		version_str = bumped_version
-		print("Bumping package version from {0} to {1}".format(this_version, bumped_version))
-	else:
-		print("Could not find package version in {0}".format(filepath))
-
-	#print("Found version " + version_str + " in " + filepath)
-
-	return version_str
-
-
-
-def validate_sa_patterns(_config):
-	print("Searching for Security Patterns to Validate")
-	pat_dir = _config.get("Security", "pat_dir")
-	pat_error_dir = _config.get("Security", "pat_error")
-	pat_logs_dir = _config.get("Security", "pat_logs")
-	pat_dups_dir = _config.get("Security", "pat_dups")
-	patterns = []
-	pattern_cache = []
-	#print("Directory: {0}".format(pat_dir))
-	for file in glob(pat_dir + "/*.py"):
-		patterns.append(file)
-	for file in glob(pat_dir + "/*.pl"):
-		patterns.append(file)
-	#print("Number of Patterns: {0}".format(len(patterns)))
-	total = len(patterns)
-	if( total < 1 ):
-		print("+ Warning: No security patterns found, run sagen\n")
-		return total
-	else:
-		print("+ Patterns Found: {0}\n".format(total))
-	size = len(str(total))
-
-	print("Building Pre-existing Pattern Cache")
-	sca_repo_dir = _config.get("Common", "sca_repo_dir")
-	for root, dirs, files in os.walk(sca_repo_dir):
-		for name in files:
-			pattern_cache.append(name)
-	print("+ Patterns Found: {0}\n".format(len(pattern_cache)))
-
-	count = 0
-	fatal = []
-	duplicates = []
-	valid = 0
-	bar_width = 50
-	bar = ProgressBar("Validating: ", total)
-	for pattern in patterns:
-		count += 1
-		pattern_file = os.path.basename(pattern)
-		if( pattern_file in pattern_cache ):
-			pattern_dup = pat_dups_dir + '/' + pattern_file
-			os.rename(pattern, pattern_dup)
-			duplicates.append(pattern_dup)
-		else:
-			prog = "pat -q " + pattern
-			p = sp.run(prog, shell=True, check=False)
-			if p.returncode != 0:
-				pattern_error = pat_error_dir + '/' + pattern_file
-				os.rename(pattern, pattern_error)
-				fatal.append(pattern_error)
-			else:
-				valid += 1
-		bar.update(count)
-	bar.finish()
-	fatal_count = len(fatal)
-	dup_count = len(duplicates)
-	print("Summary")
-	print(SUMMARY_FMT.format("Total", total))
-	print(SUMMARY_FMT.format("Valid", valid))
-	print(SUMMARY_FMT.format("Fatal", fatal_count))
-	print(SUMMARY_FMT.format("Duplicates", dup_count))
-	print()
-
-	if( fatal_count > 0 ):
-		print("Failed Patterns:")
-		for failure in fatal:
-			print(failure)
-		print()
-
-	if( dup_count > 0 ):
-		print("Duplicate Patterns:")
-		for dup in duplicates:
-			print(dup)
-		print()
-
-	return total
-
-def distribute_sa_patterns(_config):
-	"""Distribute python patterns generated by sagen"""
-	print("Retrieving pattern list to distribute")
-	pat_dir = _config.get("Security", "pat_dir")
-	pat_logs_dir = _config.get("Security", "pat_logs")
-	sca_repo_dir = _config.get("Common", "sca_repo_dir")
-	distro_list = _config.get("Distribution", "supported").split(",")
-	log_file = pat_logs_dir + "/" + distribution_log_filename
-	pattern_list = []
-	#print("Directory: {0}".format(pat_dir))
-	for file in glob(pat_dir + "/*.py"):
-		pattern_list.append(file)
-	#print("Number of Patterns: {0}".format(len(pattern_list)))
-	total = len(pattern_list)
-	if( total < 1 ):
-		print("+ Warning: No security patterns found, run sagen\n")
-		return total
-	else:
-		print("+ Patterns Found: {0}\n".format(total))
-
-	print("Distributing patterns for associated distributions")
-	log = configparser.ConfigParser()
-	log.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
-	# Remove any obsolete log entries
-	if os.path.exists(log_file):
-		log.read(log_file)
-		for _file, value in log.items(distribution_log_section):
-			if not os.path.exists(_file):
-				log.remove_option(distribution_log_section, _file)
-	else:
-		log.add_section(distribution_log_section)
-	for distro in distro_list:
-#		print(distro)
-		count = 0
-		distro_major = re.sub(r"sle(\d.*)sp(\d)", r"\1", distro)
-		distro_version = re.sub(r"sle(\d.*)sp(\d)", r"\1.\2", distro)
-		distro_str = "_" + str(distro_version) + ".*py$"
-		matchdistro = re.compile(distro_str)
-		for pattern in pattern_list:
-#			print("+ {}".format(pattern))
-			if matchdistro.search(pattern):
-#				print(" + Distro {}".format('MATCHED'))
-				count += 1
-				pattern_file = os.path.basename(pattern)
-				distributed_dir = sca_repo_dir + "/sca-patterns-sle" + str(distro_major) + "/patterns/SLE/" + distro
-				if( os.path.exists(distributed_dir) ):
-					distributed_pattern = distributed_dir + "/" + pattern_file
-#					print("+ File {}".format(distributed_pattern))
-					if( os.path.isfile(distributed_pattern) ):
-						print("Error: Duplicate file found - {0}".format(distributed_pattern))
-					else:
-						#print("Copy {0}\n{1}".format(pattern, distributed_pattern))
-						copyfile(pattern, distributed_pattern)
-						log[distribution_log_section][distributed_pattern] = 'true'
-				else:
-					print("Error: Directory not found - {0}".format(distributed_dir))
-#			else:
-#				print(" + Distro {}".format('SKIPPED'))
-
-		print(SUMMARY_FMT.format("+ " + distro + ":", count))
-		with open(log_file, 'w') as logfile:
-			log.write(logfile)
-	print()
-
-	return total
-
-def remove_sa_patterns(_config):
-	pat_logs_dir = _config.get("Security", "pat_logs")
-	log_file = pat_logs_dir + "/" + distribution_log_filename
-	log = configparser.ConfigParser()
-	log.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
-	# Remove any obsolete log entries
-	if os.path.exists(log_file):
-		log.read(log_file)
-		for _file, value in log.items(distribution_log_section):
-			if os.path.exists(_file):
-				print("Deleting {}".format(_file))
-				os.remove(_file)
-		os.remove(log_file)
-		print()
-		return True
-	else:
-		print("Error: File not found - {}".format(log_file))
-		return False
-
-def show_status(_config):
-	sub_title("Show Status")
-	print("Pattern List - PENDING")
-	print("Repository Status - PENDING")
-	print("Distribution Log - PENDING")
-	print()
-
-
 class DisplayMessages():
 	"Display message string for a given log level"
 	LOG_QUIET	= 0	# turns off messages
-	LOG_MIN		= 1	# minimum messages
+	LOG_MIN		= 1	# minimal messages
 	LOG_NORMAL	= 2	# normal, but significant, messages
 	LOG_VERBOSE	= 3	# detailed messages
 	LOG_DEBUG	= 4	# debug-level messages
 	LOG_LEVELS      = {0: "Quiet", 1: "Minimal", 2: "Normal", 3: "Verbose", 4: "Debug" }
 	DISPLAY_PAIR    = "{0:30} = {1}"
 	DISPLAY         = "{0:30}"
-	
 
-	def __init__(self, level=LOG_MIN):
+	def __init__(self, _config, level=LOG_MIN):
+		self.config = _config
 		self.level = level
+
 	def __str__ (self):
 		return "class %s(level=%r)" % (self.__class__.__name__,self.level)
 
@@ -503,9 +804,9 @@ class SecurityAnnouncement():
 
 	def __init__(self, _msg, _config, url_date, _file, _version):
 		self.msg = _msg
-		self.pat_logs_dir = _config.get("Security", "pat_logs")
-		self.pat_dir = _config.get("Security", "pat_dir")
-		self.author = _config.get("Common", "author").strip("\'\"")
+		self.pat_logs_dir = config_entry(_config.get("Security", "pat_logs"), '/')
+		self.pat_dir = config_entry(_config.get("Security", "pat_dir"), '/')
+		self.author = config_entry(_config.get("Common", "author"))
 		self.bin_version = _version
 		self.file = _file
 		self.url_date = url_date
@@ -834,6 +1135,306 @@ class SecurityAnnouncement():
 			for i in create_list:
 				self.__create_pattern(i, pattern_tag)
 
+def check_directories(_config):
+	"""check_directories(configparser_object)
+	Checks if the config file directories are present. Returns True if they are and False otherwise."""
+	dir_list = []
+	dir_list_errors = []
+	dir_list.append(_config.get("Common", "sca_arch_dir"))
+	dir_list.append(_config.get("Common", "sca_lib_dir"))
+	dir_list = dir_list + _config.get("Security", "dir_list").split(',')
+	for dir in dir_list:
+		if not os.path.isdir(dir):
+			dir_list_errors.append(dir)
+	if( len(dir_list_errors) > 0 ):
+		print("Error: Missing directories")
+		for dir in dir_list_errors:
+			print("  + {0}".format(dir))
+		return False
+	else:
+		return True
+
+
+def show_config_file(_config_file, _config):
+	"""Dump the current configuration file object"""
+	sub_title("List Configuration Data")
+	print("Config File: {0}\n".format(_config_file))
+	for section in _config.sections():
+		print("[%s]" % section)
+		for options in _config.options(section):
+			print("%s = %s" % (options, _config.get(section, options)))
+		print()
+
+def get_uncommitted_repo_list():
+	print("Searching for local uncommitted security patterns")
+	patterns = []
+	prog = "git status"
+	pattern_file = re.compile("patterns/.*_SUSE-SU")
+
+	p = sp.run(prog, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
+	# There are two possible output formats from this command:
+	# 	new file:   patterns/SLE/sle15sp4/xterm_SUSE-SU-2023_0221-1_sles_15.4.py
+	#   patterns/SLE/sle15sp4/xterm_SUSE-SU-2023_0221-1_sles_15.4.py
+	# This currently handles both formats
+
+	for l in p.stdout.splitlines():
+		line = l.lstrip()
+		if pattern_file.search(line):
+			patterns.append(line.split()[-1])
+	if( patterns ):
+		print("  + Found {0} patterns".format(len(patterns)))
+	return patterns
+
+def _get_committed_repo_range():
+	prog = "git --no-pager branch -a"
+	head_remote = ''
+	head_local = ''
+	repo_range = ''
+	head_name = re.compile("HEAD.*origin/")
+
+	p = sp.run(prog, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
+
+	for l in p.stdout.splitlines():
+		line = l.lstrip()
+		if head_name.search(line):
+			head_remote = line.split()[-1]
+
+	head_local = head_remote.split("/")[-1]
+	repo_range = head_remote + ".." + head_local
+
+	return repo_range
+	
+def _get_committed_repo_uuid_list(_repo_range):
+	prog = "git --no-pager log " + _repo_range
+	commits_to_check = []
+
+	p = sp.run(prog, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
+
+	for l in p.stdout.splitlines():
+		line = l.lstrip()
+		if( line.startswith("commit ") ):
+			commits_to_check.append(line.split()[1])
+	
+	return commits_to_check
+
+
+def get_committed_repo_list():
+	print("Searching for local committed security patterns not pushed")
+	prog = "git diff-tree --no-commit-id --name-only -r "
+	patterns = []
+	repo_range = _get_committed_repo_range()
+	commit_list = _get_committed_repo_uuid_list(repo_range)
+	pattern = re.compile("patterns/.*_SUSE-SU")
+	
+	for _commit in commit_list:
+		p = sp.run(prog + _commit, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
+
+		for l in p.stdout.splitlines():
+			line = l.lstrip()
+			if pattern.search(line):
+				patterns.append(line)
+	if( patterns ):
+		print("  + Found {0} patterns".format(len(patterns)))
+	return patterns
+
+def get_repo_spec_ver(filepath):
+	version_str = "Unknown"
+	this_version = ""
+	version = re.compile("^Version:\s.*[0-9]", re.IGNORECASE)
+	spec_file = os.path.basename(filepath)
+
+	fd = open(filepath, "r")
+	lines = fd.readlines()
+	for line in lines:
+		if version.search(line):
+			this_version = line.split()[-1]
+			break
+	fd.close()
+	if( this_version ):
+		parts = this_version.split('.')
+		bumped = str(int(parts[-1]) + 1)
+		parts[-1] = str(bumped)
+		bumped_version = '.'.join(parts)
+		version_str = bumped_version
+		print("Bumping package version from {0} to {1}".format(this_version, bumped_version))
+	else:
+		print("Could not find package version in {0}".format(filepath))
+
+	#print("Found version " + version_str + " in " + filepath)
+
+	return version_str
+
+
+
+def validate_sa_patterns(_config):
+	print("Searching for Security Patterns to Validate")
+	pat_dir = _config.get("Security", "pat_dir")
+	pat_error_dir = _config.get("Security", "pat_error")
+	pat_logs_dir = _config.get("Security", "pat_logs")
+	pat_dups_dir = _config.get("Security", "pat_dups")
+	patterns = []
+	pattern_cache = []
+	#print("Directory: {0}".format(pat_dir))
+	for file in glob(pat_dir + "/*.py"):
+		patterns.append(file)
+	for file in glob(pat_dir + "/*.pl"):
+		patterns.append(file)
+	#print("Number of Patterns: {0}".format(len(patterns)))
+	total = len(patterns)
+	if( total < 1 ):
+		print("+ Warning: No security patterns found, run sagen\n")
+		return total
+	else:
+		print("+ Patterns Found: {0}\n".format(total))
+	size = len(str(total))
+
+	print("Building Pre-existing Pattern Cache")
+	sca_repo_dir = _config.get("Common", "sca_repo_dir")
+	for root, dirs, files in os.walk(sca_repo_dir):
+		for name in files:
+			pattern_cache.append(name)
+	print("+ Patterns Found: {0}\n".format(len(pattern_cache)))
+
+	count = 0
+	fatal = []
+	duplicates = []
+	valid = 0
+	bar_width = 50
+	bar = ProgressBar("Validating: ", total)
+	for pattern in patterns:
+		count += 1
+		pattern_file = os.path.basename(pattern)
+		if( pattern_file in pattern_cache ):
+			pattern_dup = pat_dups_dir + '/' + pattern_file
+			os.rename(pattern, pattern_dup)
+			duplicates.append(pattern_dup)
+		else:
+			prog = "pat -q " + pattern
+			p = sp.run(prog, shell=True, check=False)
+			if p.returncode != 0:
+				pattern_error = pat_error_dir + '/' + pattern_file
+				os.rename(pattern, pattern_error)
+				fatal.append(pattern_error)
+			else:
+				valid += 1
+		bar.update(count)
+	bar.finish()
+	fatal_count = len(fatal)
+	dup_count = len(duplicates)
+	print("Summary")
+	print(SUMMARY_FMT.format("Total", total))
+	print(SUMMARY_FMT.format("Valid", valid))
+	print(SUMMARY_FMT.format("Fatal", fatal_count))
+	print(SUMMARY_FMT.format("Duplicates", dup_count))
+	print()
+
+	if( fatal_count > 0 ):
+		print("Failed Patterns:")
+		for failure in fatal:
+			print(failure)
+		print()
+
+	if( dup_count > 0 ):
+		print("Duplicate Patterns:")
+		for dup in duplicates:
+			print(dup)
+		print()
+
+	return total
+
+def distribute_sa_patterns(_config):
+	"""Distribute python patterns generated by sagen"""
+	print("Retrieving pattern list to distribute")
+	pat_dir = _config.get("Security", "pat_dir")
+	pat_logs_dir = _config.get("Security", "pat_logs")
+	sca_repo_dir = _config.get("Common", "sca_repo_dir")
+	distro_list = _config.get("Distribution", "supported").split(",")
+	log_file = pat_logs_dir + "/" + distribution_log_filename
+	pattern_list = []
+	#print("Directory: {0}".format(pat_dir))
+	for file in glob(pat_dir + "/*.py"):
+		pattern_list.append(file)
+	#print("Number of Patterns: {0}".format(len(pattern_list)))
+	total = len(pattern_list)
+	if( total < 1 ):
+		print("+ Warning: No security patterns found, run sagen\n")
+		return total
+	else:
+		print("+ Patterns Found: {0}\n".format(total))
+
+	print("Distributing patterns for associated distributions")
+	log = configparser.ConfigParser()
+	log.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
+	# Remove any obsolete log entries
+	if os.path.exists(log_file):
+		log.read(log_file)
+		for _file, value in log.items(distribution_log_section):
+			if not os.path.exists(_file):
+				log.remove_option(distribution_log_section, _file)
+	else:
+		log.add_section(distribution_log_section)
+	for distro in distro_list:
+#		print(distro)
+		count = 0
+		distro_major = re.sub(r"sle(\d.*)sp(\d)", r"\1", distro)
+		distro_version = re.sub(r"sle(\d.*)sp(\d)", r"\1.\2", distro)
+		distro_str = "_" + str(distro_version) + ".*py$"
+		matchdistro = re.compile(distro_str)
+		for pattern in pattern_list:
+#			print("+ {}".format(pattern))
+			if matchdistro.search(pattern):
+#				print(" + Distro {}".format('MATCHED'))
+				count += 1
+				pattern_file = os.path.basename(pattern)
+				distributed_dir = sca_repo_dir + "/sca-patterns-sle" + str(distro_major) + "/patterns/SLE/" + distro
+				if( os.path.exists(distributed_dir) ):
+					distributed_pattern = distributed_dir + "/" + pattern_file
+#					print("+ File {}".format(distributed_pattern))
+					if( os.path.isfile(distributed_pattern) ):
+						print("Error: Duplicate file found - {0}".format(distributed_pattern))
+					else:
+						#print("Copy {0}\n{1}".format(pattern, distributed_pattern))
+						copyfile(pattern, distributed_pattern)
+						log[distribution_log_section][distributed_pattern] = 'true'
+				else:
+					print("Error: Directory not found - {0}".format(distributed_dir))
+#			else:
+#				print(" + Distro {}".format('SKIPPED'))
+
+		print(SUMMARY_FMT.format("+ " + distro + ":", count))
+		with open(log_file, 'w') as logfile:
+			log.write(logfile)
+	print()
+
+	return total
+
+def remove_sa_patterns(_config):
+	pat_logs_dir = _config.get("Security", "pat_logs")
+	log_file = pat_logs_dir + "/" + distribution_log_filename
+	log = configparser.ConfigParser()
+	log.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
+	# Remove any obsolete log entries
+	if os.path.exists(log_file):
+		log.read(log_file)
+		for _file, value in log.items(distribution_log_section):
+			if os.path.exists(_file):
+				print("Deleting {}".format(_file))
+				os.remove(_file)
+		os.remove(log_file)
+		print()
+		return True
+	else:
+		print("Error: File not found - {}".format(log_file))
+		return False
+
+def show_status(_config):
+	sub_title("Show Status")
+	print("Pattern List - PENDING")
+	print("Repository Status - PENDING")
+	print("Distribution Log - PENDING")
+	print()
+
+
 def convert_sa_date(given_str, _today, _msg):
 	"Converts given string to valid date for URL retrival"
 	converted_str = 'INVALID'
@@ -993,7 +1594,7 @@ def validate_link_list(link_list, _c_, _verbose):
 
 		if( x.status_code == 200 ):
 			data = x.text.split('\n')
-			badlink = re.compile('Invalid Bug ID')
+			badlink = re.compile('Invalid Bug ID|You must enter a valid bug number', re.IGNORECASE)
 			badvideo = re.compile('This video isn\'t available anymore', re.IGNORECASE)
 			for line in data:
 				if badlink.search(line):
@@ -1017,7 +1618,7 @@ def config_entry(_entry, trailer = ''):
 			formatted_entry = formatted_entry + str(trailer)
 	return formatted_entry
 
-def update_git_repos(_config):
+def update_git_repos(_config, _msg, _bar):
 	sca_repo_dir = config_entry(_config.get("Common", "sca_repo_dir"))
 	github_uri_base = config_entry(_config.get("GitHub", "uri_base"))
 	patdev_repos = config_entry(_config.get("GitHub", "patdev_repos")).split(',')
@@ -1025,15 +1626,30 @@ def update_git_repos(_config):
 	for repo in patdev_repos:
 		repo_path = sca_repo_dir + repo
 		if os.path.exists(repo_path):
-			print("Updating Local " + repo + " Repository")
+			_msg.normal("+ Updating Local " + repo + " Repository")
 			prog = "git -C " + repo_path + " pull"
 		else:
-			print("Cloning GitHub " + repo + " Repository")
+			_msg.normal("+ Cloning GitHub " + repo + " Repository")
 			prog = "git -C " + sca_repo_dir + " clone " + github_uri_base + "/" + repo + ".git"
 
-		p = sp.run(prog, shell=True, check=False)
+		try:
+			p = sp.run(prog.split(), universal_newlines=True, stdout=sp.PIPE, stderr=sp.PIPE)
+		except Exception as e:
+			_msg.normal("+ Exception: Command failed - " + prog)
+			_msg.normal()
+			_msg.normal(p.stdout)
+			_msg.normal(p.stderr)
+
 		if p.returncode != 0:
-			print("+ ERROR: Command failed - " + prog)
-		print()
+			_msg.normal("+ ERROR: Command failed - " + prog)
+			_msg.normal()
+			_msg.normal(p.stdout)
+			_msg.normal(p.stderr)
+		else:
+			_msg.verbose(p.stdout)
+			_msg.verbose()
+		_bar.inc_count()
+		if( _msg.get_level() == _msg.LOG_MIN ):
+			_bar.update()		
 
 

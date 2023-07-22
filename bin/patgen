@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.12'
+SVER = '1.0.15'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2023 Jul 03
+# Modified:     2023 Jul 22
 #
 ##############################################################################
 #
@@ -30,7 +30,6 @@ SVER = '1.0.12'
 import sys
 import os
 import subprocess
-import stat
 import re
 import getopt
 import datetime
@@ -39,7 +38,7 @@ import configparser
 import patdevel as pd
 
 # Global Options
-script_name = "SCA Tool Python Pattern Generator"
+title_string = "SCA Tool Python Pattern Generator"
 conf_file = "/etc/opt/patdevel/patdev.ini"
 
 # Class and Function Definitions
@@ -67,6 +66,8 @@ def usage():
 	print("  -u <[tag=]url>, --url=<[tag=]url>  Additional solution link URL. You can also enter a CVE number like \"CVE-2022-23303\"")
 	print("  -f, --flat                         All requested conditions are tested independently and not included in stacked order")
 	print("  -d, --no-duplicates                Don't check for duplicate patterns")
+	print("  -l <level>, --log_level <level>    Set log level, default: Minimal")
+	print("                                     0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug")
 	print()
 	print("METADATA")
 	print("  class:        SLE,HAE,SUMA,Security,Custom")
@@ -76,547 +77,6 @@ def usage():
 	print("  tid#:         TID number only")
 	print("  bug#:         Bug number only (optional)")
 	print()
-
-class PatternTemplate():
-	content = ''
-	content_kernel = ''
-	content_package = ''
-	content_service = ''
-
-	def __init__(self, script_name, _config):
-		self.meta_class = ''
-		self.meta_category = ''
-		self.meta_component = ''
-		self.pattern_base = ''
-		self.pattern_dir = os.getcwd()
-		self.pattern_filename = ''
-		self.tid_number = '0'
-		self.bug_number = '0'
-		self.conditions = 0
-		self.flat = False
-		self.basic = True
-		self.override_validation = False
-		self.kernel_version = '0'
-		self.package_name = ''
-		self.package_version = '0'
-		self.service_name = ''
-		self.tid_url = ''
-		self.bug_url = ''
-		self.other_url = ''
-		self.primary_link = "META_LINK_TID"
-		self.title = ''
-		self.script_name = script_name
-		self._config = _config
-		self.author = _config.get("Common", "author").strip('\"\'')
-		self.tid_base_url = _config.get("Common", "tid_base_url").strip('\"\'')
-		self.bug_base_url = _config.get("Common", "bug_base_url").strip('\"\'')
-		self.pat_repos_dir = _config.get("Common", "sca_repo_dir").strip('\"\'')
-		self.check_duplicates = True
-		self.links = ''
-
-	def __str__ (self):
-		return "class %s(\n  meta_class=%r, \n  meta_category=%r, \n  meta_component=%r, \n  pattern_base=%r, \n  tid_number=%r, \n  bug_number=%r, \n  conditions=%r, \n  flat=%r, \n  kernel_version=%r, \n  package_name=%r, \n  package_version=%r, \n  service_name=%r, \n  tid_url=%r,\n  bug_url=%r,\n  other_url=%r,\n  primary_link=%r,\n  links=%r,\n  pattern_filename=%r,\n  title=%r\n)" % \
-(self.__class__.__name__, 
-self.meta_class, 
-self.meta_category, 
-self.meta_component, 
-self.pattern_base, 
-self.tid_number, 
-self.bug_number, 
-self.conditions, 
-self.flat,
-self.kernel_version, 
-self.package_name, 
-self.package_version, 
-self.service_name, 
-self.tid_url, 
-self.bug_url, 
-self.other_url, 
-self.primary_link,
-self.links,
-self.pattern_filename,
-self.title
-)
-
-	def __check_for_duplicates(self):
-		"Checks for pre-existing patterns with the same TID and/or BUG number"
-		print("Updating Pattern Repositories")
-		pd.update_git_repos(self._config)
-
-		print("Checking for Duplicates")
-		these_duplicates = {}
-		output_string = ''
-		duplicate_tids = subprocess.getoutput("find " + self.pat_repos_dir + " -type f -exec grep " + self.tid_number + " {} \+ | grep META_LINK_TID")
-		if len(self.bug_number) > 1:
-			duplicate_bugs = subprocess.getoutput("find " + self.pat_repos_dir + " -type f -exec grep " + self.bug_number + " {} \+ | grep META_LINK_BUG")
-		else:
-			duplicate_bugs = ''
-
-		if len(duplicate_tids) > 0:
-			for dup in duplicate_tids.split("\n"):
-				these_duplicates[dup.split(':')[0]] = True
-		if len(duplicate_bugs) > 0:
-			for dup in duplicate_bugs.split("\n"):
-				these_duplicates[dup.split(':')[0]] = True
-
-		if len(these_duplicates) > 0:
-			if len(duplicate_bugs) > 0:
-				print("+ Duplicate(s) found using TID{0} or BUG{1}".format(self.tid_number, self.bug_number))
-			else:
-				print("+ Duplicate(s) found using TID{0}".format(self.tid_number))
-			for dup in these_duplicates.keys():
-				print("  - " + dup)
-			print()
-
-	def __validate_links(self):
-		"Validate URLs built from user inputs"
-		print("Validating Solution Links")
-		DISPLAY = "{0:21} {1:25} {2}"
-		invalid = False
-		link_list = self.links.split("|")
-		for link in link_list:
-			check_tag, check_url = link.split("=", 1)
-			status = "+ Confirmed"
-			try:
-				x = requests.get(check_url)
-			except Exception as error:
-				status = "- Invalid Connection"
-
-			if( x.status_code != 200 ):
-				status = "- Invalid URL"
-				invalid = True
-			else:
-				data = x.text.split('\n')
-				badlink = re.compile('Invalid Bug ID')
-				for line in data:
-					if badlink.search(line):
-						status = "- Invalid Content"
-						invalid = True
-						break
-			print(DISPLAY.format(status, check_tag, check_url))
-			print()
-
-		if( invalid ):
-			print()
-			print("Error: Invalid link(s) found, please check and resubmit")
-			print()
-			if not ( self.override_validation ):
-				sys.exit(2)
-
-	def __get_tid_title(self):
-		print("Evaluating TID" + self.tid_number)
-		this_title = "Manually enter the TID title"
-		try:
-			x = requests.get(self.tid_url)
-		except Exception as error:
-			print(" + Warning: Couldn't connect to the TID URL, manually enter the title.")
-
-		if( x.status_code == 200 ):
-			data = x.text.split('\n')
-			urltitle = re.compile('\<title\>.*\</title\>', re.IGNORECASE)
-			for line in data:
-				if urltitle.search(line):
-					this_title = line.split('<title>')[1].split('</title>')[0].replace(' | Support | SUSE', '')
-		else:
-			print(" + Warning: Couldn't get title from TID URL, enter in manually.")
-
-		return this_title
-
-	def __create_header(self):
-		today = datetime.date.today()
-		self.content = "#!/usr/bin/python3\n#\n"
-		self.content += "# Title:       " + self.title + "\n"
-		self.content += "# Description: Pattern for TID" + self.tid_number + "\n"
-		self.content += "# Template:    " + self.script_name + " v" + str(SVER) + "\n"
-		self.content += "# Modified:    " + str(today.strftime("%Y %b %d")) + "\n"
-		self.content += "#\n##############################################################################\n"
-		self.content += "# Copyright (C) " + str(today.year) + " SUSE LLC\n"
-		self.content += "##############################################################################\n#\n"
-		self.content += "# This program is free software; you can redistribute it and/or modify\n"
-		self.content += "# it under the terms of the GNU General Public License as published by\n"
-		self.content += "# the Free Software Foundation; version 2 of the License.\n#\n"
-		self.content += "# This program is distributed in the hope that it will be useful,\n"
-		self.content += "# but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
-		self.content += "# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the\n"
-		self.content += "# GNU General Public License for more details.\n#\n"
-		self.content += "# You should have received a copy of the GNU General Public License\n"
-		self.content += "# along with this program; if not, see <http://www.gnu.org/licenses/>.\n#\n"
-		self.content += "#  Authors/Contributors:\n#   " + self.author + "\n#\n"
-		self.content += "##############################################################################\n\n"
-		if( self.conditions > 0 ):
-			self.content += "import re\n"
-		self.content += "import os\n"
-		self.content += "import Core\n"
-		if( len(self.kernel_version) > 1 or len(self.service_name) > 0 or len(self.package_name) > 0 ):
-			self.content += "import SUSE\n"
-		self.content += "\nmeta_class = \"" + self.meta_class + "\"\n"
-		self.content += "meta_category = \"" + self.meta_category + "\"\n"
-		self.content += "meta_component = \"" + self.meta_component + "\"\n"
-		self.content += "pattern_id = os.path.basename(__file__)\n"
-		self.content += "primary_link = \"" + self.primary_link + "\"\n"
-		self.content += "overall = Core.TEMP\n"
-		self.content += "overall_info = \"NOT SET\"\n"
-		self.content += "other_links = \"" + self.links + "\"\n"
-		self.content += "Core.init(meta_class, meta_category, meta_component, pattern_id, primary_link, overall, overall_info, other_links)\n\n"
-
-	def __create_footer(self):
-		self.content += "\tCore.printPatternResults()\n\n"
-		self.content += "if __name__ == \"__main__\":\n"
-		self.content += "\tmain()\n\n"
-
-	def __create_condition_functions(self):
-		if( self.conditions > 0 ):
-			limit = self.conditions + 1
-			self.content += "##############################################################################\n"
-			self.content += "# Local Function Definitions\n"
-			self.content += "##############################################################################\n\n"
-
-			for condition in range(1, limit):
-				self.content += "def condition" + str(condition) + "():\n"
-				self.content += "\tfile_open = \"filename.txt\"\n"
-				self.content += "\tsection = \"CommandToIdentifyFileSection\"\n"
-				self.content += "\tcontent = []\n"
-				self.content += "\tconfirmed = re.compile(\"\", re.IGNORECASE)\n"
-				self.content += "\tif Core.isFileActive(file_open):\n"
-				self.content += "\t\tif Core.getRegExSection(file_open, section, content):\n"
-				self.content += "\t\t\tfor line in content:\n"
-				self.content += "\t\t\t\tif confirmed.search(line):\n"
-				self.content += "\t\t\t\t\treturn True\n"
-				self.content += "\treturn False\n\n"
-
-	def __create_conditions_indented(self, indent_to_level, condition_count):
-		indent = ''
-		these_conditions = ''
-
-		for i in range(int(indent_to_level)):
-			indent += '\t'
-
-		if( condition_count == 0 ):
-			these_conditions += str(indent) + "Core.updateStatus(Core.WARN, \"No conditions required\")\n"
-		elif( condition_count == 1 ):
-			these_conditions += str(indent) + "if( condition1() ):\n"
-			these_conditions += str(indent) + "\tCore.updateStatus(Core.CRIT, \"Condition1 Met\")\n"
-			these_conditions += str(indent) + "else:\n"
-			these_conditions += str(indent) + "\tCore.updateStatus(Core.WARN, \"Condition1 not found\")\n"
-		elif( condition_count == 2 ):
-			these_conditions += str(indent) + "if( condition1() ):\n"
-			these_conditions += str(indent) + "\tif( condition2() ):\n"
-			these_conditions += str(indent) + "\t\tCore.updateStatus(Core.CRIT, \"Condition2 Met\")\n"
-			these_conditions += str(indent) + "\telse:\n"
-			these_conditions += str(indent) + "\t\tCore.updateStatus(Core.WARN, \"Condition2 not found\")\n"
-			these_conditions += str(indent) + "else:\n"
-			these_conditions += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Condition1 not found\")\n"
-		elif( condition_count == 3 ):
-			these_conditions += str(indent) + "if( condition1() ):\n"
-			these_conditions += str(indent) + "\tif( condition2() ):\n"
-			these_conditions += str(indent) + "\t\tif( condition3() ):\n"
-			these_conditions += str(indent) + "\t\t\tCore.updateStatus(Core.CRIT, \"Condition3 Met\")\n"
-			these_conditions += str(indent) + "\t\telse:\n"
-			these_conditions += str(indent) + "\t\t\tCore.updateStatus(Core.WARN, \"Condition3 not found\")\n"
-			these_conditions += str(indent) + "\telse:\n"
-			these_conditions += str(indent) + "\t\tCore.updateStatus(Core.ERROR, \"Condition2 not found\")\n"
-			these_conditions += str(indent) + "else:\n"
-			these_conditions += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Condition1 not found\")\n"
-
-		return these_conditions
-
-	def __test_prep(self):
-		base_indent = "\t"
-		if( self.kernel_version != "0" ):
-			self.content += base_indent + "kernel_version_fixed = '" + self.kernel_version + "'\n"
-		if( self.package_name != ''):
-			self.content += base_indent + "package = '" + self.package_name + "'\n"
-		if( self.package_version != "0" ):
-			self.content += base_indent + "package_version_fixed = '" + self.package_version + "'\n"
-		if( self.service_name != "" ):
-			self.content += base_indent + "service_name = '" + self.service_name + "'\n"
-		if not self.basic:
-			self.content += "\n"
-
-	def __test_kernel(self, indent_to_level):
-		indent = ''
-
-		for i in range(int(indent_to_level)):
-			indent += '\t'
-
-		self.content += str(indent) + "kernel_version_installed = SUSE.compareKernel(kernel_version_fixed)\n"
-		self.content += str(indent) + "if( kernel_version_installed >= 0 ):\n"
-		self.content += str(indent) + "\tCore.updateStatus(Core.IGNORE, \"Bug fixes applied in kernel version \" + kernel_version_fixed + \" or higher\")\n"
-		self.content += str(indent) + "else:\n"
-
-	def __test_package_start(self, indent_to_level):
-		indent = ''
-
-		for i in range(int(indent_to_level)):
-			indent += '\t'
-
-		self.content += str(indent) + "if( SUSE.packageInstalled(package) ):\n"
-		if( self.package_version != "0" ):
-			self.content += str(indent) + "\tpackage_version_installed = SUSE.compareRPM(package, package_version_fixed)\n"
-			self.content += str(indent) + "\tif( package_version_installed >= 0 ):\n"
-			self.content += str(indent) + "\t\tCore.updateStatus(Core.IGNORE, \"Bug fixes applied for \" + package + \"\")\n"
-			self.content += str(indent) + "\telse:\n"
-
-	def __test_package_finish(self, indent_to_level):
-		indent = ''
-
-		for i in range(int(indent_to_level)):
-			indent += '\t'
-
-		self.content += str(indent) + "else:\n"
-		self.content += str(indent) + "\tCore.updateStatus(Core.ERROR, \"ERROR: RPM package \" + package + \" not installed\")\n"
-
-	def __test_service_start(self, indent_to_level):
-		indent = ''
-
-		for i in range(int(indent_to_level)):
-			indent += '\t'
-
-		self.content += str(indent) + "service_info = SUSE.getServiceDInfo(service_name)\n"
-		self.content += str(indent) + "if( service_info ):\n"
-		self.content += str(indent) + "\tif( service_info['UnitFileState'] == 'enabled' ):\n"
-		self.content += str(indent) + "\t\tif( service_info['SubState'] == 'failed' ):\n"
-
-	def __test_service_finish(self, indent_to_level):
-		indent = ''
-
-		for i in range(int(indent_to_level)):
-			indent += '\t'
-
-		self.content += str(indent) + "\t\telse:\n"
-		self.content += str(indent) + "\t\t\tCore.updateStatus(Core.IGNORE, \"Service did not fail: \" + str(service_name))\n"
-		self.content += str(indent) + "\telse:\n"
-		self.content += str(indent) + "\t\tCore.updateStatus(Core.ERROR, \"Service is disabled: \" + str(service_name))\n"
-		self.content += str(indent) + "else:\n"
-		self.content += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Service details not found: \" + str(service_name))\n"
-
-	def __create_pattern_main(self):
-		indent_kernel = 1
-		indent_package = 1
-		indent_service = 1
-		indent_conditions = 1
-
-		self.content += "##############################################################################\n"
-		self.content += "# Main\n"
-		self.content += "##############################################################################\n\n"
-		self.content += "def main():\n"
-		self.__test_prep()
-
-		if( self.flat ):
-			if( self.kernel_version != "0" ):
-				indent_conditions = indent_kernel + 1
-				self.__test_kernel(indent_kernel)
-				self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
-				self.content += "\n"
-
-			if( self.package_name != ''):
-				self.__test_package_start(indent_package)
-				if( self.package_version != "0" ):
-					indent_conditions = indent_package + 2
-					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
-				else:
-					indent_conditions = indent_package + 1
-					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
-				self.__test_package_finish(indent_package)
-				self.content += "\n"
-
-			if( self.service_name != "" ):
-				indent_conditions = indent_service + 3
-				self.__test_service_start(indent_service)
-				self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
-				self.__test_service_finish(indent_service)
-				self.content += "\n"
-
-			if( self.basic ):
-				self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
-		else:
-			if( self.kernel_version != "0" ):
-				# Priority order: kernel > package > service > conditions
-				indent_kernel = 1
-				indent_package = indent_kernel + 1
-				indent_conditions = indent_package + 1
-				self.__test_kernel(indent_kernel)
-				if( self.package_name != ''):
-					self.__test_package_start(indent_package)
-					if( self.package_version != "0" ):
-						indent_service = indent_package + 2
-						indent_conditions = indent_package + 2
-					else:
-						indent_service = indent_package + 1
-						indent_conditions = indent_package + 1
-
-					if( self.service_name != "" ):
-						indent_conditions = indent_service + 3
-						self.__test_service_start(indent_service)
-						self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
-						self.__test_service_finish(indent_service)
-					else:
-						self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
-					self.__test_package_finish(indent_package)
-				elif( self.service_name != "" ):
-					indent_service = indent_kernel + 1
-					indent_conditions = indent_service + 3
-					self.__test_service_start(indent_service)
-					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
-					self.__test_service_finish(indent_service)
-				else:
-					self.content += self.__create_conditions_indented(1, self.conditions)
-			elif( self.package_name != ''):
-				indent_package = 1
-				self.__test_package_start(indent_package)
-				if( self.package_version != "0" ):
-					indent_service = indent_package + 2
-					indent_conditions = indent_package + 2
-				else:
-					indent_service = indent_package + 1
-					indent_conditions = indent_package + 1
-
-				if( self.service_name != "" ):
-					indent_conditions = indent_service + 3
-					self.__test_service_start(indent_service)
-					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
-					self.__test_service_finish(indent_service)
-				else:
-					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
-				self.__test_package_finish(indent_package)
-			elif( self.service_name != "" ):
-					indent_conditions = indent_service + 3
-					self.__test_service_start(indent_service)
-					self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
-					self.__test_service_finish(indent_service)
-			else:
-				self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
-		self.content += "\n"
-		
-	def __save_pattern(self):
-		try:
-			file_open = open(self.pattern_filename, "w")
-			file_open.write(self.content)
-			file_open.close()
-			os.chmod(self.pattern_filename, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-		except OSError:
-			print((" ERROR: Cannot create " + str(self.pattern_filename) + ": " + str(error)))
-
-	def set_metadata(self, mdlist):
-		"Set the metadata values from the ordered list mdlist"
-		IDX_CLASS = 0
-		IDX_CATEGORY = 1
-		IDX_COMPONENT = 2
-		IDX_FILENAME = 3
-		IDX_TID = 4
-		IDX_BUG = 5
-		mdcount_min = 5
-
-		self.meta_class = mdlist[IDX_CLASS]
-		self.meta_category = mdlist[IDX_CATEGORY]
-		self.meta_component = mdlist[IDX_COMPONENT]
-		self.pattern_base = mdlist[IDX_FILENAME]
-		self.tid_number = str(mdlist[IDX_TID])
-		self.tid_url = self.tid_base_url + self.tid_number
-		self.pattern_filename = self.pattern_dir + "/" + self.pattern_base + "-" + self.tid_number + ".py"
-		self.links = "META_LINK_TID=" + self.tid_url
-		if( len(mdlist) > mdcount_min ):
-			self.bug_number = str(mdlist[IDX_BUG])
-			if( len(self.bug_number) > 1 ):
-				self.bug_url = self.bug_base_url + self.bug_number
-				self.links = self.links + "|META_LINK_BUG=" + self.bug_url
-		if( len(self.other_url) > 0 ):
-			self.links = self.links + "|" + self.other_url
-		if self.check_duplicates:
-			self.__check_for_duplicates()
-		self.__validate_links()
-		self.title = self.__get_tid_title()
-
-	def set_conditions(self, conditions):
-		self.conditions = conditions
-
-	def set_flat(self, status):
-		self.flat = status
-		
-	def set_override_validation(self, status):
-		self.override_validation = status
-
-	def set_check_duplicates(self, status):
-		self.check_duplicates = status
-
-	def set_kernel(self, kernel_version):
-		self.kernel_version = kernel_version
-		if( self.kernel_version != "0" ):
-			self.basic = False
-
-	def set_package(self, package_name, package_version):
-		self.package_name = package_name
-		self.package_version = package_version
-		if( self.package_name != ''):
-			self.basic = False
-
-	def set_service(self, service_name):
-		self.service_name = service_name
-		if( self.service_name != "" ):
-			self.basic = False
-
-	def set_other_url(self, other_url):
-		url_parts = other_url.split("=")
-		if( len(url_parts) > 1 ):
-			url_tag = "META_LINK_" + str(url_parts[0])
-			url_body = url_parts[1]
-		else:
-			url_body = url_parts[0]
-			if( "documentation.suse.com" in url_body ):
-				url_tag = "META_LINK_DOC"
-			elif( "www.suse.com/support/kb" in url_body ):
-				url_tag = "META_LINK_TID2"
-			elif( url_body.startswith("CVE-") ):
-				url_tag = "META_LINK_" + str(url_body)
-				url_body = "https://www.suse.com/security/cve/" + url_body + "/"
-			else:
-				url_tag = "META_LINK_OTHER"
-
-		self.other_url = url_tag + "=" + url_body
-
-	def create_pattern(self):
-		"Create and save the pattern. Requires set_metadata to be called first."
-		self.__create_header()
-		if( self.basic ):
-			if( self.conditions < 1 ):
-				self.set_conditions(1)
-		self.__create_condition_functions()
-		self.__create_pattern_main()
-		self.__create_footer()
-		self.__save_pattern()
-#		print(pat)
-#		print(self.content)
-		
-	def show_summary(self):
-		"Show a summary of the pattern created"
-		DISPLAY = "{0:18} = {1}"
-		
-		print()
-		print(DISPLAY.format("Title", self.title))
-		print(DISPLAY.format("Pattern", self.pattern_filename))
-		print(DISPLAY.format("Basic", self.basic))
-		if( self.flat ):
-			print(DISPLAY.format("Ordering", "Flat"))
-		else:
-			print(DISPLAY.format("Ordering", "Stacked"))
-		if( self.kernel_version != "0" ):
-			print(DISPLAY.format("Kernel Version", self.kernel_version))
-		else:
-			print(DISPLAY.format("Kernel Version", "None"))
-		if( self.package_name != ''):
-			print(DISPLAY.format("Package Name", self.package_name))
-		else:
-			print(DISPLAY.format("Package Name", "None"))
-		if( self.package_version != "0"):
-			print(DISPLAY.format("Package Version", self.package_version))
-		else:
-			print(DISPLAY.format("Package Version", "None"))
-		if( self.service_name != "" ):
-			print(DISPLAY.format("Service Name", self.service_name))
-		else:
-			print(DISPLAY.format("Service Name", "None"))
-		print(DISPLAY.format("Conditions", self.conditions))
-		print()
 
 def option_error(msg):
 	print(msg)
@@ -630,7 +90,7 @@ def option_error(msg):
 
 def main(argv):
 	"main entry point"
-	global SVER, script_name, conf_file
+	global SVER, title_string, conf_file
 
 	given_conditions = 0
 	conditions_min = 1
@@ -642,56 +102,80 @@ def main(argv):
 
 	if( os.path.exists(conf_file) ):
 		config.read(conf_file)
-		url_base = config.get("Security", "archive_url").strip('\"\'')
-		pat_dir = config.get("Security", "pat_dir")
-		pat_logs_dir = config.get("Security", "pat_logs")
+		url_base = pd.config_entry(config.get("Security", "archive_url"))
+		pat_dir = pd.config_entry(config.get("Security", "pat_dir"), '/')
+		pat_logs_dir = pd.config_entry(config.get("Security", "pat_logs"), '/')
 	else:
-		pd.title(script_name, SVER)
+		pd.title(title_string, SVER)
 		print("Error: File not found - " + conf_file + "\n")
 		sys.exit(1)
 
-	pat = PatternTemplate(script_name, config)
+	pat = pd.PatternTemplate(title_string, SVER, config, msg)
 
+	user_logging = -1
 	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "hc:dfk:r:p:s:u:o", ["help", "conditions=", "no-duplicates", "flat", "kernel-version=", "rpm=", "package-version=", "service=", "url=", "no-validation"])
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hc:dfk:r:p:s:u:ol:", ["help", "conditions=", "no-duplicates", "flat", "kernel-version=", "rpm=", "package-version=", "service=", "url=", "no-validation", "log_level="])
 	except getopt.GetoptError as exc:
-		pd.title(script_name, SVER)
+		pd.title(title_string, SVER)
 		print("Error:", exc, file=sys.stderr)
 		sys.exit(2)
-	for option, arguement in optlist:
-		if option in {"-h", "--help"}:
-			pd.title(script_name, SVER)
+	for opt, arg in optlist:
+		if opt in {"-h", "--help"}:
+			pd.title(title_string, SVER)
 			usage()
 			sys.exit(0)
-		elif option in {"-c", "--conditions"}:
-			if( arguement.isdigit() ):
-				given_conditions = int(arguement)
+		elif opt in {"-c", "--conditions"}:
+			if( arg.isdigit() ):
+				given_conditions = int(arg)
 				if( given_conditions > conditions_max ):
-					pd.title(script_name, SVER)
-					option_error("Error: Invalid number of conditions, range is 0-3")
+					pd.title(title_string, SVER)
+					opt_error("Error: Invalid number of conditions, range is 0-3")
 				else:
 					pat.set_conditions(given_conditions)
 			else:
-				pd.title(script_name, SVER)
-				option_error("Error: Integer required for conditions, range is 0-3")
-		elif option in {"-d", "--no-duplicates"}:
+				pd.title(title_string, SVER)
+				opt_error("Error: Integer required for conditions, range is 0-3")
+		elif opt in {"-d", "--no-duplicates"}:
 			pat.set_check_duplicates(False)
-		elif option in {"-f", "--flat"}:
+		elif opt in {"-f", "--flat"}:
 			pat.set_flat(True)
-		elif option in {"-k", "--kernel-version"}:
-			pat.set_kernel(arguement)
-		elif option in {"-r", "--rpm"}:
-			package_name = arguement
-		elif option in {"-p", "--package-version"}:
-			package_version = arguement
-		elif option in {"-s", "--service"}:
-			pat.set_service(arguement)
-		elif option in {"-u", "--url"}:
-			pat.set_other_url(arguement)
-		elif option in {"-o", "--no-validation"}:
+		elif opt in {"-k", "--kernel-version"}:
+			pat.set_kernel(arg)
+		elif opt in {"-r", "--rpm"}:
+			package_name = arg
+		elif opt in {"-p", "--package-version"}:
+			package_version = arg
+		elif opt in {"-s", "--service"}:
+			pat.set_service(arg)
+		elif opt in {"-u", "--url"}:
+			pat.set_other_url(arg)
+		elif opt in {"-o", "--no-validation"}:
 			pat.set_override_validation(True)
+		elif opt in {"-l", "--log_level"}:
+			if( arg.isdigit() ):
+				user_logging = int(arg)
+			else:
+				argstr = arg.lower()
+				if( argstr.startswith("qui") ):
+					msg.set_level(msg.LOG_QUIET)
+				elif( argstr.startswith("min") ):
+					msg.set_level(msg.LOG_MIN)
+				elif( argstr.startswith("norm") ):
+					msg.set_level(msg.LOG_NORMAL)
+				elif( argstr.startswith("verb") ):
+					msg.set_level(msg.LOG_VERBOSE)
+				elif( argstr.startswith("debug") ):
+					msg.set_level(msg.LOG_DEBUG)
+				else:
+					print("Invalid log level, using default")
 
-	pd.title(script_name, SVER)
+	if( user_logging >= msg.LOG_QUIET ):
+		msg.set_level(user_logging)
+
+	if( msg.get_level() > msg.LOG_QUIET ):
+		pd.title(title_string, SVER)
+
+	msg.normal("Log Level", msg.get_level_str())
 
 	if( len(package_name) > 0 ): # package_name without a package_version is ok
 		pat.set_package(package_name, package_version)
@@ -715,6 +199,7 @@ def main(argv):
 # Entry point
 if __name__ == "__main__":
 	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+	msg = pd.DisplayMessages(config)
 	main(sys.argv)
 
 
