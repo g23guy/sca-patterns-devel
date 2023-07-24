@@ -386,6 +386,8 @@ def main(argv):
 	if( msg.get_level() > msg.LOG_QUIET ):
 		pd.title(title_string, SVER)
 
+	msg.normal("Log Level", msg.get_level_str())
+
 	if get_suggestions:
 		get_suggestions_from_web(web_pages, log_file)
 	else:

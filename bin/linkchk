@@ -110,7 +110,7 @@ def show_summary():
 
 def main(argv):
 	"main entry point"
-	global SVER, pattern_list, recurse_directory, c_, invalid_links, verbose, elapsed, start, end, config_file
+	global SVER, pattern_list, recurse_directory, c_, invalid_links, elapsed, start, end, config_file
 	start = timer()
 	
 	if( os.path.exists(config_file) ):
