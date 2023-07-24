@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.15'
+SVER = '1.0.16'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2023 Jul 22
+# Modified:     2023 Jul 24
 #
 ##############################################################################
 #
@@ -32,6 +32,7 @@ import os
 import subprocess
 import re
 import getopt
+import signal
 import datetime
 import requests
 import configparser
@@ -82,6 +83,10 @@ def option_error(msg):
 	print(msg)
 	print()
 	usage()
+	sys.exit(1)
+
+def signal_handler(sig, frame):
+	print("\n\nAborting...\n")
 	sys.exit(1)
 
 ##############################################################################
@@ -198,6 +203,7 @@ def main(argv):
 
 # Entry point
 if __name__ == "__main__":
+	signal.signal(signal.SIGINT, signal_handler)
 	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 	msg = pd.DisplayMessages(config)
 	main(sys.argv)

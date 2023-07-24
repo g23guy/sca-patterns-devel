@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.10_dev3'
+SVER = '2.0.15'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Runs a pattern or patterns against supportconfig directories to
 #               check the pattern's output based on the supportconfig directory.
-# Modified:     2023 Jul 20
+# Modified:     2023 Jul 24
 #
 ##############################################################################
 #
@@ -73,11 +73,11 @@ def usage():
 	print("  Documentation: /usr/share/doc/packages/sca-patterns-devel/index.html")
 	print()
 	print("Options:")
-	print("  -h, --help     Display this help")
-	print("  -a, --archives Root directory for supportconfig archives to be used for testing")
-	print("  -r, --recurse  Validate patterns and archives recursively found in the directory structures")
+	print("  -h, --help                       Display this help")
+	print("  -a, --archives                   Root directory for supportconfig archives to be used for testing")
+	print("  -r, --recurse                    Validate patterns and archives recursively found in the directory structures")
 	print("  -l <level>, --log_level <level>  Set log level, default: Minimal")
-	print("                 0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug")
+	print("                                   0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug")
 
 	print()
 
@@ -89,7 +89,7 @@ def signal_handler(sig, frame):
 def show_summary():
 	msg.min()
 	msg.min("Summary")
-	if pd.log_level >= pd.LOG_MIN:
+	if( msg.get_level() >= msg.LOG_MIN ):
 		pd.separator_line('-')
 	msg.normal("Elsapsed Runtime", str(elapsed).split('.')[0])
 	msg.normal("Pattern Directory", usepath['patterns'])
@@ -116,13 +116,13 @@ def show_summary():
 	if len(invalid_pattern_shortlist) > 0:
 		msg.min()
 		msg.min("Fatal Pattern Short List")
-		if pd.log_level >= pd.LOG_MIN:
+		if( msg.get_level() >= msg.LOG_MIN ):
 			pd.separator_line('-')
 		for pattern in invalid_pattern_shortlist.keys():
 			msg.min(pattern)
 		msg.min()
 		msg.min("Fatal Pattern Details")
-		if pd.log_level >= pd.LOG_MIN:
+		if( msg.get_level() >= msg.LOG_MIN ):
 			pd.separator_line('-')
 		if len(invalid_patterns) > 0:
 			for invalid_pattern in invalid_patterns:
@@ -272,7 +272,7 @@ def run_pattern(this_pattern, this_archive):
 		invalid_pattern_shortlist[this_pattern] = True
 		invalid_patterns.append([this_pattern, this_archive])
 		status = 'Skipped'
-		if pd.log_level >= pd.LOG_NORMAL:
+		if( msg.get_level() >= msg.LOG_NORMAL ):
 			msg.normal("+ Archive Used", this_archive)
 			show_meta_errors()
 			msg.normal(status_display.format(status))
@@ -296,7 +296,7 @@ def run_pattern(this_pattern, this_archive):
 		status = 'Fatal'
 		meta_error['any'] = True
 
-		if pd.log_level >= pd.LOG_NORMAL:
+		if( msg.get_level() >= msg.LOG_NORMAL ):
 			msg.normal("+ Archive Used", this_archive)
 			show_meta_errors()
 			msg.normal()
@@ -318,7 +318,7 @@ def run_pattern(this_pattern, this_archive):
 		meta_error['any'] = True
 		meta_error['bin'] = True
 
-		if pd.log_level >= pd.LOG_NORMAL:
+		if( msg.get_level() >= msg.LOG_NORMAL ):
 			msg.normal("+ Archive Used", this_archive)
 			show_meta_errors()
 			msg.normal()
@@ -342,7 +342,7 @@ def run_pattern(this_pattern, this_archive):
 				overall = output[IDX_OVERALL].split("=")[IDX_LAST]
 				c_[overall_dict[overall]] += 1
 				status = overall_dict[overall]
-			if pd.log_level >= pd.LOG_VERBOSE:
+			if( msg.get_level() >= msg.LOG_VERBOSE ):
 				msg.verbose("+ Archive Used", this_archive)
 				msg.verbose()			
 				print(p.stdout)
@@ -359,7 +359,7 @@ def run_pattern(this_pattern, this_archive):
 		invalid_patterns.append([this_pattern, this_archive])
 		invalid_pattern_shortlist[this_pattern] = True
 	else:
-		if pd.log_level >= pd.LOG_VERBOSE:
+		if( msg.get_level() >= msg.LOG_VERBOSE ):
 			show_meta_errors()
 			print(status_display.format(status))
 			pd.separator_line('-')
@@ -391,44 +391,42 @@ def main(argv):
 		(optlist, args) = getopt.gnu_getopt(argv[1:], "ha:rl:", ["help", "archives=", "recurse", "log_level="])
 	except getopt.GetoptError as exc:
 		pd.title(title_string, SVER)
-		usage()
 		print("Error:", exc, file=sys.stderr)
 		sys.exit(2)
-	for opt in optlist:
-		if opt[0] in {"-h", "--help"}:
+	for opt, arg in optlist:
+		if opt in {"-h", "--help"}:
 			pd.title(title_string, SVER)
 			usage()
 			sys.exit(0)
-		elif opt[0] in {"-a", "--archives"}:
-			usepath['archives'] = opt[1]
-		elif opt[0] in {"-r", "--recurse"}:
+		elif opt in {"-a", "--archives"}:
+			usepath['archives'] = arg
+		elif opt in {"-r", "--recurse"}:
 			recurse_archives = True
 			recurse_patterns = True
-		elif opt[0] in {"-l", "--log_level"}:
-			if( opt[1].isdigit() ):
-				user_logging = int(opt[1])
+		elif opt in {"-l", "--log_level"}:
+			if( arg.isdigit() ):
+				user_logging = int(arg)
 			else:
-				if( opt[1].lower().startswith("qui") ):
-					pd.log_level = pd.LOG_QUIET
-				elif( opt[1].lower().startswith("min") ):
-					pd.log_level = pd.LOG_MIN
-				elif( opt[1].lower().startswith("norm") ):
-					pd.log_level = pd.LOG_NORMAL
-				elif( opt[1].lower().startswith("verb") ):
-					pd.log_level = pd.LOG_VERBOSE
-				elif( opt[1].lower().startswith("debug") ):
-					pd.log_level = pd.LOG_DEBUG
+				argstr = arg.lower()
+				if( argstr.startswith("qui") ):
+					msg.set_level(msg.LOG_QUIET)
+				elif( argstr.startswith("min") ):
+					msg.set_level(msg.LOG_MIN)
+				elif( argstr.startswith("norm") ):
+					msg.set_level(msg.LOG_NORMAL)
+				elif( argstr.startswith("verb") ):
+					msg.set_level(msg.LOG_VERBOSE)
+				elif( argstr.startswith("debug") ):
+					msg.set_level(msg.LOG_DEBUG)
 				else:
 					print("Invalid log level, using default")
 
+	if( user_logging >= msg.LOG_QUIET ):
+		msg.set_level(user_logging)
 
-	if( user_logging >= pd.LOG_QUIET ):
-		pd.log_level = user_logging
-
-	if( pd.log_level > pd.LOG_QUIET ):
+	if( msg.get_level() > msg.LOG_QUIET ):
 		pd.title(title_string, SVER)
 
-	msg.set_level(pd.log_level)
 	msg.normal("Log Level", msg.get_level_str())
 
 	set_environment()
@@ -446,38 +444,37 @@ def main(argv):
 	pattern_list = prepare_patterns()
 	c_['total_pat'] = len(pattern_list)
 	c_['total'] = c_['total_pat'] * c_['total_arch']
-	if pd.log_level > pd.LOG_QUIET:
-		print()
+	msg.min()
 
-	if pd.log_level == pd.LOG_MIN:
-		bar = pd.ProgressBar(" Checking: ", c_['total'])
+	if( msg.get_level() == msg.LOG_MIN ):
+		bar = pd.ProgressBar("Checking: ", c_['total'])
 
 	for pattern in pattern_list:
 		for archive in archive_list:
 			c_['current'] += 1
+			if( msg.get_level() == msg.LOG_MIN ):
+				bar.inc_count()
 			c_['active_pattern'] = pattern
 			c_['active_archive'] = archive
 			run_pattern(pattern, archive)
-			if pd.log_level == pd.LOG_MIN:
-				bar.update(c_['current'])
+			if( msg.get_level() == msg.LOG_MIN ):
+				bar.update()
 	c_['total_fails'] = len(failed_pattern_shortlist)
 	c_['total_skipped'] = len(skipped_pattern_shortlist)
 
 	c_['active_pattern'] = ''
 	c_['active_archive'] = ''
 
-	if pd.log_level == pd.LOG_MIN:
+	if( msg.get_level() == msg.LOG_MIN ):
 		bar.finish()
 
 	end = timer()
 	elapsed = str(timedelta(seconds=end-start))
-	if pd.log_level == pd.LOG_VERBOSE:
-		print()
-	if pd.log_level > pd.LOG_QUIET:
-		if c_['total_pat'] > 0:
-			show_summary()
-		else:
-			print("No patterns found\n")
+	msg.verbose()
+	if c_['total_pat'] > 0:
+		show_summary()
+	else:
+		print("No patterns found\n")
 		
 # Entry point
 if __name__ == "__main__":
