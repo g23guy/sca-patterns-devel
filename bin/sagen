@@ -244,7 +244,7 @@ def process_archive_threads():
 
 	zsize = len(str(all_counters['pattern_count_total']))
 	msg.min("Announcements to Process", str(all_counters['pattern_count_total']) + "\n")
-	if( pd.log_level == pd.LOG_MIN ):
+	if( msg.get_level() == msg.LOG_MIN ):
 		bar = pd.ProgressBar(" Processing: ", all_counters['pattern_count_total'])
 
 	for sa_id, sa_file in said_file_pairs.items():
@@ -277,8 +277,9 @@ def process_archive_threads():
 			create_sles_patterns(security)
 			announcement_counters = security.get_stats()
 			patterns_written = security.get_patterns()
-			if( pd.log_level == pd.LOG_MIN ):
-				bar.update(all_counters['pattern_count_current'])
+			if( msg.get_level() == msg.LOG_MIN ):
+				bar.inc_count()
+				bar.update()
 			else:
 				msg.normal("Processed File [" +
 				str(all_counters['pattern_count_current']).zfill(zsize) + "/" +
@@ -293,7 +294,7 @@ def process_archive_threads():
 			msg.debug("All Counters", str(all_counters))
 			manifest[sa_file]['status'] = 'Complete'
 
-	if( pd.log_level == pd.LOG_MIN ):
+	if( msg.get_level() == msg.LOG_MIN ):
 		bar.finish()
 	manifest['metadata']['patterns_evaluated'] = str(all_counters['patterns_evaluated'])
 	manifest['metadata']['patterns_generated'] = str(all_counters['patterns_generated'])
@@ -409,55 +410,38 @@ def main(argv):
 		print("Error: File not found - " + config_file + "\n")
 		sys.exit(1)
 
-	user_logging = -1
 	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "hql:r:f:")
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hr:f:l:", ["help", "range=", "file=", "log_level="])
 	except getopt.GetoptError as exc:
 		pd.title(title_string, SVER)
 		print("Error:", exc, file=sys.stderr)
 		print("\n")
 		usage()
 		sys.exit(2)
-	for opt in optlist:
-		if opt[0] in {"-h"}:
+	for opt, arg in optlist:
+		if opt in {"-h", "--help"}:
 			pd.title(title_string, SVER)
 			usage()
 			sys.exit(0)
-		elif opt[0] in {"-q"}:
-			pd.log_level = pd.LOG_QUIET
-		elif opt[0] in {"-l"}:
-			if( opt[1].isdigit() ):
-				user_logging = int(opt[1])
+		elif opt in {"-f", "--file"}:
+			single_file = arg
+		elif opt in {"-r", "--range"}:
+			range_string = arg
+		elif opt in {"-l", "--log_level"}:
+			user_logging = msg.validate_level(arg)
+			if( user_logging >= msg.LOG_QUIET ):
+				msg.set_level(user_logging)
 			else:
-				if( opt[1].lower().startswith("qui") ):
-					pd.log_level = pd.LOG_QUIET
-				elif( opt[1].lower().startswith("min") ):
-					pd.log_level = pd.LOG_MIN
-				elif( opt[1].lower().startswith("norm") ):
-					pd.log_level = pd.LOG_NORMAL
-				elif( opt[1].lower().startswith("verb") ):
-					pd.log_level = pd.LOG_VERBOSE
-				elif( opt[1].lower().startswith("debug") ):
-					pd.log_level = pd.LOG_DEBUG
-				else:
-					print("Invalid log level, using default")
-		elif opt[0] in {"-f"}:
-			single_file = opt[1]
-		elif opt[0] in {"-r"}:
-			range_string = opt[1]
+				print("Warning: Invalid log level, using instance default")
 
 	if len(args) > 0:
 		given_date = '-'.join(args)
 	else:
 		given_date = ''
 
-	if( user_logging >= pd.LOG_QUIET ):
-		pd.log_level = user_logging
-
-	if( pd.log_level > pd.LOG_QUIET ):
+	if( msg.get_level() > msg.LOG_QUIET ):
 		pd.title(title_string, SVER)
 
-	msg.set_level(pd.log_level)
 	range_list = extract_range_list(range_string)
 	if( len(range_list) > 0 ):
 		if( len(range_list) > 1 ):
@@ -496,7 +480,7 @@ def main(argv):
 
 			prep_archive_threads()
 			process_archive_threads()
-			if( pd.log_level > pd.LOG_QUIET ):
+			if( msg.get_level() > msg.LOG_QUIET ):
 				show_summary()
 				if add_separator_line:
 					pd.separator_line("-")
@@ -508,7 +492,7 @@ if __name__ == "__main__":
 	manifest.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
 	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 	signal.signal(signal.SIGINT, signal_handler)
-	msg = pd.DisplayMessages(config)
+	msg = pd.DisplayMessages()
 	main(sys.argv)
 
 
