@@ -115,6 +115,7 @@ def main(argv):
 	
 	if( os.path.exists(config_file) ):
 		config.read(config_file)
+		pat_dir = pd.config_entry(config.get("Security", "pat_dir"), '/')
 		config_log_level = pd.config_entry(config.get("Common", "log_level"))
 		config_logging = msg.validate_level(config_log_level)
 		if( config_logging >= msg.LOG_QUIET ):
@@ -156,22 +157,22 @@ def main(argv):
 			path = os.path.abspath(given_file)
 			pattern_list = pd.get_pattern_list(path, recurse_directory)
 			if recurse_directory:
-				msg.normal("Recursively Processing", path)
+				msg.min("Recursively Processing", path)
 			else:
-				msg.normal("Processing", path)
+				msg.min("Processing", path)
 		elif os.path.isfile(given_file):
 			given_file = os.path.abspath(given_file)
-			msg.normal("Processing file", given_file)
+			msg.min("Processing file", given_file)
 			pattern_list.append(given_file)
 		else:
 			print("Error: Invalid file or path - " + given_file)
 			sys.exit(5)
 	else:
-		path = os.getcwd()
+		path = pat_dir
 		if recurse_directory:
-			msg.normal("Recursively Processing", path)
+			msg.min("Recursively Processing", path)
 		else:
-			msg.normal("Processing", path)
+			msg.min("Processing", path)
 		pattern_list = pd.get_pattern_list(path, recurse_directory)
 
 	c_['pat_total'] = len(pattern_list)

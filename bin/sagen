@@ -402,9 +402,9 @@ def main(argv):
 
 	if( os.path.exists(config_file) ):
 		config.read(config_file)
-		url_base = config.get("Security", "archive_url").strip('\"\'')
-		pat_dir = config.get("Security", "pat_dir")
-		pat_logs_dir = config.get("Security", "pat_logs")
+		url_base = pd.config_entry(config.get("Security", "archive_url"))
+		pat_dir = pd.config_entry(config.get("Security", "pat_dir"), '/')
+		pat_logs_dir = pd.config_entry(config.get("Security", "pat_logs"), '/')
 	else:
 		pd.title(title_string, SVER)
 		print("Error: File not found - " + config_file + "\n")
