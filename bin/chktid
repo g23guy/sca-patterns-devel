@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '1.0.1'
+SVER = '1.0.1_dev1'
 ##############################################################################
 # chktid - Checks for Existing or Suggested TIDs
 # Copyright (C) 2023 SUSE LLC
@@ -8,7 +8,7 @@ SVER = '1.0.1'
 #               if a pattern has already been written. Likewise, it can search
 #               the SUSE support site for TIDs that currently don't have a 
 #               pattern.
-# Modified:     2023 Jul 07
+# Modified:     2023 Jul 24
 #
 ##############################################################################
 #
@@ -115,7 +115,7 @@ def search_patterns(_search):
 	matching_file_content_count = len(matching_file_content)
 	general_matches_count = len(general_matches)
 
-	if( pd.log_level >= pd.LOG_VERBOSE ):
+	if( msg.get_level() >= msg.LOG_VERBOSE ):
 		total_matches_found = matching_filenames_count + matching_file_content_count
 		if( total_matches_found > 0 ):
 			msg.verbose()
@@ -125,7 +125,7 @@ def search_patterns(_search):
 	else:
 		total_matches_found = general_matches_count
 		if( total_matches_found > 0 ):
-			if( pd.log_level >= pd.LOG_NORMAL ):
+			if( msg.get_level() >= msg.LOG_NORMAL ):
 				for key in general_matches.keys():
 					msg.normal("Match found", key)
 			msg.normal()
@@ -159,12 +159,15 @@ def get_suggestions_from_web(pages, _log_file):
 	log.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
 
 	msg.min("Retrieving TIDs from SUSE Support")
-	if( pd.log_level == pd.LOG_MIN and pages > 1 ):
-		bar = pd.ProgressBar(" Progress: ", pages)
+	if( msg.get_level() == msg.LOG_MIN ):
+		bar1 = pd.ProgressBar("Progress: ", pages)
+		bar1.update()
 
 	msg.normal("+ SUSE support pages to evaluate: {}".format(pages))
 	for page in range(pages):
 		counted_page = page + 1
+		if( msg.get_level() == msg.LOG_MIN ):
+			bar1.inc_count()
 		startIndex = ( page * page_entries ) + 1
 		page_url = target_url + '?maxIndex=' + str(maxIndex) + '&startIndex=' + str(startIndex)
 		msg.verbose("+ Loading URL {}/{}".format(counted_page, pages), page_url)
@@ -173,10 +176,11 @@ def get_suggestions_from_web(pages, _log_file):
 			data = data + this_page
 		else:
 			c_['web'] += 1
-		if( pd.log_level == pd.LOG_MIN and pages > 1 ):
-			bar.update(counted_page)
-	if( pd.log_level == pd.LOG_MIN and pages > 1 ):
-		bar.finish()
+		if( msg.get_level() == msg.LOG_MIN ):
+			bar1.update()
+	if( msg.get_level() == msg.LOG_MIN ):
+		bar1.finish()
+		del bar1
 
 	if( len(data) > 0 ):
 		recent_tid = re.compile('class="tid".*\([0-9]*\)', re.IGNORECASE)
@@ -192,13 +196,13 @@ def get_suggestions_from_web(pages, _log_file):
 				check_tid_dict[tid_id]['title'] = tid_title
 				check_tid_dict[tid_id]['prod'] = "Unknown"
 		c_['total'] = len(check_tid_dict.keys())
+		if( msg.get_level() == msg.LOG_MIN ):
+			bar2 = pd.ProgressBar("Evaluating: ", c_['total'])
 		msg.normal("+ Total TIDs to evaluate: {}".format(c_['total']))
 		msg.normal("Retrieving Pattern List")
 		pattern_list = retrieve_pattern_file_list()
 		msg.normal("Searching for Suggestions")
 		for tid_id in check_tid_dict.keys():
-			if( pd.log_level == pd.LOG_MIN ):
-				bar = pd.ProgressBar(" Evaluating: ", c_['total'])
 			msg.normal("+ Evaluating TID [{}/{}]".format(c_['count'], c_['total']), tid_id)
 			check_pattern = re.compile(tid_id)
 			suggestion_list[tid_id] = check_tid_dict[tid_id]
@@ -264,14 +268,15 @@ def get_suggestions_from_web(pages, _log_file):
 					del suggestion_list[tid_id]
 
 			c_['count'] += 1
-			if( pd.log_level == pd.LOG_MIN ):
-				bar.update(c_['count'])
+			if( msg.get_level() == msg.LOG_MIN ):
+				bar2.inc_count()
+				bar2.update()
 			msg.verbose()
 			
-		if( pd.log_level == pd.LOG_MIN ):
-			bar.finish()
-		elif( pd.log_level > pd.LOG_MIN ):
-			msg.normal()
+		if( msg.get_level() == msg.LOG_MIN ):
+			bar2.finish()
+			del bar2
+		msg.normal()
 
 		# Build a sorted index list of suggested TIDs
 		tid_index = []
@@ -311,8 +316,6 @@ def main(argv):
 	global SVER, config_file, sca_repo_dir, target_url, target_tid_url, web_range_min, web_range_max, title_string
 	get_suggestions = False
 
-	pd.log_level = pd.LOG_MIN
-	user_logging = -1
 	web_pages = 1
 	if( os.path.exists(config_file) ):
 		config.read(config_file)
@@ -321,48 +324,38 @@ def main(argv):
 		target_tid_url = pd.config_entry(config.get("Common", "tid_base_url"))
 		log_dir = pd.config_entry(config.get("Security", "pat_logs"), '/')
 		log_file = log_dir + "suggested_tids.log"
+		config_log_level = pd.config_entry(config.get("Common", "log_level"))
+		config_logging = msg.validate_level(config_log_level)
+		if( config_logging >= msg.LOG_QUIET ):
+			msg.set_level(config_logging)
+		else:
+			print("Warning: Invalid log level in config file, using instance default")
 	else:
 		pd.title(title_string, SVER)
 		print("Error: File not found - " + config_file + "\n")
 		sys.exit(1)
 
 	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "hl:sp:")
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hp:sl:", ["help", "pages=", "suggestions", "log_level="])
 	except getopt.GetoptError as exc:
 		pd.title(title_string, SVER)
 		print("Error:", exc, file=sys.stderr)
 		print("\n")
 		usage()
 		sys.exit(2)
-	for opt in optlist:
-		if opt[0] in {"-h"}:
+	for opt, arg in optlist:
+		if opt in {"-h", "--help"}:
 			pd.title(title_string, SVER)
 			usage()
 			sys.exit(0)
-		elif opt[0] in {"-l"}:
-			if( opt[1].isdigit() ):
-				user_logging = int(opt[1])
-			else:
-				if( opt[1].lower().startswith("qui") ):
-					pd.log_level = pd.LOG_QUIET
-				elif( opt[1].lower().startswith("min") ):
-					pd.log_level = pd.LOG_MIN
-				elif( opt[1].lower().startswith("norm") ):
-					pd.log_level = pd.LOG_NORMAL
-				elif( opt[1].lower().startswith("verb") ):
-					pd.log_level = pd.LOG_VERBOSE
-				elif( opt[1].lower().startswith("debug") ):
-					pd.log_level = pd.LOG_DEBUG
-				else:
-					print("Invalid log level, using default")
-		elif opt[0] in {"-s"}:
+		elif opt in {"-s", "--suggestions"}:
 			get_suggestions = True
-		elif opt[0] in {"-p"}:
-			if( opt[1].isdigit() ):
-				web_pages = int(opt[1])
+		elif opt in {"-p", "--pages"}:
+			if( arg.isdigit() ):
+				web_pages = int(arg)
 				if( web_pages < web_range_min or web_pages > web_range_max ):
 					pd.title(title_string, SVER)
-					print("Invalid web page range value: {}".format(opt[1]))
+					print("Invalid web page range value: {}".format(arg))
 					print("Valid range is 1-" + str(web_range_max) + ", where 0 is max pages\n")
 					usage()
 					sys.exit(5)
@@ -370,10 +363,16 @@ def main(argv):
 					web_pages = web_range_max
 			else:
 				pd.title(title_string, SVER)
-				print("Invalid web page range value: {}".format(opt[1]))
+				print("Invalid web page range value: {}".format(arg))
 				print("Valid range is 1-" + str(web_range_max) + ", where 0 is max pages\n")
 				usage()
 				sys.exit(5)
+		elif opt in {"-l", "--log_level"}:
+			user_logging = msg.validate_level(arg)
+			if( user_logging >= msg.LOG_QUIET ):
+				msg.set_level(user_logging)
+			else:
+				print("Warning: Invalid log level, using instance default")
 
 	if len(args) > 0:
 		search_string = ' '.join(args)
@@ -384,13 +383,9 @@ def main(argv):
 			usage()
 			sys.exit(3)
 
-	if( user_logging >= pd.LOG_QUIET ):
-		pd.log_level = user_logging
-
-	if( pd.log_level > pd.LOG_QUIET ):
+	if( msg.get_level() > msg.LOG_QUIET ):
 		pd.title(title_string, SVER)
 
-	msg.set_level(pd.log_level)
 	if get_suggestions:
 		get_suggestions_from_web(web_pages, log_file)
 	else:
@@ -400,7 +395,7 @@ def main(argv):
 if __name__ == "__main__":
 	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 	signal.signal(signal.SIGINT, signal_handler)
-	msg = pd.DisplayMessages(config)
+	msg = pd.DisplayMessages()
 	main(sys.argv)
 
 
