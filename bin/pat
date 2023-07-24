@@ -381,12 +381,17 @@ def main(argv):
 		usepath['scalib'] = pd.config_entry(config.get("Common", "sca_lib_dir"), '/')
 		usepath['log_dir'] = pd.config_entry(config.get("Security", "pat_logs"), '/')
 		usepath['log_file'] = usepath['log_dir'] + usepath['log_file']
+		config_log_level = pd.config_entry(config.get("Common", "log_level"))
+		config_logging = msg.validate_level(config_log_level)
+		if( config_logging >= msg.LOG_QUIET ):
+			msg.set_level(config_logging)
+		else:
+			print("Warning: Invalid log level in config file, using instance default")
 	else:
 		pd.title(title_string, SVER)
 		print("Error: File not found - " + config_file + "\n")
 		sys.exit(1)
 
-	user_logging = -1
 	try:
 		(optlist, args) = getopt.gnu_getopt(argv[1:], "ha:rl:", ["help", "archives=", "recurse", "log_level="])
 	except getopt.GetoptError as exc:
@@ -404,25 +409,11 @@ def main(argv):
 			recurse_archives = True
 			recurse_patterns = True
 		elif opt in {"-l", "--log_level"}:
-			if( arg.isdigit() ):
-				user_logging = int(arg)
+			user_logging = msg.validate_level(arg)
+			if( user_logging >= msg.LOG_QUIET ):
+				msg.set_level(user_logging)
 			else:
-				argstr = arg.lower()
-				if( argstr.startswith("qui") ):
-					msg.set_level(msg.LOG_QUIET)
-				elif( argstr.startswith("min") ):
-					msg.set_level(msg.LOG_MIN)
-				elif( argstr.startswith("norm") ):
-					msg.set_level(msg.LOG_NORMAL)
-				elif( argstr.startswith("verb") ):
-					msg.set_level(msg.LOG_VERBOSE)
-				elif( argstr.startswith("debug") ):
-					msg.set_level(msg.LOG_DEBUG)
-				else:
-					print("Invalid log level, using default")
-
-	if( user_logging >= msg.LOG_QUIET ):
-		msg.set_level(user_logging)
+				print("Warning: Invalid log level, using instance default")
 
 	if( msg.get_level() > msg.LOG_QUIET ):
 		pd.title(title_string, SVER)
@@ -480,7 +471,7 @@ def main(argv):
 if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
 	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-	msg = pd.DisplayMessages(config)
+	msg = pd.DisplayMessages()
 	main(sys.argv)
 	sys.exit(c_['Fatal'])
 

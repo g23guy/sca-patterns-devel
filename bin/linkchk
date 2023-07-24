@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.6_dev1'
+SVER = '2.0.1'
 ##############################################################################
 # linkchk.py - SCA Pattern Link Verification Tool
-# Copyright (C) 2022 SUSE LLC
+# Copyright (C) 2023 SUSE LLC
 #
 # Description:  Validates META_LINK solution URLs to ensure they are valid.
 #               Supports python and perl patterns with *.py and *.pl extensions.
-# Modified:     2023 Jun 30
+# Modified:     2023 Jul 24
 #
 ##############################################################################
 #
@@ -33,6 +33,7 @@ import re
 import getopt
 import signal
 import subprocess
+import configparser
 import patdevel as pd
 from datetime import timedelta
 from timeit import default_timer as timer
@@ -46,10 +47,11 @@ given_file = ''
 pattern_list = []
 c_ = {'current': 0, 'pat_total': 0, 'link_total': 0, 'nosolutions': 0, 'badconnection': 0, "badurl": 0, "bugid": 0, "ping": 0, "oldhosts": 0, "active_pattern": '', "active_link": ''}
 invalid_links = {}
-verbose = False
 elapsed = -1
 start = 0
 end = 0
+config_file = "/etc/opt/patdevel/patdev.ini"
+title_string = "SCA Pattern Link Verification Tool"
 
 ##############################################################################
 # Functions
@@ -57,12 +59,13 @@ end = 0
 
 def usage():
 	"Displays usage information"
-	print("Usage: linkchk.py [options] [filepath]")
+	print("Usage: linkchk [options] [filepath]")
 	print()
 	print("Options:")
-	print("  -h, --help     Display this help")
-	print("  -r, --recurse  Validate patterns recursively found in the directory structure")
-	print("  -v, --verbose  Display verbose logging messages")
+	print("  -h, --help                       Display this help")
+	print("  -r, --recurse                    Validate patterns recursively found in the directory structure")
+	print("  -l <level>, --log_level <level>  Set log level, default: Minimal")
+	print("                                   0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug")
 	print()
 
 def signal_handler(sig, frame):
@@ -107,27 +110,44 @@ def show_summary():
 
 def main(argv):
 	"main entry point"
-	global SVER, pattern_list, recurse_directory, c_, invalid_links, verbose, elapsed, start, end
+	global SVER, pattern_list, recurse_directory, c_, invalid_links, verbose, elapsed, start, end, config_file
 	start = timer()
 	
+	if( os.path.exists(config_file) ):
+		config.read(config_file)
+		config_log_level = pd.config_entry(config.get("Common", "log_level"))
+		config_logging = msg.validate_level(config_log_level)
+		if( config_logging >= msg.LOG_QUIET ):
+			msg.set_level(config_logging)
+		else:
+			print("Warning: Invalid log level in config file, using instance default")
+
 	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "hrv", ["help", "recurse", "verbose"])
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hrl:", ["help", "recurse", "log_level="])
 	except getopt.GetoptError as exc:
-		pd.title("SCA Pattern Link Verification Tool", SVER)
+		pd.title(title_string, SVER)
 		print("Error:", exc, file=sys.stderr)
 		sys.exit(2)
-	for opt in optlist:
-		if opt[0] in {"-h", "--help"}:
-			pd.title("SCA Pattern Link Verification Tool", SVER)
+	for opt, arg in optlist:
+		if opt in {"-h", "--help"}:
+			pd.title(title_string, SVER)
 			usage()
 			sys.exit(0)
-		elif opt[0] in {"-r", "--recurse"}:
+		elif opt in {"-r", "--recurse"}:
 			recurse_directory = True
-		elif opt[0] in {"-v", "--verbose"}:
-			verbose = True
+		elif opt in {"-l", "--log_level"}:
+			user_logging = msg.validate_level(arg)
+			if( user_logging >= msg.LOG_QUIET ):
+				msg.set_level(user_logging)
+			else:
+				print("Warning: Invalid log level, using instance default")
 
-	pd.title("SCA Pattern Link Verification Tool", SVER)
-	print("Loading patterns...")
+	if( msg.get_level() > msg.LOG_QUIET ):
+		pd.title(title_string, SVER)
+
+	msg.normal("Log Level", msg.get_level_str())
+
+	msg.normal("Loading patterns")
 	given_file = ''
 	if len(args) > 0:
 		# TODO: support multiple files given on the command line to validate
@@ -136,12 +156,12 @@ def main(argv):
 			path = os.path.abspath(given_file)
 			pattern_list = pd.get_pattern_list(path, recurse_directory)
 			if recurse_directory:
-				print("Recursively Processing " + path)
+				msg.normal("Recursively Processing", path)
 			else:
-				print("Processing " + path)
+				msg.normal("Processing", path)
 		elif os.path.isfile(given_file):
 			given_file = os.path.abspath(given_file)
-			print("Processing file " + given_file)
+			msg.normal("Processing file", given_file)
 			pattern_list.append(given_file)
 		else:
 			print("Error: Invalid file or path - " + given_file)
@@ -149,34 +169,35 @@ def main(argv):
 	else:
 		path = os.getcwd()
 		if recurse_directory:
-			print("Recursively Processing " + path)
+			msg.normal("Recursively Processing", path)
 		else:
-			print("Processing " + path)
+			msg.normal("Processing", path)
 		pattern_list = pd.get_pattern_list(path, recurse_directory)
 
 	c_['pat_total'] = len(pattern_list)
 	vdisplay = "  {0:23} {1}"
 	csize = len(str(c_['pat_total']))
 	cdisplay = "{0:0" + str(csize) + "d}/{1} {2}"
-	if not verbose:
-		bar = pd.ProgressBar(" Validating links: ", c_['pat_total'])
+	if( msg.get_level() == msg.LOG_MIN ):
+		bar = pd.ProgressBar("Validating links: ", c_['pat_total'])
+
 	for pattern in pattern_list:
 		c_['current'] += 1
-		if verbose:
-			print(cdisplay.format(c_['current'], c_['pat_total'], pattern))
+		if( msg.get_level() == msg.LOG_MIN ):
+			bar.inc_count()
+		msg.normal(cdisplay.format(c_['current'], c_['pat_total'], pattern))
 		c_['active_pattern'] = pattern
 		bad_urls = []
 		url_list = pd.get_links_from_pattern_file(pattern)
 		if( len(url_list) > 0 ):
-			bad_urls, c_ = pd.validate_link_list(url_list, c_, verbose)
+			bad_urls, c_ = pd.validate_link_list(url_list, c_, msg)
 			if( len(bad_urls) > 0):
 				invalid_links[pattern] = bad_urls
 				if( len(bad_urls) == len(url_list) ):
 					invalid_links[pattern]['nosolutions'] = True
 					c_['nosolutions'] += 1
 					status = "! No Solutions"
-					if verbose:
-						print(vdisplay.format(status, pattern))
+					msg.normal(vdisplay.format(status, pattern))
 				else:
 					invalid_links[pattern]['nosolutions'] = False
 		else:
@@ -184,25 +205,24 @@ def main(argv):
 			invalid_links[pattern]['nosolutions'] = True
 			c_['nosolutions'] += 1
 			status = "! No Solution Links"
-			if verbose:
-				print(vdisplay.format(status, pattern))
-		#print(invalid_links)
-		
-		if not verbose:
-			bar.update(c_['current'])
-	if not verbose:
+			msg.normal(vdisplay.format(status, pattern))
+		msg.debug(invalid_links)
+
+		if( msg.get_level() == msg.LOG_MIN ):
+			bar.update()
+	if( msg.get_level() == msg.LOG_MIN ):
 		bar.finish()
 	c_['active_pattern'] = "None" # Shows the active pattern file if linkchk is aborted
 	c_['active_link'] = "None" # Shows the active link being checked if linkchk is aborted
 	end = timer()
 	elapsed = str(timedelta(seconds=end-start))
-	if verbose:
-		print()
+	msg.normal()
 	show_summary()
 		
 # Entry point
 if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
+	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+	msg = pd.DisplayMessages()
 	main(sys.argv)
-
 

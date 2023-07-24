@@ -715,8 +715,7 @@ class DisplayMessages():
 	DISPLAY_PAIR    = "{0:30} = {1}"
 	DISPLAY         = "{0:30}"
 
-	def __init__(self, _config, level=LOG_MIN):
-		self.config = _config
+	def __init__(self, level=LOG_MIN):
 		self.level = level
 
 	def __str__ (self):
@@ -733,6 +732,25 @@ class DisplayMessages():
 			self.level = self.LOG_DEBUG
 		else:
 			self.level = level
+
+	def validate_level(self, level):
+		validated_level = -1
+		if( level.isdigit() ):
+			validated_level = int(level)
+		else:
+			argstr = level.lower()
+			if( argstr.startswith("qui") ):
+				validated_level = self.LOG_QUIET
+			elif( argstr.startswith("min") ):
+				validated_level = self.LOG_MIN
+			elif( argstr.startswith("norm") ):
+				validated_level = self.LOG_NORMAL
+			elif( argstr.startswith("verb") ):
+				validated_level = self.LOG_VERBOSE
+			elif( argstr.startswith("debug") ):
+				validated_level = self.LOG_DEBUG
+		return validated_level
+
 
 	def __write_paired_msg(self, level, msgtag, msgstr):
 		if( level <= self.level ):
@@ -1535,7 +1553,7 @@ def get_links_from_pattern_file(this_pattern):
 
 	return these_urls
 
-def validate_link_list(link_list, _c_, _verbose):
+def validate_link_list(link_list, _c_, _msg):
 	bad_links = {}
 	vdisplay = "  {0:23} {1}"
 	oldhosts = re.compile("novell.com|microfocus.com", re.IGNORECASE)
@@ -1550,36 +1568,31 @@ def validate_link_list(link_list, _c_, _verbose):
 			status = "- Invalid URL"
 			_c_['badurl'] += 1
 			bad_links[link] = "Invalid URL"
-			if _verbose:
-				print(vdisplay.format(status, link))
+			_msg.normal(vdisplay.format(status, link))
 			continue
 		except requests.exceptions.ConnectionError as errc:
 			status = "- Invalid Connection"
 			_c_['badconnection'] += 1
 			bad_links[link] = "Invalid Connection"
-			if _verbose:
-				print(vdisplay.format(status, link))
+			_msg.normal(vdisplay.format(status, link))
 			continue
 		except requests.exceptions.Timeout as errt:
 			status = "- Server Timeout"
 			_c_['ping'] += 1
 			bad_links[link] = "Server Timeout"
-			if _verbose:
-				print(vdisplay.format(status, link))
+			_msg.normal(vdisplay.format(status, link))
 			continue
 		except requests.exceptions.RequestException as err:
 			status = "- Invalid URL"
 			_c_['badurl'] += 1
 			bad_links[link] = "Invalid URL"
-			if _verbose:
-				print(vdisplay.format(status, link))
+			_msg.normal(vdisplay.format(status, link))
 			continue
 		except Exception as error:
 			status = "- Unknown Error"
 			_c_['ping'] += 1
 			bad_links[link] = "Unknown Error"
-			if _verbose:
-				print(vdisplay.format(status, link))
+			_msg.normal(vdisplay.format(status, link))
 			continue
 
 
@@ -1588,8 +1601,7 @@ def validate_link_list(link_list, _c_, _verbose):
 			status = "- Old Host"
 			_c_['oldhosts'] += 1
 			bad_links[link] = "Old Host"
-			if _verbose:
-				print(vdisplay.format(status, link))
+			_msg.normal(vdisplay.format(status, link))
 			continue
 
 		if( x.status_code == 200 ):
@@ -1607,8 +1619,7 @@ def validate_link_list(link_list, _c_, _verbose):
 					_c_['badurl'] += 1
 					bad_links[link] = "Invalid URL"
 					break
-		if _verbose:
-			print(vdisplay.format(status, link))
+		_msg.verbose(vdisplay.format(status, link))
 	return bad_links, _c_
 
 def config_entry(_entry, trailer = ''):
