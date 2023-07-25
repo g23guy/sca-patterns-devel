@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 # set noet ci pi sts=0 sw=4 ts=4
 ##############################################################################
-# pdval - Validate all new patterns against supportconfigs
+# samgr - Security Announcement manager
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Runs new security patterns against supportconfigs in the
 #               archive directory using the pat tool.
-# Modified:     2023 Jul 03
+# Modified:     2023 Jul 24
 #
 ##############################################################################
 #
@@ -30,76 +30,128 @@
 import re
 import sys
 import os
+import getopt
 import configparser
 import patdevel as pd
 
-SVER='2.0.0_beta1'
+SVER='2.0.0_beta3'
 config_file = "/etc/opt/patdevel/patdev.ini"
+title_string = "SCA Pattern Checker"
 
 def usage():
-	print("samgr <action>\n")
-	print("Actions:")
-	print("  validate (vl)    Validate generated patterns")
-	print("  distribute (ds)  Distibute security patterns to associated repositories")
-	print("  remove (rm)      Remove uncommitted security patterns from repositories")
-	print("  update (up)      Update GitHub repository clones")
-	print("  config (cf)      Show the configuration file data")
-	print("  status (st)      Show the current status")
+	print("Usage: samgr [options]")
+	print()
+	print("Description:")
+	print("  Performs requested actions for Security Announcement management")
+	print()
+	print("Options:")
+	print(pd.usage_display.format('-h, --help', "Display this help"))
+	print(pd.usage_display.format('-v, --validate', "Validate patterns created by sagen. This is the default action."))
+	print(pd.usage_display.format('-d, --distribute', "Distribute security patterns to associated repositories"))
+	print(pd.usage_display.format('-r, --remove', "Remove uncommitted security patterns from repositories"))
+	print(pd.usage_display.format('-c, --config', "Show the configuration file data"))
+	print(pd.usage_display.format('-s, --status', "Show the current status"))
+	print(pd.usage_display.format('-p, --repos', "Update GitHub repositories"))
+	print(pd.usage_display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
+	print(pd.usage_display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
 	print()
 
-def update_patterns_from_github():
-	# Replaces gitpatterns, but put it in patdevel.py module and not here
-	pass
-
-def check_pattern_url_links():
-	# Replaces chklink, put in module if other binaries use it.
-	pass
-
 def main(argv):
-	global SVER, config_file
+	global SVER, title_string, config_file
+	action = "validate"
 
-	pd.title("SCA Security Announcement Pattern Manager", SVER)
 	if( os.path.exists(config_file) ):
 		config.read(config_file)
+		config_log_level = pd.config_entry(config.get("Common", "log_level"))
+		config_logging = msg.validate_level(config_log_level)
+		if( config_logging >= msg.LOG_QUIET ):
+			msg.set_level(config_logging)
+		else:
+			print("Warning: Invalid log level in config file, using instance default")
 	else:
-		print("Error: File not found - " + conf_file + "\n")
+		pd.title(title_string, SVER)
+		print("Error: File not found - " + config_file + "\n")
 		sys.exit(1)
 
+	try:
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hvdrcspl:", ["help", "validate", "distribute", "remove", "config", "status", "repos", "log_level="])
+	except getopt.GetoptError as exc:
+		pd.title(title_string, SVER)
+		print("Error:", exc, file=sys.stderr)
+		sys.exit(2)
+	for opt, arg in optlist:
+		if opt in {"-h", "--help"}:
+			pd.title(title_string, SVER)
+			usage()
+			sys.exit(0)
+		elif opt in {"-v", "--validate"}:
+			action = "validate"
+		elif opt in {"-d", "--distribute"}:
+			action = "distribute"
+		elif opt in {"-r", "--remove"}:
+			action = "remove"
+		elif opt in {"-c", "--config"}:
+			action = "config"
+		elif opt in {"-s", "--status"}:
+			action = "status"
+		elif opt in {"-p", "--repos"}:
+			action = "repos"
+		elif opt in {"-l", "--log_level"}:
+			user_logging = msg.validate_level(arg)
+			if( user_logging >= msg.LOG_QUIET ):
+				msg.set_level(user_logging)
+			else:
+				print("Warning: Invalid log level, using instance default")
+
+	if( msg.get_level() > msg.LOG_QUIET ):
+		pd.title(title_string, SVER)
+
 	pd.check_directories(config)
-	action_validate = re.compile("val*|vl", re.IGNORECASE)
-	action_distribute = re.compile("dist*|ds", re.IGNORECASE)
-	action_remove = re.compile("remove|rm|del*", re.IGNORECASE)
-	action_config = re.compile("config*|cf", re.IGNORECASE)
-	action_status = re.compile("status|st", re.IGNORECASE)
-	action_repos = re.compile("update|up", re.IGNORECASE)
-	if( len(argv) > 1 ):
-		opt = argv[1]
-	else:
-		opt = ''
-	if action_validate.search(opt):
+
+	if( action == "validate" ):
 		pd.sub_title("Validate Security Patterns")
-		pd.update_git_repos(config)
-		pd.validate_sa_patterns(config)
-	elif action_distribute.search(opt):
+		msg.normal("Log Level", msg.get_level_str())
+		patdev_repos = pd.config_entry(config.get("GitHub", "patdev_repos")).split(',')
+		bar = pd.ProgressBar("Updating: ", len(patdev_repos))
+		msg.normal("Updating Pattern Repositories")
+		pd.update_git_repos(config, msg, bar)
+		if( msg.get_level() == msg.LOG_MIN ):
+			bar.finish()
+		pd.validate_sa_patterns(config, msg)
+	elif( action == "distribute" ):
 		pd.sub_title("Distribute Patterns")
+		msg.normal("Log Level", msg.get_level_str())
 		pd.distribute_sa_patterns(config)
-	elif action_remove.search(opt):
-		pd.sub_title("Distribute Patterns")
-		pd.remove_sa_patterns(config)
-	elif action_config.search(opt):
+	elif( action == "remove" ):
 		pd.sub_title("Remove Uncommitted Patterns")
+		msg.normal("Log Level", msg.get_level_str())
+		pd.remove_sa_patterns(config)
+	elif( action == "config" ):
+		pd.sub_title("Show Configuration File")
+		msg.normal("Log Level", msg.get_level_str())
 		pd.show_config_file(config_file, config)
-	elif action_repos.search(opt):
+	elif( action == "repos" ):
 		pd.sub_title("Update Pattern Repositories")
-		pd.update_git_repos(config)
-	elif action_status.search(opt):
+		msg.normal("Log Level", msg.get_level_str())
+		patdev_repos = pd.config_entry(config.get("GitHub", "patdev_repos")).split(',')
+		bar = pd.ProgressBar("Updating: ", len(patdev_repos))
+		msg.normal("Updating Pattern Repositories")
+		pd.update_git_repos(config, msg, bar)
+		if( msg.get_level() == msg.LOG_MIN ):
+			bar.finish()
+		else:
+			msg.normal()
+	elif( action == "status" ):
 		pd.sub_title("Security Pattern Status")
+		msg.normal("Log Level", msg.get_level_str())
 		pd.show_status(config)
 	else:
 		usage()
+###
 
 # Entry point
 if __name__ == "__main__":
 	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+	msg = pd.DisplayMessages()
 	main(sys.argv)
 

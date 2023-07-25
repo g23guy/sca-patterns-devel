@@ -78,7 +78,6 @@ def usage():
 	print("  -r, --recurse                    Validate patterns and archives recursively found in the directory structures")
 	print("  -l <level>, --log_level <level>  Set log level, default: Minimal")
 	print("                                   0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug")
-
 	print()
 
 def signal_handler(sig, frame):

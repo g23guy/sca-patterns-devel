@@ -38,9 +38,10 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "0.0.13"
+__version__ = "0.0.14"
 
 SUMMARY_FMT = "{0:30} {1:g}"
+usage_display = "  {:33s} {}"
 distribution_log_filename = "distribution.log"
 distribution_log_section = "metadata"
 seperator_len = 85
@@ -1175,7 +1176,6 @@ def check_directories(_config):
 
 def show_config_file(_config_file, _config):
 	"""Dump the current configuration file object"""
-	sub_title("List Configuration Data")
 	print("Config File: {0}\n".format(_config_file))
 	for section in _config.sections():
 		print("[%s]" % section)
@@ -1284,44 +1284,46 @@ def get_repo_spec_ver(filepath):
 
 
 
-def validate_sa_patterns(_config):
-	print("Searching for Security Patterns to Validate")
+def validate_sa_patterns(_config, _msg):
+	_msg.normal("Searching for Security Patterns to Validate")
 	pat_dir = _config.get("Security", "pat_dir")
 	pat_error_dir = _config.get("Security", "pat_error")
 	pat_logs_dir = _config.get("Security", "pat_logs")
 	pat_dups_dir = _config.get("Security", "pat_dups")
 	patterns = []
 	pattern_cache = []
-	#print("Directory: {0}".format(pat_dir))
+	_msg.debug("Directory:", pat_dir)
 	for file in glob(pat_dir + "/*.py"):
 		patterns.append(file)
 	for file in glob(pat_dir + "/*.pl"):
 		patterns.append(file)
-	#print("Number of Patterns: {0}".format(len(patterns)))
+	_msg.debug("Number of Patterns", len(patterns))
 	total = len(patterns)
 	if( total < 1 ):
 		print("+ Warning: No security patterns found, run sagen\n")
 		return total
 	else:
-		print("+ Patterns Found: {0}\n".format(total))
+		_msg.normal("+ Patterns Found", total)
 	size = len(str(total))
 
-	print("Building Pre-existing Pattern Cache")
+	_msg.normal("Building Pre-existing Pattern Cache")
 	sca_repo_dir = _config.get("Common", "sca_repo_dir")
 	for root, dirs, files in os.walk(sca_repo_dir):
 		for name in files:
 			pattern_cache.append(name)
-	print("+ Patterns Found: {0}\n".format(len(pattern_cache)))
+	_msg.normal("+ Patterns Found", len(pattern_cache))
 
 	count = 0
 	fatal = []
 	duplicates = []
 	valid = 0
-	bar_width = 50
-	bar = ProgressBar("Validating: ", total)
+	if( _msg.get_level() == _msg.LOG_MIN ):
+		bar = ProgressBar("Validating: ", total)
+	_msg.normal("Checking Patterns")
 	for pattern in patterns:
 		count += 1
 		pattern_file = os.path.basename(pattern)
+		_msg.normal("+ Pattern [{}/{}]".format(count, total), pattern_file)
 		if( pattern_file in pattern_cache ):
 			pattern_dup = pat_dups_dir + '/' + pattern_file
 			os.rename(pattern, pattern_dup)
@@ -1335,28 +1337,35 @@ def validate_sa_patterns(_config):
 				fatal.append(pattern_error)
 			else:
 				valid += 1
-		bar.update(count)
-	bar.finish()
+		if( _msg.get_level() == _msg.LOG_MIN ):
+			bar.inc_count()
+			bar.update()
+	if( _msg.get_level() == _msg.LOG_MIN ):
+		bar.finish()
 	fatal_count = len(fatal)
 	dup_count = len(duplicates)
-	print("Summary")
-	print(SUMMARY_FMT.format("Total", total))
-	print(SUMMARY_FMT.format("Valid", valid))
-	print(SUMMARY_FMT.format("Fatal", fatal_count))
-	print(SUMMARY_FMT.format("Duplicates", dup_count))
-	print()
+
+	_msg.min()
+	_msg.min("Summary")
+	if( _msg.get_level() >= _msg.LOG_MIN ):
+		separator_line('-')
+	_msg.min(SUMMARY_FMT.format("Total", total))
+	_msg.min(SUMMARY_FMT.format("Valid", valid))
+	_msg.min(SUMMARY_FMT.format("Fatal", fatal_count))
+	_msg.min(SUMMARY_FMT.format("Duplicates", dup_count))
+	_msg.min()
 
 	if( fatal_count > 0 ):
-		print("Failed Patterns:")
+		_msg.min("Failed Patterns:")
 		for failure in fatal:
-			print(failure)
-		print()
+			_msg.min(failure)
+		_msg.min()
 
 	if( dup_count > 0 ):
-		print("Duplicate Patterns:")
+		_msg.min("Duplicate Patterns:")
 		for dup in duplicates:
-			print(dup)
-		print()
+			_msg.min(dup)
+		_msg.min()
 
 	return total
 
@@ -1637,10 +1646,10 @@ def update_git_repos(_config, _msg, _bar):
 	for repo in patdev_repos:
 		repo_path = sca_repo_dir + repo
 		if os.path.exists(repo_path):
-			_msg.normal("+ Updating Local " + repo + " Repository")
+			_msg.normal("+ Updating Local Repository", repo)
 			prog = "git -C " + repo_path + " pull"
 		else:
-			_msg.normal("+ Cloning GitHub " + repo + " Repository")
+			_msg.normal("+ Cloning GitHub Repository", repo)
 			prog = "git -C " + sca_repo_dir + " clone " + github_uri_base + "/" + repo + ".git"
 
 		try:
