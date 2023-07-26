@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.15'
+SVER = '2.0.16'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Runs a pattern or patterns against supportconfig directories to
 #               check the pattern's output based on the supportconfig directory.
-# Modified:     2023 Jul 24
+# Modified:     2023 Jul 26
 #
 ##############################################################################
 #
@@ -125,7 +125,7 @@ def show_summary():
 			pd.separator_line('-')
 		if len(invalid_patterns) > 0:
 			for invalid_pattern in invalid_patterns:
-				msg.min("clear; /home/opt/scatools/sca-patterns-devel/bin/pat -a " + invalid_pattern[1] + " " + invalid_pattern[0] + " -l debug")
+				msg.min("clear; pat -a " + invalid_pattern[1] + " " + invalid_pattern[0] + " -l3")
 		else:
 			msg.min("None")
 	msg.min()

@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '1.0.1_dev1'
+SVER = '2.0.0'
 ##############################################################################
 # chktid - Checks for Existing or Suggested TIDs
 # Copyright (C) 2023 SUSE LLC
@@ -8,7 +8,7 @@ SVER = '1.0.1_dev1'
 #               if a pattern has already been written. Likewise, it can search
 #               the SUSE support site for TIDs that currently don't have a 
 #               pattern.
-# Modified:     2023 Jul 24
+# Modified:     2023 Jul 26
 #
 ##############################################################################
 #
