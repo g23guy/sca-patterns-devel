@@ -6,7 +6,7 @@
 #
 # Description:  Runs new security patterns against supportconfigs in the
 #               archive directory using the pat tool.
-# Modified:     2023 Jul 24
+# Modified:     2023 Jul 27
 #
 ##############################################################################
 #
@@ -34,26 +34,27 @@ import getopt
 import configparser
 import patdevel as pd
 
-SVER='2.0.0_beta3'
+SVER='2.0.1'
 config_file = "/etc/opt/patdevel/patdev.ini"
 title_string = "SCA Pattern Checker"
 
 def usage():
+	display = "  {:33s} {}"
 	print("Usage: samgr [options]")
 	print()
 	print("Description:")
 	print("  Performs requested actions for Security Announcement management")
 	print()
 	print("Options:")
-	print(pd.usage_display.format('-h, --help', "Display this help"))
-	print(pd.usage_display.format('-v, --validate', "Validate patterns created by sagen. This is the default action."))
-	print(pd.usage_display.format('-d, --distribute', "Distribute security patterns to associated repositories"))
-	print(pd.usage_display.format('-r, --remove', "Remove uncommitted security patterns from repositories"))
-	print(pd.usage_display.format('-c, --config', "Show the configuration file data"))
-	print(pd.usage_display.format('-s, --status', "Show the current status"))
-	print(pd.usage_display.format('-p, --repos', "Update GitHub repositories"))
-	print(pd.usage_display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
-	print(pd.usage_display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
+	print(display.format('-h, --help', "Display this help"))
+	print(display.format('-v, --validate', "Validate patterns created by sagen. This is the default action."))
+	print(display.format('-d, --distribute', "Distribute security patterns to associated repositories"))
+	print(display.format('-r, --remove', "Remove uncommitted security patterns from repositories"))
+	print(display.format('-c, --config', "Show the configuration file data"))
+	print(display.format('-s, --status', "Show the current status"))
+	print(display.format('-p, --repos', "Update GitHub repositories"))
+	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
+	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
 	print()
 
 def main(argv):

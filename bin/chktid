@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.0'
+SVER = '2.0.1'
 ##############################################################################
 # chktid - Checks for Existing or Suggested TIDs
 # Copyright (C) 2023 SUSE LLC
@@ -8,7 +8,7 @@ SVER = '2.0.0'
 #               if a pattern has already been written. Likewise, it can search
 #               the SUSE support site for TIDs that currently don't have a 
 #               pattern.
-# Modified:     2023 Jul 26
+# Modified:     2023 Jul 27
 #
 ##############################################################################
 #
@@ -49,14 +49,15 @@ web_range_max = 12
 
 def usage():
 	"Displays usage information"
+	display = "  {:33s} {}"
 	print("Usage: chktid [options] [<search_string> | -s [-p]]")
 	print()
 	print("Options:")
-	print("  -h           Display this help")
-	print("  -l <level>   Set log level, default: Minimal")
-	print("     0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug")
-	print("  -s           Get suggested TIDs from SUSE support website")
-	print("  -p <0-" + str(web_range_max) + ">    SUSE support web number of pages to evaluate, default: 1")
+	print(display.format("-h, --help", "Display this help"))
+	print(display.format("-s, --suggestions", "Get suggested TIDs from SUSE support website"))
+	print(display.format("-p <0-" + str(web_range_max) + ">, --pages <0-" + str(web_range_max) + ">", "SUSE support web number of pages to evaluate, default: 1"))
+	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
+	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
 	print()
 
 def signal_handler(sig, frame):

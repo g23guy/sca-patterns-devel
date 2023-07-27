@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-SVER = '2.0.10'
+SVER = '2.0.11'
 ##############################################################################
 # sagen.py - Security Advisory Announcement Pattern Generator
 # Copyright (C) 2022-2023 SUSE LLC
 #
 # Description:  Creates a python security advisory pattern from HTML page
-# Modified:     2023 Jul 19
+# Modified:     2023 Jul 27
 #
 ##############################################################################
 #
@@ -54,17 +54,16 @@ all_counters = {'pattern_count_current': 0, 'pattern_count_total': 0, 'a_errors'
 # Functions and Classes
 def usage():
 	"Displays usage information"
+	display = "  {:35s} {}"
 	print("Usage: sagen.py [options] [Month][Year]")
 	print()
 	print("Options:")
-	print("  -h           Display this help")
-	print("  -f <file>    Process a single securty announcement HTML file for debugging.")
-	print("               NOTE: Url data may not be accurate.")
-	print("  -q           Do not display output, run quietly")
-	print("  -r <range_string>")
-	print("               Date range for security announcements. Format: first:last,next")
-	print("  -l <level>   Set log level, default: Minimal")
-	print("               0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug")
+	print(display.format("-h, --help", "Display this help"))
+	print(display.format("-f <file>, --file <file>", "Process a single securty announcement HTML file for debugging."))
+	print(display.format("", "NOTE: Url data may not be accurate."))
+	print(display.format("-r <range_str>, --range <range_str>", "Date range for security announcements. Format: first:last,next"))
+	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
+	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
 	print()
 
 def signal_handler(sig, frame):

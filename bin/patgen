@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '1.0.16'
+SVER = '2.0.1'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2023 Jul 24
+# Modified:     2023 Jul 27
 #
 ##############################################################################
 #
@@ -45,6 +45,7 @@ conf_file = "/etc/opt/patdevel/patdev.ini"
 # Class and Function Definitions
 
 def usage():
+	display = "  {:33s} {}"
 	print("Usage:")
 	print("  " + str(os.path.basename(__file__)) + " [OPTIONS] <class,category,component,filename,tid#[,bug#]>")
 	print()
@@ -58,17 +59,18 @@ def usage():
 	print("  Documentation: /usr/share/doc/packages/sca-patterns-devel/index.html")
 	print()
 	print("OPTIONS")
-	print("  -c <0-3>, --conditions=<0-3>       Number of conditional functions to include, default=0")
-	print("  -k <ver>, --kernel-version=<ver>   The kernel's version where the issue is fixed")
-	print("  -r <name>, --rpm=<name>            The affected RPM package name")
-	print("  -o, --no-validation                Ignore invalid solution links")
-	print("  -p <ver>, --package-version=<ver>  The package's version where the issue is fixed")
-	print("  -s <name>, --service=<name>        The systemd service name affected")
-	print("  -u <[tag=]url>, --url=<[tag=]url>  Additional solution link URL. You can also enter a CVE number like \"CVE-2022-23303\"")
-	print("  -f, --flat                         All requested conditions are tested independently and not included in stacked order")
-	print("  -d, --no-duplicates                Don't check for duplicate patterns")
-	print("  -l <level>, --log_level <level>    Set log level, default: Minimal")
-	print("                                     0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug")
+	print(display.format("-h, --help", "Display this help"))
+	print(display.format("-c <0-3>, --conditions=<0-3>", "Number of conditional functions to include, default=0"))
+	print(display.format("-k <ver>, --kernel-version=<ver>", "The kernel's version where the issue is fixed"))
+	print(display.format("-r <name>, --rpm=<name>", "The affected RPM package name"))
+	print(display.format("-o, --no-validation", "Ignore invalid solution links"))
+	print(display.format("-p <ver>, --package-version=<ver>", "The package's version where the issue is fixed"))
+	print(display.format("-s <name>, --service=<name>", "The systemd service name affected"))
+	print(display.format("-u <[tag=]url>, --url=<[tag=]url>", "Additional solution link URL. You can also enter a CVE number like \"CVE-2022-23303\""))
+	print(display.format("-f, --flat", "All requested conditions are tested independently and not included in stacked order"))
+	print(display.format("-d, --no-duplicates", "Don't check for duplicate patterns"))
+	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
+	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
 	print()
 	print("METADATA")
 	print("  class:        SLE,HAE,SUMA,Security,Custom")
@@ -117,7 +119,6 @@ def main(argv):
 
 	pat = pd.PatternTemplate(title_string, SVER, config, msg)
 
-	user_logging = -1
 	try:
 		(optlist, args) = getopt.gnu_getopt(argv[1:], "hc:dfk:r:p:s:u:ol:", ["help", "conditions=", "no-duplicates", "flat", "kernel-version=", "rpm=", "package-version=", "service=", "url=", "no-validation", "log_level="])
 	except getopt.GetoptError as exc:
@@ -157,25 +158,11 @@ def main(argv):
 		elif opt in {"-o", "--no-validation"}:
 			pat.set_override_validation(True)
 		elif opt in {"-l", "--log_level"}:
-			if( arg.isdigit() ):
-				user_logging = int(arg)
+			user_logging = msg.validate_level(arg)
+			if( user_logging >= msg.LOG_QUIET ):
+				msg.set_level(user_logging)
 			else:
-				argstr = arg.lower()
-				if( argstr.startswith("qui") ):
-					msg.set_level(msg.LOG_QUIET)
-				elif( argstr.startswith("min") ):
-					msg.set_level(msg.LOG_MIN)
-				elif( argstr.startswith("norm") ):
-					msg.set_level(msg.LOG_NORMAL)
-				elif( argstr.startswith("verb") ):
-					msg.set_level(msg.LOG_VERBOSE)
-				elif( argstr.startswith("debug") ):
-					msg.set_level(msg.LOG_DEBUG)
-				else:
-					print("Invalid log level, using default")
-
-	if( user_logging >= msg.LOG_QUIET ):
-		msg.set_level(user_logging)
+				print("Warning: Invalid log level, using instance default")
 
 	if( msg.get_level() > msg.LOG_QUIET ):
 		pd.title(title_string, SVER)
@@ -205,7 +192,7 @@ def main(argv):
 if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
 	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-	msg = pd.DisplayMessages(config)
+	msg = pd.DisplayMessages()
 	main(sys.argv)
 
 
