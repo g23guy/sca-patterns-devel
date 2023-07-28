@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.1'
+SVER = '2.0.2'
 ##############################################################################
 # linkchk.py - SCA Pattern Link Verification Tool
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Validates META_LINK solution URLs to ensure they are valid.
 #               Supports python and perl patterns with *.py and *.pl extensions.
-# Modified:     2023 Jul 24
+# Modified:     2023 Jul 27
 #
 ##############################################################################
 #
@@ -148,7 +148,6 @@ def main(argv):
 
 	msg.normal("Log Level", msg.get_level_str())
 
-	msg.normal("Loading patterns")
 	given_file = ''
 	if len(args) > 0:
 		# TODO: support multiple files given on the command line to validate
@@ -157,9 +156,9 @@ def main(argv):
 			path = os.path.abspath(given_file)
 			pattern_list = pd.get_pattern_list(path, recurse_directory)
 			if recurse_directory:
-				msg.min("Recursively Processing", path)
+				msg.min("Recursively processing directory", path)
 			else:
-				msg.min("Processing", path)
+				msg.min("Processing directory", path)
 		elif os.path.isfile(given_file):
 			given_file = os.path.abspath(given_file)
 			msg.min("Processing file", given_file)
@@ -170,9 +169,9 @@ def main(argv):
 	else:
 		path = pat_dir
 		if recurse_directory:
-			msg.min("Recursively Processing", path)
+			msg.min("Recursively processing directory", path)
 		else:
-			msg.min("Processing", path)
+			msg.min("Processing directory", path)
 		pattern_list = pd.get_pattern_list(path, recurse_directory)
 
 	c_['pat_total'] = len(pattern_list)

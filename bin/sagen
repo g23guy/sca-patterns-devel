@@ -244,7 +244,7 @@ def process_archive_threads():
 	zsize = len(str(all_counters['pattern_count_total']))
 	msg.min("Announcements to Process", str(all_counters['pattern_count_total']) + "\n")
 	if( msg.get_level() == msg.LOG_MIN ):
-		bar = pd.ProgressBar(" Processing: ", all_counters['pattern_count_total'])
+		bar = pd.ProgressBar("Processing: ", all_counters['pattern_count_total'])
 
 	for sa_id, sa_file in said_file_pairs.items():
 		sa_url = target_url + sa_file
