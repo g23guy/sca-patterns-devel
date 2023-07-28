@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.2'
+SVER = '2.0.3'
 ##############################################################################
 # linkchk.py - SCA Pattern Link Verification Tool
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Validates META_LINK solution URLs to ensure they are valid.
 #               Supports python and perl patterns with *.py and *.pl extensions.
-# Modified:     2023 Jul 27
+# Modified:     2023 Jul 28
 #
 ##############################################################################
 #
@@ -59,13 +59,14 @@ title_string = "SCA Pattern Link Verification Tool"
 
 def usage():
 	"Displays usage information"
+	display = "  {:33s} {}"
 	print("Usage: linkchk [options] [filepath]")
 	print()
 	print("Options:")
-	print("  -h, --help                       Display this help")
-	print("  -r, --recurse                    Validate patterns recursively found in the directory structure")
-	print("  -l <level>, --log_level <level>  Set log level, default: Minimal")
-	print("                                   0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug")
+	print(display.format("-h, --help", "Display this help"))
+	print(display.format("-r, --recurse", "Validate patterns and archives recursively found in the directory structures"))
+	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
+	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
 	print()
 
 def signal_handler(sig, frame):
