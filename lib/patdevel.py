@@ -38,7 +38,7 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "0.0.17"
+__version__ = "0.0.18"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 distribution_log_filename = "distribution.log"
@@ -1389,9 +1389,9 @@ def check_directories(_config):
 		return True
 
 
-def show_config_file():
+def show_config_file(_config):
 	"""Dump the current configuration file object"""
-	print("Config File: {0}\n".format(_config_file))
+	print("Config File: {0}\n".format(config_file))
 	for section in _config.sections():
 		print("[%s]" % section)
 		for options in _config.options(section):
