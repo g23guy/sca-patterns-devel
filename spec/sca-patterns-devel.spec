@@ -25,9 +25,9 @@ License:      GPL-2.0-only
 URL:          https://github.com/g23guy/sca-patterns-devel
 Group:        System/Monitoring
 Source:       %{name}-%{version}.tar.gz
-Requires:     /usr/bin/git
-Requires:     /usr/bin/python3
-Requires:     /usr/bin/w3m
+Requires:     %{_bindir}/git
+Requires:     %{_bindir}/python3
+Requires:     %{_bindir}/w3m
 BuildArch:    noarch
 
 %description
@@ -42,9 +42,9 @@ Tools used in the creation and testing of supportconfig analysis patterns for th
 pwd;ls -la
 #install -d %{buildroot}%{_mandir}/man5
 #install -d %{buildroot}%{_mandir}/man8
-mkdir -p %{buildroot}%{_libdir}/%{pythondir}
-mkdir -p %{buildroot}/usr/local/bin
-mkdir -p %{buildroot}/usr/local/sbin
+mkdir -p %{buildroot}%{_libexecdir}/%{pythondir}
+mkdir -p %{buildroot}%{_bindir}
+mkdir -p %{buildroot}%{_sbindir}
 mkdir -p %{buildroot}%{patdevbasedir}
 mkdir -p %{buildroot}%{patdevbasedir}/repos
 mkdir -p %{buildroot}%{patdevbasedir}/patterns
@@ -57,10 +57,10 @@ mkdir -p %{buildroot}%{patdevconfdir}
 mkdir -p %{buildroot}%{patdocs}
 mkdir -p %{buildroot}%{patdocs}/python
 mkdir -p %{buildroot}%{patdocs}/perl
-install -m 755 bin/* %{buildroot}/usr/local/bin
-install -m 755 sbin/* %{buildroot}/usr/local/sbin
+install -m 755 bin/* %{buildroot}%{_bindir}
+install -m 755 sbin/* %{buildroot}%{_sbindir}
 install -m 664 conf/* %{buildroot}%{patdevconfdir}
-install -m 644 lib/* %{buildroot}%{_libdir}/%{pythondir}
+install -m 644 lib/* %{buildroot}%{_libexecdir}/%{pythondir}
 install -m 644 docs/python/* %{buildroot}%{patdocs}/python
 install -m 644 docs/perl/* %{buildroot}%{patdocs}/perl
 install -m 644 docs/alias %{buildroot}%{patdocs}
@@ -72,10 +72,10 @@ install -m 644 docs/index.html %{buildroot}%{patdocs}
 %dir %{patdevconfdir}
 %dir %{patdocs}
 %{patdevbasedir}/*
-/usr/local/bin/*
-/usr/local/sbin/*
-%{_libdir}/%{pythondir}
-%{_libdir}/%{pythondir}/*
+%{_bindir}/*
+%{_sbindir}/*
+%{_libexecdir}/%{pythondir}
+%{_libexecdir}/%{pythondir}/*
 %{patdocs}/*
 %{patdocs}/python/*
 %{patdocs}/perl/*
