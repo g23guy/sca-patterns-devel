@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER='2.0.3'
+SVER = '2.0.13'
 ##############################################################################
 # sagvc - Security Announcement Patterns Change Log Generator
 # Copyright (C) 2023 SUSE LLC
 #
-# Description:  Creates a list of new security announcement pattern entry for
-#               the change log
-# Modified:     2023 Jun 19
+# Description:  Creates a list of new security announcement pattern entries
+#               for the change log
+# Modified:     2023 Aug 04
 #
 ##############################################################################
 #
@@ -32,147 +32,154 @@ import os
 import re
 import getopt
 import datetime
-import subprocess as sp
-import patdevel
+import signal
+import configparser
+import patdevel as pd
 
-def title():
-	"Display the program title"
-	print("#############################################################################")
-	print("# Security Advisory Change Log Generator v" + str(SVER))
-	print("#############################################################################\n")
+##############################################################################
+# Global Options
+##############################################################################
+
+title_string = "Security Advisory Change Log Generator"
+
+##############################################################################
+# Functions
+##############################################################################
 
 def usage():
 	"Displays usage information"
-	print("Usage: sagvc [options] [Month][Year]")
+	display = "  {:33s} {}"
+	print("Usage: sagvc [options] [Date]")
 	print()
 	print("Options:")
-	print("  -h           Display this help")
+	print(display.format("-h, --help", "Display this help"))
+	print(display.format('-r <dir>, --repo <dir>', "Set the path to a GitHub repository directory"))
+	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
+	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
 	print()
 
-def convert_date(given_str):
-	"Converts given string to valid date for URL retrival"
-	converted_str = 'INVALID'
-	today = datetime.datetime.today()
-	MONTHS = {1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun', 
-	7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec', 
-	'jan': 'Jan', 'feb': 'Feb', 'mar': 'Mar', 'apr': 'Apr', 'may': 'May', 'jun': 'Jun', 
-	'jul': 'Jul', 'aug': 'Aug', 'sep': 'Sep', 'oct': 'Oct', 'nov': 'Nov', 'dec': 'Dec'}
-	this_year = today.strftime("%Y")
-	this_month = int(today.strftime("%m"))
-	use_year = ''
-	use_month = ''
-	if( len(given_str) > 0 ):
-		if( '-' in given_str ):
-			parts = given_str.split('-')
-		elif( '/' in given_str ):
-			parts = given_str.split('/')
-		else:
-			parts = [given_str, '0']
+def signal_handler(sig, frame):
+	print("\n\nAborting...\n")
+	sys.exit(1)
 
-		#print(parts)
-		for part in parts:
-			if( part.isdigit() ):
-				part = int(part)
-				if( part > 0 ):
-					if( part > 12 ): # Assume it's the requested year
-						if( part > 99 ):
-							use_year = str(part)
-						else:
-							use_year = "20" + str(part)
-					else: # Assume it's the requested month
-						if( part in MONTHS.keys() ):
-							use_month = MONTHS[part]
-						else:
-							sys.exit(3)
-			else:
-				part = part[:3].lower()
-				if( part in MONTHS.keys() ):
-					use_month = MONTHS[part]
-				else:
-					sys.exit(3)
-		if( len(use_year) == 0 ):
-			use_year = this_year
-		if( len(use_month) == 0 ):
-			use_month = MONTHS[this_month]
-		converted_str = str(use_month) + " " +str(use_year)
-	else:
-		if( this_month == 1 ):
-			use_month = 12
-			use_year = int(this_year) - 1
-		else:
-			use_month = this_month - 1
-			use_year = this_year
-		converted_str = str(MONTHS[use_month]) + " " + str(use_year)
-	return converted_str
-
-
-def main(argv):
-	global SVER
-	parse_patterns = []
-	spec_ver = 0
-	count = 0
-	date_updated = ''
+def generate_sa_change_log(_git_repo, _given_date):
 	SAID_WIDTH = 5
-
-	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "h")
-	except getopt.GetoptError as exc:
-		title()
-		print("Error:", exc, file=sys.stderr)
-		print("\n")
-		usage()
-		sys.exit(2)
-	for opt in optlist:
-		if opt[0] in {"-h"}:
-			title()
-			usage()
-			sys.exit(0)
-	if len(args) > 0:
-		given_date = '-'.join(args)
-	else:
-		given_date = ''
-
-	title()
-	# Check if we are in a github directory for 
-	cwd = os.getcwd()
-	repo_name = os.path.basename(cwd)
-	git_dir = cwd + "/.git"
-	spec_file = cwd + '/spec/' + repo_name + ".spec"
-	date_updated = convert_date(given_date)
-	print("Processing package: {0}".format(repo_name))
-
-	if not os.path.isdir(git_dir):
-		print("Error: Not a GitHub directory")
-		print("Change to an SCA Pattern GitHub repository directory and try again\n")
-		sys.exit(1)
-	elif not os.path.exists(spec_file):
-		print("Error: File not found - " + spec_file)
-		print("Change to an SCA Pattern GitHub repository directory and try again\n")
-		sys.exit(1)
-
-	parse_patterns = parse_patterns + pd.get_uncommitted_repo_list()
-	parse_patterns = parse_patterns + pd.get_committed_repo_list()
-
 	saids = []
-	if( len(parse_patterns) > 0 ):
-		spec_ver = get_spec_ver(spec_file)
+	pattern_list = _git_repo.get_local_sa_patterns()
+	date_updated = pd.convert_log_date(_given_date, use_prev_month=True)
+	count = 0
+	if( len(pattern_list) > 0 ):
+		data = _git_repo.get_info()
 		print()
-		for this_pattern in parse_patterns:
+		for this_pattern in pattern_list:
 			parts = this_pattern.split('_')
 			said = ":".join([parts[-4], parts[-3]])
 			saids.append(said)
 		count = len(saids)
-		print("- Changes in version " + str(spec_ver))
+		print("- Changes in version " + str(data['spec_ver_bumped']))
 		print("  - New security announcement patterns as of " + date_updated + " (" + str(count) + "):")
 		for x in range(0, len(saids), SAID_WIDTH):
 			row = saids[x:x+SAID_WIDTH]
 			print("    " + " ".join(row))
 		print("\nNew security announcement patterns as of " + date_updated + " - " + str(count))
 	else:
-		print("Warning: No security patterns found for the change log\n")
+		print("Warning: No security patterns found for the change log")
 	print()
+
+##############################################################################
+# Main
+##############################################################################
+
+def main(argv):
+	"main entry point"
+	global SVER
+	parse_patterns = []
+	given_dir = ''
+	
+	if( os.path.exists(pd.config_file) ):
+		config.read(pd.config_file)
+		repo_dir = pd.config_entry(config.get("Common", "sca_repo_dir"), '/')
+		repo_list = pd.config_entry(config.get("GitHub", "patdev_repos")).split(',')
+		config_log_level = pd.config_entry(config.get("Common", "log_level"))
+		config_logging = msg.validate_level(config_log_level)
+		if( config_logging >= msg.LOG_QUIET ):
+			msg.set_level(config_logging)
+		else:
+			msg.min("Warning: Invalid log level in config file, using instance default")
+	else:
+		pd.title(title_string, SVER)
+		print("Error: Config file not found - {}".format(pd.config_file))
+		print()
+		sys.exit(1)
+
+	try:
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hr:l:", ["help", "repo=", "log_level="])
+	except getopt.GetoptError as exc:
+		pd.title(title_string, SVER)
+		print("Error:", exc, file=sys.stderr)
+		sys.exit(2)
+	for opt, arg in optlist:
+		if opt in {"-h", "--help"}:
+			pd.title(title_string, SVER)
+			usage()
+			sys.exit(0)
+		elif opt in {"-r", "--repo"}:
+			given_dir = arg
+			if not os.path.isdir(given_dir):
+				pd.title(title_string, SVER)
+				print("Error: Directory not found - {}".format(given_dir))
+				usage()
+				sys.exit(1)
+		elif opt in {"-l", "--log_level"}:
+			user_logging = msg.validate_level(arg)
+			if( user_logging >= msg.LOG_QUIET ):
+				msg.set_level(user_logging)
+			else:
+				print("Warning: Invalid log level, using instance default")
+
+	if( msg.get_level() > msg.LOG_QUIET ):
+		pd.title(title_string, SVER)
+
+	msg.normal("Log Level", msg.get_level_str())
+
+	if len(args) > 0: # A path to a proposed GitHub repository was given on the command line
+		given_date = '-'.join(args)
+	else:
+		given_date = ''
+
+	if( len(given_dir) > 0 ):
+		path = os.path.abspath(given_dir)
+		msg.debug("  <arg> GitHub directory given", path)
+		if pd.github_path_valid(msg, path):
+			pd.separator_line('-')
+			msg.min("Repository location", path)
+			git_repo = pd.GitHubRepository(msg, path)
+			generate_sa_change_log(git_repo, given_date)
+		else:
+			msg.min("Invalid GitHub repository", path)
+			sys.exit(4)
+
+	else: # No repository path given on the command line
+		path = os.getcwd()
+		msg.debug("  <cwd> GitHub directory given", path)
+		if pd.github_path_valid(msg, path):
+			pd.separator_line('-')
+			msg.min("Repository location", path)
+			git_repo = pd.GitHubRepository(msg, path)
+			generate_sa_change_log(git_repo, given_date)
+		else:
+			msg.debug("  <conf> GitHub directories", pd.config_file)
+			for repo in repo_list:
+				pd.separator_line('-')
+				path = repo_dir + repo
+				msg.min("Repository location", path)
+				git_repo = pd.GitHubRepository(msg, path)
+				generate_sa_change_log(git_repo, given_date)
 
 # Entry point
 if __name__ == "__main__":
+	signal.signal(signal.SIGINT, signal_handler)
+	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+	msg = pd.DisplayMessages()
 	main(sys.argv)
 

@@ -29,7 +29,6 @@ SVER = '2.0.1'
 
 import sys
 import os
-import subprocess
 import re
 import getopt
 import signal

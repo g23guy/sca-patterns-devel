@@ -1,12 +1,12 @@
-#!/bin/bash
-SVER='1.0.0'
+#!/usr/bin/python3
+SVER = '2.0.13'
 ##############################################################################
-# patgvc - Regular Patterns Change Log Generator
-# Copyright (C) 2022 SUSE LLC
+# sagvc - Regular Patterns Change Log Generator
+# Copyright (C) 2023 SUSE LLC
 #
-# Description:  Creates a list of new regular patterns entry for
-#               the change log
-# Modified:     2022 Nov 04
+# Description:  Creates a list of new regular pattern entries for the change
+#               log
+# Modified:     2023 Aug 04
 #
 ##############################################################################
 #
@@ -27,119 +27,220 @@ SVER='1.0.0'
 #
 ##############################################################################
 
-echo "##############################################################"
-echo "# New Pattern Change Log Generator v$SVER"
-echo "##############################################################"
-echo
+import sys
+import os
+import re
+import getopt
+import datetime
+import signal
+import configparser
+import patdevel as pd
 
-SPEC=$(ls -1 spec/*.spec 2>/dev/null | wc -l)
-if (( $SPEC < 1 )); then
-	echo "ERROR: Missing spec file"
-	exit
-fi
-VER=$(grep -i version\: spec/*.spec | awk '{print $NF}')
-SAIDS_NEW=''
-SAIDS_MOD=''
-SAIDS_DEL=''
-PAT_COUNT_NEW=0
-PAT_COUNT_MOD=0
-PAT_COUNT_DEL=0
-PAT_COUNT=0
-COMP_TIDSTR='META_LINK_TID='
-COMP_BUGSTR='META_LINK_BUG='
-echo "Getting committed changes"
-#COMMITTED=$(for i in $(git log origin/master..master | grep commit | awk '{print $NF}'); do git diff-tree --no-commit-id --name-only -r $i; done | grep 'patterns/')
-COMMITTED=$(for i in $(git log origin/master..master | grep commit | awk '{print $NF}'); do git diff-tree --no-commit-id --name-status -r $i; done | grep 'patterns/' | sed -e "s/[[:space:]]/:/g")
-echo "Getting local changes"
-echo
-LOCAL=$(git status | grep 'patterns/' | sed -e "s/^[[:space:]]*new file:[[:space:]]*//;s/^[[:space:]]*/A:/;s/^[[:space:]]*deleted:[[:space:]]*/D:/;s/^[[:space:]]*modified:[[:space:]]*/M:/")
-for PATTERN in $LOCAL $COMMITTED
-do
-#	echo $PATTERN
-	TYPE=$(cut -d\: -f1 <<< $PATTERN)
-	i=$(cut -d\: -f2 <<< $PATTERN)
-	BUG=''
-	TID=''
-	case $TYPE in
-	D)
-		TITLE=" Pattern removed"
-		;;
-	M)
-		TITLE=$(grep 'Description:' ${i} | awk -F\: '{print $NF}')
-		META=$(grep 'OTHER_LINKS =' ${i} | awk -F\" '{print $2}')
-		for LINK in $(tr "|" " " <<< $META)
-		do
-			if [[ $LINK =~ $COMP_TIDSTR ]]; then
-				TID="TID$(awk -F= '{print $NF}' <<< $LINK)"
-			elif [[ $LINK =~ $COMP_BUGSTR ]]; then
-				BUG="bsc#$(awk -F= '{print $NF}' <<< $LINK)"
-			fi
-		done
-		;;
-	A)
-		TITLE=$(grep 'Description:' ${i} | awk -F\: '{print $NF}')
-		META=$(grep 'OTHER_LINKS =' ${i} | awk -F\" '{print $2}')
-		for LINK in $(tr "|" " " <<< $META)
-		do
-			if [[ $LINK =~ $COMP_TIDSTR ]]; then
-				TID="TID$(awk -F= '{print $NF}' <<< $LINK)"
-			elif [[ $LINK =~ $COMP_BUGSTR ]]; then
-				BUG="bsc#$(awk -F= '{print $NF}' <<< $LINK)"
-			fi
-		done
+##############################################################################
+# Global Options
+##############################################################################
 
-		;;
-	esac
-	PATFILEBASE=$(basename ${i})
-	PATDIRBASE=$(dirname ${i})
-	PATDIR=$(basename $PATDIRBASE)
-	PATFILE="${PATDIR}/${PATFILEBASE}"
-	case $TYPE in
-	M)
-		(( PAT_COUNT_MOD++ ))
-		if [[ -n $BUG ]]; then
-			SAIDS_MOD=$(printf "    + ${PATFILE}:${TITLE} (${BUG})\n${SAIDS_MOD}")
-		elif [[ -n $TID ]]; then
-			SAIDS_MOD=$(printf "    + ${PATFILE}:${TITLE} (${TID})\n${SAIDS_MOD}")
-		else
-			SAIDS_MOD=$(printf "    + ${PATFILE}:${TITLE}\n${SAIDS_MOD}")
-		fi
-		;;
-	D)
-		(( PAT_COUNT_DEL++ ))
-		SAIDS_DEL=$(printf "    + ${PATFILE}:${TITLE}\n${SAIDS_DEL}")
-		;;
-	A)
-		(( PAT_COUNT_NEW++ ))
-		if [[ -n $BUG ]]; then
-			SAIDS_NEW=$(printf "    + ${PATFILE}:${TITLE} (${BUG})\n${SAIDS_NEW}")
-		elif [[ -n $TID ]]; then
-			SAIDS_NEW=$(printf "    + ${PATFILE}:${TITLE} (${TID})\n${SAIDS_NEW}")
-		else
-			SAIDS_NEW=$(printf "    + ${PATFILE}:${TITLE}\n${SAIDS_NEW}")
-		fi
-		;;
-	esac
-done
-PAT_COUNT=$((PAT_COUNT_NEW + PAT_COUNT_MOD + PAT_COUNT_DEL))
-if (( $PAT_COUNT )); then
-	echo "- Changes in version ${VER}"
-fi
-if (( $PAT_COUNT_NEW )); then
-	echo "  - New regular patterns (${PAT_COUNT_NEW})"
-	echo "$SAIDS_NEW" | sort
-fi
-if (( $PAT_COUNT_MOD )); then
-	echo "  - Updated regular patterns (${PAT_COUNT_MOD})"
-	echo "$SAIDS_MOD" | sort
-fi
-if (( $PAT_COUNT_DEL )); then
-	echo "  - Deleted regular patterns (${PAT_COUNT_DEL})"
-	echo "$SAIDS_DEL" | sort
-fi
+title_string = "Regular Pattern Change Log Generator"
 
-echo
-echo "Affected Patterns $PAT_COUNT"
-echo
-echo
+##############################################################################
+# Functions
+##############################################################################
+
+def usage():
+	"Displays usage information"
+	display = "  {:33s} {}"
+	print("Usage: patgvc [options] [Date]")
+	print()
+	print("Options:")
+	print(display.format("-h, --help", "Display this help"))
+	print(display.format('-d <dir>, --dir <dir>', "Set the path to a GitHub repository directory"))
+	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
+	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
+	print()
+
+def signal_handler(sig, frame):
+	print("\n\nAborting...\n")
+	sys.exit(1)
+
+def get_pattern_info(pattern_file):
+	descr = re.compile("Description:", re.IGNORECASE)
+	links = re.compile("OTHER_LINKS =", re.IGNORECASE)
+	description = ''
+	tid_str = ''
+	bug_str = ''
+	tag_str = ''
+	fd = open(pattern_file, "r")
+	lines = fd.readlines()
+	fd.close()
+	for line in lines:
+		if descr.search(line):
+			description = line.split(':')[-1].strip().strip()
+		elif links.search(line):
+			link_list = line.strip().strip('\"\'').split('|')
+			for link in link_list:
+				if link.startswith('META_LINK_TID='):
+					tid_str = "TID" + str(link.split('=')[-1])
+				elif link.startswith('META_LINK_BUG='):
+					tid_str = "bsc#" + str(link.split('=')[-1])
+	
+	if( len(bug_str) > 0 ):
+		tag_str = bug_str
+	elif( len(tid_str) > 0 ):
+		tag_str = tid_str
+
+	return [description, tid_str, bug_str, tag_str]
+
+def generate_reg_change_log(_git_repo, _given_date):
+	pattern_list = _git_repo.get_local_regular_patterns()
+	add_dict = {}
+	mod_dict = {}
+	del_dict = {}
+	date_updated = pd.convert_log_date(_given_date)
+	count = 0
+	if( len(pattern_list) > 0 ):
+		data = _git_repo.get_info()
+		count_total = 0
+		print()
+		for this_pattern, this_action in pattern_list.items():
+			if this_action == "del":
+				del_dict[this_pattern] = {'title': '', 'tid': '', 'bug': '', 'tag': ''}
+			elif this_action == "add":
+				(title, tid, bug, tag) = get_pattern_info(this_pattern)
+				add_dict[this_pattern] = {'title': title, 'tid': tid, 'bug': bug, 'tag': tag}
+			elif this_action == "mod":
+				(title, tid, bug, tag) = get_pattern_info(this_pattern)
+				mod_dict[this_pattern] = {'title': title, 'tid': tid, 'bug': bug, 'tag': tag}
+		print("- Changes in version " + str(data['spec_ver_bumped']))
+		count = len(add_dict)
+		count_total += count
+		if( count > 0 ):
+			print("  - New patterns (" + str(count) + "):")
+			key_index = list(add_dict.keys())
+			key_index.sort()
+			for key in key_index:
+				if( len(add_dict[key]['title']) > 0 ):
+					print("    + {}: {} ({})".format(key, add_dict[key]['title'], add_dict[key]['tag']))
+				else:
+					print("    + {}".format(key))
+		count = len(mod_dict)
+		count_total += count
+		if( count > 0 ):
+			print("  - Updated patterns (" + str(count) + "):")
+			key_index = list(mod_dict.keys())
+			key_index.sort()
+			for key in key_index:
+				if( len(mod_dict[key]['title']) > 0 ):
+					print("    + {}: {} ({})".format(key, mod_dict[key]['title'], mod_dict[key]['tag']))
+				else:
+					print("    + {}".format(key))
+		count = len(del_dict)
+		count_total += count
+		if( count > 0 ):
+			print("  - Deleted patterns (" + str(count) + "):")
+			key_index = list(del_dict.keys())
+			key_index.sort()
+			for key in key_index:
+				print("    + {}".format(key))
+
+		print("\nAffected Patterns {}".format(count_total))
+	else:
+		print("Warning: No regular patterns found for the change log")
+	print()
+
+##############################################################################
+# Main
+##############################################################################
+
+def main(argv):
+	"main entry point"
+	global SVER
+	parse_patterns = []
+	given_dir = ''
+	
+	if( os.path.exists(pd.config_file) ):
+		config.read(pd.config_file)
+		repo_dir = pd.config_entry(config.get("Common", "sca_repo_dir"), '/')
+		repo_list = pd.config_entry(config.get("GitHub", "patdev_repos")).split(',')
+		config_log_level = pd.config_entry(config.get("Common", "log_level"))
+		config_logging = msg.validate_level(config_log_level)
+		if( config_logging >= msg.LOG_QUIET ):
+			msg.set_level(config_logging)
+		else:
+			msg.min("Warning: Invalid log level in config file, using instance default")
+	else:
+		pd.title(title_string, SVER)
+		print("Error: Config file not found - {}".format(pd.config_file))
+		print()
+		sys.exit(1)
+
+	try:
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hd:l:", ["help", "dir=", "log_level="])
+	except getopt.GetoptError as exc:
+		pd.title(title_string, SVER)
+		print("Error:", exc, file=sys.stderr)
+		sys.exit(2)
+	for opt, arg in optlist:
+		if opt in {"-h", "--help"}:
+			pd.title(title_string, SVER)
+			usage()
+			sys.exit(0)
+		elif opt in {"-d", "--dir"}:
+			given_dir = arg
+			if not os.path.isdir(given_dir):
+				pd.title(title_string, SVER)
+				print("Error: Directory not found - {}".format(given_dir))
+				usage()
+				sys.exit(1)
+		elif opt in {"-l", "--log_level"}:
+			user_logging = msg.validate_level(arg)
+			if( user_logging >= msg.LOG_QUIET ):
+				msg.set_level(user_logging)
+			else:
+				print("Warning: Invalid log level, using instance default")
+
+	if( msg.get_level() > msg.LOG_QUIET ):
+		pd.title(title_string, SVER)
+
+	msg.normal("Log Level", msg.get_level_str())
+
+	if len(args) > 0: # A path to a proposed GitHub repository was given on the command line
+		given_date = '-'.join(args)
+	else:
+		given_date = ''
+
+	if( len(given_dir) > 0 ):
+		path = os.path.abspath(given_dir)
+		msg.debug("  <arg> GitHub directory given", path)
+		if pd.github_path_valid(msg, path):
+			pd.separator_line('-')
+			msg.min("Repository location", path)
+			git_repo = pd.GitHubRepository(msg, path)
+			generate_reg_change_log(git_repo, given_date)
+		else:
+			msg.min("Invalid GitHub repository", path)
+			sys.exit(4)
+
+	else: # No repository path given on the command line
+		path = os.getcwd()
+		msg.debug("  <cwd> GitHub directory given", path)
+		if pd.github_path_valid(msg, path):
+			pd.separator_line('-')
+			msg.min("Repository location", path)
+			git_repo = pd.GitHubRepository(msg, path)
+			generate_reg_change_log(git_repo, given_date)
+		else:
+			msg.debug("  <conf> GitHub directories", "Config File")
+			for repo in repo_list:
+				pd.separator_line('-')
+				path = repo_dir + repo
+				msg.min("Repository location", path)
+				git_repo = pd.GitHubRepository(msg, path)
+				generate_reg_change_log(git_repo, given_date)
+
+# Entry point
+if __name__ == "__main__":
+	signal.signal(signal.SIGINT, signal_handler)
+	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+	msg = pd.DisplayMessages()
+	main(sys.argv)
 

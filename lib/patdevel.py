@@ -2,7 +2,7 @@
 r"""Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Jul 27
+ Modified:     2023 Aug 04
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,12 +38,13 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "0.0.15"
+__version__ = "0.0.17"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 distribution_log_filename = "distribution.log"
 distribution_log_section = "metadata"
 seperator_len = 85
+config_file = "/etc/opt/patdevel/patdev.ini"
 
 def title(title_str, version_str):
 	separator_line("#")
@@ -1153,6 +1154,221 @@ class SecurityAnnouncement():
 			for i in create_list:
 				self.__create_pattern(i, pattern_tag)
 
+class GitHubRepository():
+	"""Creates an instance of a GitHub repository. _path must be a valid GitHub repository"""
+	def __init__(self, _msg, _path):
+		self.msg = _msg
+		self.path = _path
+		self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'outdated': False, 'state': 'Current', 'content': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
+		self.git_config_file = self.path + "/.git/config"
+		self.spec_file = self.path + '/spec/' + self.info['name'] + ".spec"
+		self.uncommitted_patterns = {}
+		self.committed_patterns = {}
+		self.local_sa_patterns = {}
+		self.local_regular_patterns = {}
+		self.__probe_repo_info()
+		self.parse_local_patterns()
+
+	def __str__ (self):
+		return "class %s(level=%r)" % (self.__class__.__name__,self.msg,self.path)
+
+	def __probe_repo_info(self):
+		self.msg.normal("Probing repository information")
+		self.msg.verbose("+ Repository Name", self.info['name'])
+		# Remote origin
+		git_config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+		git_config.read(self.git_config_file)
+		self.info['origin'] = config_entry(git_config.get('remote "origin"', "url"))
+		del git_config
+
+		# Spec file version
+		this_version = ""
+		version = re.compile("^Version:\s.*[0-9]", re.IGNORECASE)
+		fd = open(self.spec_file, "r")
+		lines = fd.readlines()
+		fd.close()
+		for line in lines:
+			if version.search(line):
+				this_version = line.split()[-1]
+				break
+
+		self.info['spec_ver'] = this_version
+
+		if( this_version ):
+			parts = this_version.split('.')
+			bumped = str(int(parts[-1]) + 1)
+			parts[-1] = str(bumped)
+			bumped_version = '.'.join(parts)
+			self.info['spec_ver_bumped'] = bumped_version
+			self.msg.verbose("+ Bumping package version", "{0} -> {1}".format(self.info['spec_ver'], self.info['spec_ver_bumped']))
+		else:
+			self.msg.verbose("+ Could not find package version in {0}".format(get_spec_file))
+
+		# Git remote status
+		os.chdir(self.path)
+		try:
+			p = sp.run(['/usr/bin/git', 'status'], universal_newlines=True, stdout=sp.PIPE, stderr=sp.PIPE)
+		except Exception as e:
+			self.msg.debug('  <> sp.run Exception')
+
+			if( self.msg.get_level() >= self.msg.LOG_NORMAL ):
+				self.msg.normal()
+				print(str(e) + "\n")
+				separator_line('-')
+				print()
+			return self.info
+
+		if p.returncode > 0:
+			self.msg.debug("  <> Non-Zero return code, p.returncode > 0")
+		else:
+			this_branch = re.compile("On branch", re.IGNORECASE)
+			this_status = re.compile("is ahead of|Changes not staged for commit|Untracked files", re.IGNORECASE)
+			data = p.stdout.splitlines()
+			self.msg.debug("<> Command Output", "git status")
+			for line in data:
+				self.msg.debug("> " + line)
+				if this_branch.search(line):
+					self.info['branch'] = line.split()[-1]
+				elif this_status.search(line):
+					self.info['outdated'] = True
+					self.info['state'] = "Push"
+			self.info['content'] = data
+
+		if( len(self.info['origin']) == 0 ):
+			self.info['valid'] = False
+		if( len(self.info['branch']) == 0 ):
+			self.info['valid'] = False
+		if( len(self.info['content']) == 0 ):
+			self.info['valid'] = False
+
+	def __get_committed_repo_range(self):
+		prog = "git --no-pager branch -a"
+		head_remote = ''
+		head_local = ''
+		repo_range = ''
+		head_name = re.compile("HEAD.*origin/")
+
+		p = sp.run(prog, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
+
+		for l in p.stdout.splitlines():
+			line = l.lstrip()
+			if head_name.search(line):
+				head_remote = line.split()[-1]
+
+		head_local = head_remote.split("/")[-1]
+		repo_range = head_remote + ".." + head_local
+
+		return repo_range
+		
+	def __get_committed_repo_uuid_list(self, _repo_range):
+		prog = "git --no-pager log " + _repo_range
+		commits_to_check = []
+
+		p = sp.run(prog, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
+
+		for l in p.stdout.splitlines():
+			line = l.lstrip()
+			if( line.startswith("commit ") ):
+				commits_to_check.append(line.split()[1])
+		
+		return commits_to_check
+
+	def get_info(self):
+		return self.info
+
+	def get_uncommitted_list(self):
+		self.msg.normal("Searching for local patterns", "uncommitted")
+		prog = "git status"
+		self.uncommitted_patterns = {}
+		pat_file = re.compile("^patterns/.*")
+		new_file = re.compile("^new file:.*patterns/", re.IGNORECASE)
+		mod_file = re.compile("^modified:.*patterns/", re.IGNORECASE)
+		del_file = re.compile("^deleted:.*patterns/", re.IGNORECASE)
+		oldwd = os.getcwd()
+		os.chdir(self.path)
+
+		p = sp.run(prog, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
+		# There are two possible output formats from this command:
+		# 	new file:   patterns/SLE/sle15sp4/xterm_SUSE-SU-2023_0221-1_sles_15.4.py
+		#   patterns/SLE/sle15sp4/xterm_SUSE-SU-2023_0221-1_sles_15.4.py
+		# This currently handles both formats
+		os.chdir(oldwd)
+
+		this_pattern = ''
+		for l in p.stdout.splitlines():
+			line = l.lstrip()
+			if pat_file.search(line):
+				pattern_path = line
+				self.uncommitted_patterns[pattern_path] = 'add'
+			elif new_file.search(line):
+				pattern_path = line.split()[-1]
+				self.uncommitted_patterns[pattern_path] = 'add'
+			elif mod_file.search(line):
+				pattern_path = line.split()[-1]
+				self.uncommitted_patterns[pattern_path] = 'mod'
+			elif del_file.search(line):
+				pattern_path = line.split()[-1]
+				self.uncommitted_patterns[pattern_path] = 'del'
+		self.msg.verbose("+ Patterns Found", str(len(self.uncommitted_patterns.keys())))
+
+	def get_committed_list(self):
+		self.msg.normal("Searching for local patterns", "committed, not pushed")
+		prog = "git diff-tree --no-commit-id --name-only -r "
+		self.committed_patterns = {}
+		pat_file = re.compile("^patterns/.*")
+		new_file = re.compile("^new file:.*patterns/", re.IGNORECASE)
+		mod_file = re.compile("^modified:.*patterns/", re.IGNORECASE)
+		del_file = re.compile("^deleted:.*patterns/", re.IGNORECASE)
+
+		oldwd = os.getcwd()
+		os.chdir(self.path)
+		repo_range = self.__get_committed_repo_range()
+		commit_list = self.__get_committed_repo_uuid_list(repo_range)
+		pattern = re.compile("patterns/.*")
+		
+		for _commit in commit_list:
+			p = sp.run(prog + _commit, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
+
+			for l in p.stdout.splitlines():
+				line = l.lstrip()
+				if pat_file.search(line):
+					pattern_path = line
+					self.committed_patterns[pattern_path] = 'add'
+				elif new_file.search(line):
+					pattern_path = line.split()[-1]
+					self.committed_patterns[pattern_path] = 'add'
+				elif mod_file.search(line):
+					pattern_path = line.split()[-1]
+					self.committed_patterns[pattern_path] = 'mod'
+				elif del_file.search(line):
+					pattern_path = line.split()[-1]
+					self.committed_patterns[pattern_path] = 'del'
+		os.chdir(oldwd)
+		self.msg.verbose("+ Patterns Found", str(len(self.committed_patterns)))
+
+	def parse_local_patterns(self):
+		pattern = re.compile("patterns/.*_SUSE-SU")
+		self.local_sa_patterns = {}
+		self.local_regular_patterns = {}
+		self.get_uncommitted_list()
+		self.get_committed_list()
+		check_patterns = { **self.uncommitted_patterns, **self.committed_patterns } # Merge the two dictionaries
+		self.msg.normal("Filtering local patterns")
+		for key, value in check_patterns.items():
+			if pattern.search(key):
+				self.local_sa_patterns[key] = value
+			else:
+				self.local_regular_patterns[key] = value
+		self.msg.verbose("+ Security Patterns", str(len(self.local_sa_patterns)))
+		self.msg.verbose("+ Regular Patterns", str(len(self.local_regular_patterns)))
+
+	def get_local_sa_patterns(self):
+		return self.local_sa_patterns
+
+	def get_local_regular_patterns(self):
+		return self.local_regular_patterns
+
+
 def check_directories(_config):
 	"""check_directories(configparser_object)
 	Checks if the config file directories are present. Returns True if they are and False otherwise."""
@@ -1173,7 +1389,7 @@ def check_directories(_config):
 		return True
 
 
-def show_config_file(_config_file, _config):
+def show_config_file():
 	"""Dump the current configuration file object"""
 	print("Config File: {0}\n".format(_config_file))
 	for section in _config.sections():
@@ -1181,107 +1397,6 @@ def show_config_file(_config_file, _config):
 		for options in _config.options(section):
 			print("%s = %s" % (options, _config.get(section, options)))
 		print()
-
-def get_uncommitted_repo_list():
-	print("Searching for local uncommitted security patterns")
-	patterns = []
-	prog = "git status"
-	pattern_file = re.compile("patterns/.*_SUSE-SU")
-
-	p = sp.run(prog, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
-	# There are two possible output formats from this command:
-	# 	new file:   patterns/SLE/sle15sp4/xterm_SUSE-SU-2023_0221-1_sles_15.4.py
-	#   patterns/SLE/sle15sp4/xterm_SUSE-SU-2023_0221-1_sles_15.4.py
-	# This currently handles both formats
-
-	for l in p.stdout.splitlines():
-		line = l.lstrip()
-		if pattern_file.search(line):
-			patterns.append(line.split()[-1])
-	if( patterns ):
-		print("  + Found {0} patterns".format(len(patterns)))
-	return patterns
-
-def _get_committed_repo_range():
-	prog = "git --no-pager branch -a"
-	head_remote = ''
-	head_local = ''
-	repo_range = ''
-	head_name = re.compile("HEAD.*origin/")
-
-	p = sp.run(prog, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
-
-	for l in p.stdout.splitlines():
-		line = l.lstrip()
-		if head_name.search(line):
-			head_remote = line.split()[-1]
-
-	head_local = head_remote.split("/")[-1]
-	repo_range = head_remote + ".." + head_local
-
-	return repo_range
-	
-def _get_committed_repo_uuid_list(_repo_range):
-	prog = "git --no-pager log " + _repo_range
-	commits_to_check = []
-
-	p = sp.run(prog, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
-
-	for l in p.stdout.splitlines():
-		line = l.lstrip()
-		if( line.startswith("commit ") ):
-			commits_to_check.append(line.split()[1])
-	
-	return commits_to_check
-
-
-def get_committed_repo_list():
-	print("Searching for local committed security patterns not pushed")
-	prog = "git diff-tree --no-commit-id --name-only -r "
-	patterns = []
-	repo_range = _get_committed_repo_range()
-	commit_list = _get_committed_repo_uuid_list(repo_range)
-	pattern = re.compile("patterns/.*_SUSE-SU")
-	
-	for _commit in commit_list:
-		p = sp.run(prog + _commit, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
-
-		for l in p.stdout.splitlines():
-			line = l.lstrip()
-			if pattern.search(line):
-				patterns.append(line)
-	if( patterns ):
-		print("  + Found {0} patterns".format(len(patterns)))
-	return patterns
-
-def get_repo_spec_ver(filepath):
-	version_str = "Unknown"
-	this_version = ""
-	version = re.compile("^Version:\s.*[0-9]", re.IGNORECASE)
-	spec_file = os.path.basename(filepath)
-
-	fd = open(filepath, "r")
-	lines = fd.readlines()
-	for line in lines:
-		if version.search(line):
-			this_version = line.split()[-1]
-			break
-	fd.close()
-	if( this_version ):
-		parts = this_version.split('.')
-		bumped = str(int(parts[-1]) + 1)
-		parts[-1] = str(bumped)
-		bumped_version = '.'.join(parts)
-		version_str = bumped_version
-		print("Bumping package version from {0} to {1}".format(this_version, bumped_version))
-	else:
-		print("Could not find package version in {0}".format(filepath))
-
-	#print("Found version " + version_str + " in " + filepath)
-
-	return version_str
-
-
 
 def validate_sa_patterns(_config, _msg):
 	_msg.normal("Searching for Security Patterns to Validate")
@@ -1461,6 +1576,79 @@ def show_status(_config):
 	print()
 
 
+def github_path_valid(msg, path):
+	rc = True
+	git_config_file = path + "/.git/config"
+	spec_file = path + '/spec/' + os.path.basename(path) + ".spec"
+	if not os.path.exists(git_config_file):
+		msg.debug("  <github_path_valid> Error: File not found -" + git_config_file)
+		rc = False
+	elif not os.path.exists(spec_file):
+		msg.debug("  <github_path_valid> Error: File not found -" + spec_file)
+		rc = False
+
+	return rc
+
+def convert_log_date(given_str, use_prev_month=False):
+	"Converts given string to valid format for change logs"
+	converted_str = 'INVALID'
+	today = datetime.datetime.today()
+	MONTHS = {1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun', 
+	7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec', 
+	'jan': 'Jan', 'feb': 'Feb', 'mar': 'Mar', 'apr': 'Apr', 'may': 'May', 'jun': 'Jun', 
+	'jul': 'Jul', 'aug': 'Aug', 'sep': 'Sep', 'oct': 'Oct', 'nov': 'Nov', 'dec': 'Dec'}
+	this_year = today.strftime("%Y")
+	this_month = int(today.strftime("%m"))
+	use_year = ''
+	use_month = ''
+	if( len(given_str) > 0 ):
+		if( '-' in given_str ):
+			parts = given_str.split('-')
+		elif( '/' in given_str ):
+			parts = given_str.split('/')
+		else:
+			parts = [given_str, '0']
+
+		#print(parts)
+		for part in parts:
+			if( part.isdigit() ):
+				part = int(part)
+				if( part > 0 ):
+					if( part > 12 ): # Assume it's the requested year
+						if( part > 99 ):
+							use_year = str(part)
+						else:
+							use_year = "20" + str(part)
+					else: # Assume it's the requested month
+						if( part in MONTHS.keys() ):
+							use_month = MONTHS[part]
+						else:
+							sys.exit(3)
+			else:
+				part = part[:3].lower()
+				if( part in MONTHS.keys() ):
+					use_month = MONTHS[part]
+				else:
+					sys.exit(3)
+		if( len(use_year) == 0 ):
+			use_year = this_year
+		if( len(use_month) == 0 ):
+			use_month = MONTHS[this_month]
+		converted_str = str(use_month) + " " +str(use_year)
+	else:
+		if use_prev_month:
+			if( this_month == 1 ):
+				use_month = 12
+				use_year = int(this_year) - 1
+			else:
+				use_month = this_month - 1
+				use_year = this_year
+		else:
+			use_month = this_month
+			use_year = this_year
+		converted_str = str(MONTHS[use_month]) + " " + str(use_year)
+	return converted_str
+
 def convert_sa_date(given_str, _today, _msg):
 	"Converts given string to valid date for URL retrival"
 	converted_str = 'INVALID'
@@ -1512,7 +1700,7 @@ def convert_sa_date(given_str, _today, _msg):
 		converted_str = str(use_year) + "-" + str(use_month)
 	else:
 		converted_str = _today.strftime("%Y-%B")
-	_msg.debug("Date Conversion", "given_str=" + str(given_str) + ", converted_str=" + str(converted_str))
+	_msg.debug("  <convert_sa_date> Date Conversion", "given_str=" + str(given_str) + ", converted_str=" + str(converted_str))
 	return converted_str
 
 def get_pattern_list(this_path, _recurse):

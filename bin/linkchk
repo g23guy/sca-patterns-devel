@@ -32,7 +32,6 @@ import os
 import re
 import getopt
 import signal
-import subprocess
 import configparser
 import patdevel as pd
 from datetime import timedelta
