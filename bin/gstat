@@ -1,11 +1,12 @@
-#!/bin/bash
-SVER='1.0.1'
+#!/usr/bin/python3
+SVER = '2.0.2'
 ##############################################################################
-# rstat - Show the current github status of the repository
-# Copyright (C) 2022 SUSE LLC
+# gstat - Show the current GitHub status of the repository
+# Copyright (C) 2023 SUSE LLC
 #
-# Description:  Checks the status of a repository on the cwd or all repos if not
-# Modified:     2022 Nov 09
+# Description:  Checks the status of the CWD repository or all repos if no
+#               git repo in CWD.
+# Modified:     2023 Aug 04
 #
 ##############################################################################
 #
@@ -25,53 +26,165 @@ SVER='1.0.1'
 #     Jason Record <jason.record@suse.com>
 #
 ##############################################################################
-CONF_FILE="/etc/opt/patdevel/patdev.conf"
 
-title() {
-        echo "###########################################################"
-        echo "#  GIT Repository Status, v${SVER}"
-        echo "###########################################################"
-}
+import sys
+import os
+import re
+import getopt
+import signal
+import subprocess
+import configparser
+import patdevel as pd
 
-if [[ -s $CONF_FILE ]]; then
-        . $CONF_FILE
-else
-	echo "ERRROR: File not found - $CONF_FILE"
-	echo
-	exit 1
-fi
+##############################################################################
+# Global Options
+##############################################################################
 
-clear
-title
-if [[ -d ${PWD}/.git ]]; then
-	REMOTE_ORIGIN=$(grep url .git/config | awk '{print $NF}')
-	echo "Remote Origin: $REMOTE_ORIGIN"
-	echo
-	git status
-	echo
-	ls -l $LS_OPTIONS
-	echo
-else
-	cd $PATDEV_REPOS_DIR
-	echo "Repository Directory: $PATDEV_REPOS_DIR"
-	echo
-	for i in *
-	do
-		if [[ -d $i ]]
-		then
-			cd $i
-			printf "%-40s" "Checking $i:  "
-			make clean &>/dev/null
-			BRANCH=$(git status | grep 'On branch' | awk '{print $NF}')
-			printf "%-10s" "${BRANCH} "
-			if git status 2>/dev/null | egrep -i "is ahead of|Changes not staged for commit|Untracked files" &>/dev/null; then
-				echo "Push"
-			else
-				echo "Current"
-			fi
-			cd ..
-		fi
-	done
-fi
-echo
+title_string = "SCA GitHub Repository Status"
+
+##############################################################################
+# Functions
+##############################################################################
+
+def usage():
+	"Displays usage information"
+	display = "  {:33s} {}"
+	print("Usage: gstat [options] [github_directory_path]")
+	print()
+	print("Options:")
+	print(display.format("-h, --help", "Display this help"))
+	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
+	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
+	print()
+
+def signal_handler(sig, frame):
+	print("\n\nAborting...\n")
+	show_summary()
+	sys.exit(1)
+
+def show_repo_status(_path, _msg):
+	state_display = "{:20s} {}"
+	git_repo = pd.GitHubRepository(_msg, _path)
+	repo_data = git_repo.get_info()
+	if( _msg.get_level() >= _msg.LOG_NORMAL ):
+		pd.separator_line('-')
+
+	if( _msg.get_level() >= _msg.LOG_VERBOSE ):
+		_msg.min("Checking " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
+		_msg.verbose("+ Remote Origin", repo_data['origin'])
+		_msg.verbose("+ Output", 'git status')
+		if( _msg.get_level() >= _msg.LOG_VERBOSE ):
+			_msg.verbose()
+			for line in repo_data['content']:
+				print(line)
+			_msg.verbose()
+	else:
+		if repo_data['outdated']:
+			_msg.min("Checking " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
+			_msg.verbose("+ Remote Origin", repo_data['origin'])
+			_msg.normal("+ Output", 'git status')
+			if( _msg.get_level() >= _msg.LOG_NORMAL ):
+				_msg.normal()
+				for line in repo_data['content']:
+					print(line)
+				_msg.normal()
+		else:
+			_msg.min("Checking " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
+			_msg.verbose("+ Remote Origin", repo_data['origin'])
+			_msg.verbose("+ Output", 'git status')
+			if( _msg.get_level() >= _msg.LOG_VERBOSE ):
+				_msg.verbose()
+				for line in repo_data['content']:
+					print(line)
+				_msg.verbose()
+
+	if( _msg.get_level() >= _msg.LOG_DEBUG ):
+		for key, value in repo_data.items():
+			_msg.debug("  <> " + key, str(value))
+
+
+##############################################################################
+# Main
+##############################################################################
+
+def main(argv):
+	"main entry point"
+	global SVER
+	
+	if( os.path.exists(pd.config_file) ):
+		config.read(pd.config_file)
+		repo_dir = pd.config_entry(config.get("Common", "sca_repo_dir"), '/')
+		repo_list = pd.config_entry(config.get("GitHub", "patdev_repos")).split(',')
+		config_log_level = pd.config_entry(config.get("Common", "log_level"))
+		config_logging = msg.validate_level(config_log_level)
+		if( config_logging >= msg.LOG_QUIET ):
+			msg.set_level(config_logging)
+		else:
+			print("Warning: Invalid log level in config file, using instance default")
+	else:
+		pd.title(title_string, SVER)
+		print("Error: Config file not found - {}".format(pd.config_file))
+		print()
+		sys.exit(1)
+
+	try:
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hl:", ["help", "log_level="])
+	except getopt.GetoptError as exc:
+		pd.title(title_string, SVER)
+		print("Error:", exc, file=sys.stderr)
+		sys.exit(2)
+	for opt, arg in optlist:
+		if opt in {"-h", "--help"}:
+			pd.title(title_string, SVER)
+			usage()
+			sys.exit(0)
+		elif opt in {"-l", "--log_level"}:
+			user_logging = msg.validate_level(arg)
+			if( user_logging >= msg.LOG_QUIET ):
+				msg.set_level(user_logging)
+			else:
+				print("Warning: Invalid log level, using instance default")
+
+	if( msg.get_level() > msg.LOG_QUIET ):
+		pd.title(title_string, SVER)
+
+	msg.normal("Log Level", msg.get_level_str())
+
+	given_dir = ''
+	if len(args) > 0: # A path to a proposed GitHub repository was given on the command line
+		given_dir = args[0]
+		if os.path.isdir(given_dir):
+			path = os.path.abspath(given_dir)
+			git_config_file = path + "/.git/config"
+			if( os.path.isfile(git_config_file) ):
+				msg.debug("  <args> GitHub config found", git_config_file)
+				msg.min("Repository location", path)
+				show_repo_status(path, msg)
+			else:
+				print("Error: Invalid GitHub repository - " + path)
+				sys.exit(4)
+		else:
+			print("Error: Invalid file or path - " + given_dir)
+			sys.exit(5)
+	else: # No repository path given on the command line
+		path = os.getcwd()
+		git_config_file = path + "/.git/config"
+		if( os.path.isfile(git_config_file) ): # Check the current working directory for a GitHib repository
+			msg.debug("  <cwd> GitHub config found", git_config_file)
+			msg.min("Repository location", path)
+			show_repo_status(path, msg)
+		else: # Use the configuration file's path to repositories and check them, if the cwd is not a repository
+			msg.debug("  <cwd> GitHub config not found", git_config_file)
+			msg.min("Configuration repositories", repo_dir)
+			for repo in repo_list:
+				path = repo_dir + repo
+				show_repo_status(path, msg)
+	msg.min()
+
+# Entry point
+if __name__ == "__main__":
+	signal.signal(signal.SIGINT, signal_handler)
+	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+	msg = pd.DisplayMessages()
+	main(sys.argv)
 
