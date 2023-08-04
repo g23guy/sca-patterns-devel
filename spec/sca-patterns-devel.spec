@@ -74,6 +74,7 @@ install -m 644 docs/index.html %{buildroot}%{patdocs}
 %{patdevbasedir}/*
 /usr/local/bin/*
 /usr/local/sbin/*
+%{_libdir}/%{pythondir}
 %{_libdir}/%{pythondir}/*
 %{patdocs}/*
 %{patdocs}/python/*
