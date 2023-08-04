@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.3'
+SVER = '2.0.4'
 ##############################################################################
 # linkchk.py - SCA Pattern Link Verification Tool
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Validates META_LINK solution URLs to ensure they are valid.
 #               Supports python and perl patterns with *.py and *.pl extensions.
-# Modified:     2023 Jul 28
+# Modified:     2023 Aug 04
 #
 ##############################################################################
 #
@@ -49,7 +49,6 @@ invalid_links = {}
 elapsed = -1
 start = 0
 end = 0
-config_file = "/etc/opt/patdevel/patdev.ini"
 title_string = "SCA Pattern Link Verification Tool"
 
 ##############################################################################
@@ -110,11 +109,11 @@ def show_summary():
 
 def main(argv):
 	"main entry point"
-	global SVER, pattern_list, recurse_directory, c_, invalid_links, elapsed, start, end, config_file
+	global SVER, pattern_list, recurse_directory, c_, invalid_links, elapsed, start, end
 	start = timer()
 	
-	if( os.path.exists(config_file) ):
-		config.read(config_file)
+	if( os.path.exists(pd.config_file) ):
+		config.read(pd.config_file)
 		pat_dir = pd.config_entry(config.get("Security", "pat_dir"), '/')
 		config_log_level = pd.config_entry(config.get("Common", "log_level"))
 		config_logging = msg.validate_level(config_log_level)

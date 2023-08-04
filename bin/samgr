@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+SVER='2.0.1'
 # set noet ci pi sts=0 sw=4 ts=4
 ##############################################################################
 # samgr - Security Announcement manager
@@ -6,7 +7,7 @@
 #
 # Description:  Runs new security patterns against supportconfigs in the
 #               archive directory using the pat tool.
-# Modified:     2023 Jul 27
+# Modified:     2023 Aug 04
 #
 ##############################################################################
 #
@@ -34,8 +35,6 @@ import getopt
 import configparser
 import patdevel as pd
 
-SVER='2.0.1'
-config_file = "/etc/opt/patdevel/patdev.ini"
 title_string = "SCA Pattern Checker"
 
 def usage():
@@ -58,11 +57,11 @@ def usage():
 	print()
 
 def main(argv):
-	global SVER, title_string, config_file
+	global SVER, title_string
 	action = "validate"
 
-	if( os.path.exists(config_file) ):
-		config.read(config_file)
+	if( os.path.exists(pd.config_file) ):
+		config.read(pd.config_file)
 		config_log_level = pd.config_entry(config.get("Common", "log_level"))
 		config_logging = msg.validate_level(config_log_level)
 		if( config_logging >= msg.LOG_QUIET ):
@@ -71,7 +70,7 @@ def main(argv):
 			print("Warning: Invalid log level in config file, using instance default")
 	else:
 		pd.title(title_string, SVER)
-		print("Error: File not found - " + config_file + "\n")
+		print("Error: File not found - " + pd.config_file + "\n")
 		sys.exit(1)
 
 	try:
@@ -130,7 +129,7 @@ def main(argv):
 	elif( action == "config" ):
 		pd.sub_title("Show Configuration File")
 		msg.normal("Log Level", msg.get_level_str())
-		pd.show_config_file(config_file, config)
+		pd.show_config_file(config)
 	elif( action == "repos" ):
 		pd.sub_title("Update Pattern Repositories")
 		msg.normal("Log Level", msg.get_level_str())

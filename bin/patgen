@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.1'
+SVER = '2.0.2'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2023 Jul 27
+# Modified:     2023 Aug 04
 #
 ##############################################################################
 #
@@ -39,7 +39,6 @@ import patdevel as pd
 
 # Global Options
 title_string = "SCA Tool Python Pattern Generator"
-conf_file = "/etc/opt/patdevel/patdev.ini"
 
 # Class and Function Definitions
 
@@ -96,7 +95,7 @@ def signal_handler(sig, frame):
 
 def main(argv):
 	"main entry point"
-	global SVER, title_string, conf_file
+	global SVER, title_string
 
 	given_conditions = 0
 	conditions_min = 1
@@ -106,14 +105,14 @@ def main(argv):
 	package_name = ''
 	package_version = '0'
 
-	if( os.path.exists(conf_file) ):
-		config.read(conf_file)
+	if( os.path.exists(pd.config_file) ):
+		config.read(pd.config_file)
 		url_base = pd.config_entry(config.get("Security", "archive_url"))
 		pat_dir = pd.config_entry(config.get("Security", "pat_dir"), '/')
 		pat_logs_dir = pd.config_entry(config.get("Security", "pat_logs"), '/')
 	else:
 		pd.title(title_string, SVER)
-		print("Error: File not found - " + conf_file + "\n")
+		print("Error: File not found - " + pd.config_file + "\n")
 		sys.exit(1)
 
 	pat = pd.PatternTemplate(title_string, SVER, config, msg)

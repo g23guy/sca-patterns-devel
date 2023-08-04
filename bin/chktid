@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.1'
+SVER = '2.0.2'
 ##############################################################################
 # chktid - Checks for Existing or Suggested TIDs
 # Copyright (C) 2023 SUSE LLC
@@ -8,7 +8,7 @@ SVER = '2.0.1'
 #               if a pattern has already been written. Likewise, it can search
 #               the SUSE support site for TIDs that currently don't have a 
 #               pattern.
-# Modified:     2023 Jul 27
+# Modified:     2023 Aug 04
 #
 ##############################################################################
 #
@@ -40,7 +40,6 @@ import patdevel as pd
 
 # Global Definitions
 title_string = "Check for Existing or Suggested TIDs"
-config_file = "/etc/opt/patdevel/patdev.ini"
 sca_repo_dir = ''
 target_url = ''
 target_tid_url = ''
@@ -314,12 +313,12 @@ def get_suggestions_from_web(pages, _log_file):
 
 def main(argv):
 	"main entry point"
-	global SVER, config_file, sca_repo_dir, target_url, target_tid_url, web_range_min, web_range_max, title_string
+	global SVER, sca_repo_dir, target_url, target_tid_url, web_range_min, web_range_max, title_string
 	get_suggestions = False
 
 	web_pages = 1
-	if( os.path.exists(config_file) ):
-		config.read(config_file)
+	if( os.path.exists(pd.config_file) ):
+		config.read(pd.config_file)
 		sca_repo_dir = pd.config_entry(config.get("Common", "sca_repo_dir"), '/')
 		target_url = pd.config_entry(config.get("Common", "suse_support_url"))
 		target_tid_url = pd.config_entry(config.get("Common", "tid_base_url"))
@@ -333,7 +332,7 @@ def main(argv):
 			print("Warning: Invalid log level in config file, using instance default")
 	else:
 		pd.title(title_string, SVER)
-		print("Error: File not found - " + config_file + "\n")
+		print("Error: File not found - " + pd.config_file + "\n")
 		sys.exit(1)
 
 	try:

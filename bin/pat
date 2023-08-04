@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.17'
+SVER = '2.0.18'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Runs a pattern or patterns against supportconfig directories to
 #               check the pattern's output based on the supportconfig directory.
-# Modified:     2023 Jul 27
+# Modified:     2023 Aug 04
 #
 ##############################################################################
 #
@@ -55,7 +55,6 @@ invalid_pattern_shortlist = {}
 failed_pattern_shortlist = {}
 skipped_pattern_shortlist = {}
 elapsed = -1
-config_file = "/etc/opt/patdevel/patdev.ini"
 title_string = "SCA Pattern Checker"
 
 
@@ -371,12 +370,12 @@ def run_pattern(this_pattern, this_archive):
 
 def main(argv):
 	"main entry point"
-	global SVER, pattern_list, archive_list, recurse_archives, recurse_patterns, c, config_file
+	global SVER, pattern_list, archive_list, recurse_archives, recurse_patterns, c
 	global invalid_patterns, invalid_pattern_shortlist, elapsed, defpath, usepath, meta_error
 	start = timer()
 	
-	if( os.path.exists(config_file) ):
-		config.read(config_file)
+	if( os.path.exists(pd.config_file) ):
+		config.read(pd.config_file)
 		usepath['archives'] = pd.config_entry(config.get("Common", "sca_arch_dir"), '/')
 		usepath['scalib'] = pd.config_entry(config.get("Common", "sca_lib_dir"), '/')
 		usepath['log_dir'] = pd.config_entry(config.get("Security", "pat_logs"), '/')
@@ -389,7 +388,7 @@ def main(argv):
 			print("Warning: Invalid log level in config file, using instance default")
 	else:
 		pd.title(title_string, SVER)
-		print("Error: File not found - " + config_file + "\n")
+		print("Error: File not found - " + pd.config_file + "\n")
 		sys.exit(1)
 
 	try:

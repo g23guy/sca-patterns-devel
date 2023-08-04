@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-SVER = '2.0.11'
+SVER = '2.0.12'
 ##############################################################################
 # sagen.py - Security Advisory Announcement Pattern Generator
 # Copyright (C) 2022-2023 SUSE LLC
 #
 # Description:  Creates a python security advisory pattern from HTML page
-# Modified:     2023 Jul 27
+# Modified:     2023 Aug 04
 #
 ##############################################################################
 #
@@ -39,7 +39,6 @@ from pathlib import Path
 
 # Global Options
 today = datetime.datetime.today()
-config_file = "/etc/opt/patdevel/patdev.ini"
 pat_dir = ''
 pat_logs_dir = ''
 manifest_file = '' # Records the security URL and target URLs processed successfully
@@ -393,20 +392,20 @@ def extract_range_list(str_to_extract):
 
 def main(argv):
 	"main entry point"
-	global today, config_file, all_counters, target_url, pat_logs_dir, pat_dir, single_file
+	global today, all_counters, target_url, pat_logs_dir, pat_dir, single_file
 	global url_base, url_date, manifest_file, said_file_pairs, range_string, SVER
 	range_list = []
 	add_separator_line = False
 	title_string = "Security Advisory Announcement Pattern Generator"
 
-	if( os.path.exists(config_file) ):
-		config.read(config_file)
+	if( os.path.exists(pd.config_file) ):
+		config.read(pd.config_file)
 		url_base = pd.config_entry(config.get("Security", "archive_url"))
 		pat_dir = pd.config_entry(config.get("Security", "pat_dir"), '/')
 		pat_logs_dir = pd.config_entry(config.get("Security", "pat_logs"), '/')
 	else:
 		pd.title(title_string, SVER)
-		print("Error: File not found - " + config_file + "\n")
+		print("Error: File not found - " + pd.config_file + "\n")
 		sys.exit(1)
 
 	try:
