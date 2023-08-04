@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Aug  4 19:34:24 UTC 2023 - jason.record@suse.com
+
+- Ported all binaries to python
+
+-------------------------------------------------------------------
 Mon Jun  5 17:27:48 UTC 2023 - jason.record@suse.com
 
 - Added main entry point and main function
