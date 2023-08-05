@@ -15,7 +15,7 @@
 %define patdevbasedir %{_localstatedir}/opt/%{patdevbase}
 %define patdevconfdir %{_sysconfdir}/opt/%{patdevbase}
 %define patdocs %{_docdir}/%{name}
-%define pythondir python3.6
+%define pythondir %{_libexecdir}/python3.6/site-packages
 
 Name:         sca-patterns-devel
 Version:      2.0.1
@@ -28,6 +28,7 @@ Source:       %{name}-%{version}.tar.gz
 Requires:     %{_bindir}/git
 Requires:     %{_bindir}/python3
 Requires:     %{_bindir}/w3m
+Requires:     python3 == 3.6
 BuildArch:    noarch
 
 %description
@@ -42,7 +43,7 @@ Tools used in the creation and testing of supportconfig analysis patterns for th
 pwd;ls -la
 #install -d %{buildroot}%{_mandir}/man5
 #install -d %{buildroot}%{_mandir}/man8
-mkdir -p %{buildroot}%{_libexecdir}/%{pythondir}
+mkdir -p %{buildroot}%{pythondir}
 mkdir -p %{buildroot}%{_bindir}
 mkdir -p %{buildroot}%{_sbindir}
 mkdir -p %{buildroot}%{patdevbasedir}
@@ -60,7 +61,7 @@ mkdir -p %{buildroot}%{patdocs}/perl
 install -m 755 bin/* %{buildroot}%{_bindir}
 install -m 755 sbin/* %{buildroot}%{_sbindir}
 install -m 664 conf/* %{buildroot}%{patdevconfdir}
-install -m 644 lib/* %{buildroot}%{_libexecdir}/%{pythondir}
+install -m 644 lib/* %{buildroot}%{pythondir}
 install -m 644 docs/python/* %{buildroot}%{patdocs}/python
 install -m 644 docs/perl/* %{buildroot}%{patdocs}/perl
 install -m 644 docs/alias %{buildroot}%{patdocs}
@@ -71,14 +72,13 @@ install -m 644 docs/index.html %{buildroot}%{patdocs}
 %dir %{patdevbasedir}
 %dir %{patdevconfdir}
 %dir %{patdocs}
-%{patdevbasedir}/*
+%dir %{_bindir}
+%dir %{_sbindir}
+%dir %{_libexecdir}
 %{_bindir}/*
 %{_sbindir}/*
-%{_libexecdir}/%{pythondir}
-%{_libexecdir}/%{pythondir}/*
+%{_libexecdir}/*
 %{patdocs}/*
-%{patdocs}/python/*
-%{patdocs}/perl/*
 %attr(775,root,users) %{patdevbasedir}/repos
 %attr(775,root,users) %{patdevbasedir}/forks
 %attr(775,root,users) %{patdevbasedir}/patterns
