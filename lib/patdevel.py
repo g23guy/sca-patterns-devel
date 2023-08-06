@@ -2,7 +2,7 @@
 r"""Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Aug 04
+ Modified:     2023 Aug 05
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "0.0.18"
+__version__ = "0.0.19"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 distribution_log_filename = "distribution.log"
@@ -1443,7 +1443,7 @@ def validate_sa_patterns(_config, _msg):
 			os.rename(pattern, pattern_dup)
 			duplicates.append(pattern_dup)
 		else:
-			prog = "pat -q " + pattern
+			prog = "pat -l0 " + pattern
 			p = sp.run(prog, shell=True, check=False)
 			if p.returncode != 0:
 				pattern_error = pat_error_dir + '/' + pattern_file
