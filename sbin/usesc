@@ -1,12 +1,12 @@
 #!/bin/bash
-SVER='0.0.1_dev1'
+SVER='1.0.0'
 
 ##############################################################################
 # usesc - Changes the owner and permissions in archives for patdevel
-# Copyright (C) 2022 SUSE LLC
+# Copyright (C) 2023 SUSE LLC
 #
 # Description:  Changes owner to root.users and permissions to 664.
-# Modified:     2022 Nov 04
+# Modified:     2023 Aug 07
 #
 ##############################################################################
 #
@@ -27,25 +27,33 @@ SVER='0.0.1_dev1'
 #
 ##############################################################################
 
+echo "##############################################################################"
+echo "# SCA Pattern Archives Owner/Mode Tool, v${SVER}"
+echo "##############################################################################"
 LCONF='/etc/opt/patdevel/patdev.conf'
-[[ -s $LCONF ]] && . $LCONF || { echo "ERROR: File not found, $LCONF"; echo; exit 1; }
+[[ -s $LCONF ]] || { echo "ERROR: File not found, $LCONF"; echo; exit 1; }
 OWNER='root.users'
 DIR_MODE='775'
 FILE_MODE='664'
 
 echo "Changing to user permissions in archive directory"
+SCA_BASE_DIR=$(grep "^sca_base_dir" $LCONF | awk -F= '{print $NF}' | sed -e "s/[',\"]//g;s/^[[:space:]]*//g;s/[[:space:]]*$//g")
+SCA_ARCH_DIR=$(grep "^sca_arch_dir" $LCONF | awk -F= '{print $NF}' | sed -e "s/[',\"]//g;s/^[[:space:]]*//g;s/[[:space:]]*$//g")
+PATDEV_ARCH_DIR=$(echo $SCA_ARCH_DIR | sed -e "s!\${sca_base_dir}!${SCA_BASE_DIR}!g")
+echo "Archive Directory: ${PATDEV_ARCH_DIR}"
+echo
 if [[ -n $PATDEV_ARCH_DIR ]]; then
 	if [[ -d $PATDEV_ARCH_DIR ]]; then
-		find $PATDEV_ARCH_DIR -exec chown $OWNER {} \+
-		find $PATDEV_ARCH_DIR -type d -exec chmod $DIR_MODE {} \+
-		find $PATDEV_ARCH_DIR -type f -exec chmod $FILE_MODE {} \+
+		find $PATDEV_ARCH_DIR -exec chown $OWNER {} \+ &> /dev/null
+		find $PATDEV_ARCH_DIR -type d -exec chmod $DIR_MODE {} \+ &> /dev/null
+		find $PATDEV_ARCH_DIR -type f -exec chmod $FILE_MODE {} \+ &> /dev/null
 		cd $PATDEV_ARCH_DIR
-		ls -l $LS_OPTIONS
+		ls -l $LS_OPTIONS | grep -v total
 	else
 		echo "Archive directory not found - $PATDEV_ARCH_DIR"
 	fi
 else
-	echo " + Archive directory not defined, check PATDEV_ARCH_DIR in $LCONF"
+	echo " + Archive directory not defined, check [Common] sca_arch_dir in $LCONF"
 fi	
 echo
 
