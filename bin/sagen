@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-SVER = '2.0.12'
+SVER = '2.0.13'
 ##############################################################################
 # sagen.py - Security Advisory Announcement Pattern Generator
 # Copyright (C) 2022-2023 SUSE LLC
 #
 # Description:  Creates a python security advisory pattern from HTML page
-# Modified:     2023 Aug 04
+# Modified:     2023 Aug 07
 #
 ##############################################################################
 #
@@ -439,6 +439,9 @@ def main(argv):
 
 	if( msg.get_level() > msg.LOG_QUIET ):
 		pd.title(title_string, SVER)
+	if not config.has_option("Common", "author"):
+		print("ERROR: Add 'author' option to [Common] section in the configuration file\n")
+		sys.exit(5)
 
 	range_list = extract_range_list(range_string)
 	if( len(range_list) > 0 ):

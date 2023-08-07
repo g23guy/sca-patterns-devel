@@ -38,7 +38,7 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "0.0.20"
+__version__ = "0.0.21"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 distribution_log_filename = "distribution.log"
@@ -109,6 +109,9 @@ class PatternTemplate():
 	content_service = ''
 
 	def __init__(self, script_name, script_version, _config, _msg):
+		if not _config.has_option("Common", "author"):
+			print("ERROR: Add 'author' option to [Common] section in the configuration file\n")
+			sys.exit(5)
 		self.meta_class = ''
 		self.meta_category = ''
 		self.meta_component = ''
@@ -822,6 +825,9 @@ class SecurityAnnouncement():
 	IDX_FIRST = 0
 
 	def __init__(self, _msg, _config, url_date, _file, _version):
+		if not _config.has_option("Common", "author"):
+			print("ERROR: Add 'author' option to [Common] section in the configuration file\n")
+			sys.exit(5)
 		self.msg = _msg
 		self.pat_logs_dir = config_entry(_config.get("Security", "pat_logs"), '/')
 		self.pat_dir = config_entry(_config.get("Security", "pat_dir"), '/')
