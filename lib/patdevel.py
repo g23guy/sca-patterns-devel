@@ -1293,7 +1293,10 @@ class GitHubRepository():
 		oldwd = os.getcwd()
 		os.chdir(self.path)
 
-		p = sp.run(prog, shell=True, check=True, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
+		p = sp.run(prog.split(), check=False, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
+		if p.returncode != 0:
+			print(p.stderr)
+			sys.exit(p.returncode)
 		# There are two possible output formats from this command:
 		# 	new file:   patterns/SLE/sle15sp4/xterm_SUSE-SU-2023_0221-1_sles_15.4.py
 		#   patterns/SLE/sle15sp4/xterm_SUSE-SU-2023_0221-1_sles_15.4.py
@@ -1319,6 +1322,12 @@ class GitHubRepository():
 
 	def get_committed_list(self):
 		self.msg.normal("Searching for local patterns", "committed, not pushed")
+		prog = "git status"
+		p = sp.run(prog.split(), check=False, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
+		if p.returncode != 0:
+			print(p.stderr)
+			sys.exit(p.returncode)
+
 		prog = "git diff-tree --no-commit-id --name-only -r "
 		self.committed_patterns = {}
 		pat_file = re.compile("^patterns/.*")
