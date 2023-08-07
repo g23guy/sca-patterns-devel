@@ -1,4 +1,18 @@
 -------------------------------------------------------------------
+Mon Aug  7 22:09:41 UTC 2023 - jason.record@suse.com
+
+- usesc needs to use the new config file format (issue#19)
+- Gracefully handle missing author from config file (issue#13)
+- Configuration file needs updating (issue#9)
+- No check for missing archives (issue#8)
+- samgr --validate should check for patterns before updating repos (issue#7)
+- samgr does not have a signal_handler (issue#5)
+- patdevel.py module cannot be found (issue#4)
+- samgr --status is still pending (issue#3)
+- gstat non-zero exit not handled gracefully (issue#2)
+- pat does not include a -q switch anymore (issue#1)
+
+-------------------------------------------------------------------
 Fri Aug  4 19:34:24 UTC 2023 - jason.record@suse.com
 
 - Ported all binaries to python
