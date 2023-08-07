@@ -38,7 +38,7 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "0.0.21"
+__version__ = "0.0.22"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 distribution_log_filename = "distribution.log"
@@ -1548,12 +1548,52 @@ def remove_sa_patterns(_config, _msg):
 		_msg.min("+ Run: sagen, then samgr --validate, and samgr --distribute\n")
 		return False
 
-def show_status(_config):
-	sub_title("Show Status")
-	print("Pattern List - PENDING")
-	print("Repository Status - PENDING")
-	print("Distribution Log - PENDING")
-	print()
+def show_status(_config, _msg):
+	base_files_list = base_files(_config)
+	pat_logs_dir = config_entry(_config.get("Security", "pat_logs"), '/')
+	repo_dir = config_entry(_config.get("Common", "sca_repo_dir"), '/')
+	repo_list = config_entry(_config.get("GitHub", "patdev_repos")).split(',')
+	dist_log = pat_logs_dir + distribution_log_filename
+	_pattern = re.compile("patdevel/patterns/.*py$|patdevel/patterns/.*pl$")
+	_duplicates = re.compile("patdevel/duplicates/.*")
+	_logs = re.compile("patdevel/logs/.*")
+	_errors = re.compile("patdevel/errors/.*")
+	pattern_list = []
+	duplicates_list = []
+	logs_list = []
+	errors_list = []
+
+	for file in base_files_list:
+		if _pattern.search(file):
+			pattern_list.append(file)
+		if _duplicates.search(file):
+			duplicates_list.append(file)
+		if _logs.search(file):
+			logs_list.append(file)
+		if _errors.search(file):
+			errors_list.append(file)
+
+	outdated_pattern_repos = 0
+	repo_exception = re.compile("sca-patterns-base|sca-server-report")
+	for repo in repo_list:
+		if repo_exception.search(repo):
+			continue
+		path = repo_dir + repo
+		git_repo = GitHubRepository(_msg, path)
+		repo_data = git_repo.get_info()
+		if repo_data['outdated']:
+			outdated_pattern_repos += 1
+
+	if os.path.exists(dist_log):
+		_msg.min("Distribution Log: Found", dist_log)
+	else:
+		_msg.min("Distribution Log: Missing", dist_log)
+	_msg.min("Current Patterns", str(len(pattern_list)))
+	_msg.min("Pattern Duplicates", str(len(duplicates_list)))
+	_msg.min("Pattern Errors", str(len(errors_list)))
+	_msg.min("Log Files", str(len(logs_list)))
+	_msg.min("Outdated Repositories", str(outdated_pattern_repos))
+	_msg.min()
 
 
 def github_path_valid(msg, path):
