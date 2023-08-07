@@ -106,18 +106,26 @@ def main(argv):
 	if( msg.get_level() > msg.LOG_QUIET ):
 		pd.title(title_string, SVER)
 
-	pd.check_directories(config)
-
 	if( action == "validate" ):
 		pd.sub_title("Validate Security Patterns")
 		msg.normal("Log Level", msg.get_level_str())
-		patdev_repos = pd.config_entry(config.get("GitHub", "patdev_repos")).split(',')
-		bar = pd.ProgressBar("Updating: ", len(patdev_repos))
-		msg.normal("Updating Pattern Repositories")
-		pd.update_git_repos(config, msg, bar)
-		if( msg.get_level() == msg.LOG_MIN ):
-			bar.finish()
-		pd.validate_sa_patterns(config, msg)
+		valid_pattern = re.compile("patdevel/patterns/*.py|patdevel/patterns/*.pl")
+		base_files_list = pd.base_files(config)
+		found = False
+		for file in base_files_list:
+			if valid_pattern.search(file):
+				found = True
+				break
+		if found:
+			patdev_repos = pd.config_entry(config.get("GitHub", "patdev_repos")).split(',')
+			bar = pd.ProgressBar("Updating: ", len(patdev_repos))
+			msg.normal("Updating Pattern Repositories")
+			pd.update_git_repos(config, msg, bar)
+			if( msg.get_level() == msg.LOG_MIN ):
+				bar.finish()
+			pd.validate_sa_patterns(config, msg)
+		else:
+			msg.min("+ Warning: No security patterns found, run sagen\n")
 	elif( action == "distribute" ):
 		pd.sub_title("Distribute Patterns")
 		msg.normal("Log Level", msg.get_level_str())
