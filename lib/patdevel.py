@@ -44,7 +44,7 @@ SUMMARY_FMT = "{0:30} {1:g}"
 distribution_log_filename = "distribution.log"
 distribution_log_section = "metadata"
 seperator_len = 85
-config_file = "/etc/opt/patdevel/patdev.ini"
+config_file = "/etc/opt/patdevel/patdev.conf"
 
 def title(title_str, version_str):
 	separator_line("#")
