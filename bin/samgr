@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER='2.0.2'
+SVER='2.0.3'
 # set noet ci pi sts=0 sw=4 ts=4
 ##############################################################################
 # samgr - Security Announcement manager
@@ -32,6 +32,7 @@ import re
 import sys
 import os
 import getopt
+import signal
 import configparser
 import patdevel as pd
 
@@ -55,6 +56,10 @@ def usage():
 	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
 	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
 	print()
+
+def signal_handler(sig, frame):
+	print("\n\nAborting...\n")
+	sys.exit(0)
 
 def get_pattern_list():
 	valid_pattern = re.compile("patdevel/patterns/.*_SUSE-SU.*py$|patdevel/patterns/.*_SUSE-SU.*pl$")
@@ -169,6 +174,7 @@ def main(argv):
 
 # Entry point
 if __name__ == "__main__":
+	signal.signal(signal.SIGINT, signal_handler)
 	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 	msg = pd.DisplayMessages()
 	main(sys.argv)
