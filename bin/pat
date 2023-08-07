@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.18'
+SVER = '2.0.19'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Runs a pattern or patterns against supportconfig directories to
 #               check the pattern's output based on the supportconfig directory.
-# Modified:     2023 Aug 04
+# Modified:     2023 Aug 07
 #
 ##############################################################################
 #
@@ -422,6 +422,9 @@ def main(argv):
 	set_environment()
 	archive_list = prepare_archives()
 	c_['total_arch'] = len(archive_list)
+	if c_['total_arch'] == 0:
+		print("Error: No supportconfig archives found in {}\n".format(usepath['archives']))
+		sys.exit(5)
 
 	if len(args) > 0:
 		usepath['patterns'] = args[0]
