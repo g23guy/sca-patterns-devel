@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER='2.0.1'
+SVER='2.0.2'
 # set noet ci pi sts=0 sw=4 ts=4
 ##############################################################################
 # samgr - Security Announcement manager
@@ -7,7 +7,7 @@ SVER='2.0.1'
 #
 # Description:  Runs new security patterns against supportconfigs in the
 #               archive directory using the pat tool.
-# Modified:     2023 Aug 04
+# Modified:     2023 Aug 07
 #
 ##############################################################################
 #
@@ -55,6 +55,19 @@ def usage():
 	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
 	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
 	print()
+
+def get_pattern_list():
+	valid_pattern = re.compile("patdevel/patterns/.*_SUSE-SU.*py$|patdevel/patterns/.*_SUSE-SU.*pl$")
+	base_files_list = pd.base_files(config)
+	this_list = []
+	for file in base_files_list:
+		if valid_pattern.search(file):
+			this_list.append(file)
+	return this_list
+
+##############################################################################
+# main
+##############################################################################
 
 def main(argv):
 	global SVER, title_string
@@ -109,31 +122,29 @@ def main(argv):
 	if( action == "validate" ):
 		pd.sub_title("Validate Security Patterns")
 		msg.normal("Log Level", msg.get_level_str())
-		valid_pattern = re.compile("patdevel/patterns/*.py|patdevel/patterns/*.pl")
-		base_files_list = pd.base_files(config)
-		found = False
-		for file in base_files_list:
-			if valid_pattern.search(file):
-				found = True
-				break
-		if found:
+		pattern_list = get_pattern_list()
+		if( len(pattern_list) > 0 ):
 			patdev_repos = pd.config_entry(config.get("GitHub", "patdev_repos")).split(',')
 			bar = pd.ProgressBar("Updating: ", len(patdev_repos))
 			msg.normal("Updating Pattern Repositories")
 			pd.update_git_repos(config, msg, bar)
 			if( msg.get_level() == msg.LOG_MIN ):
 				bar.finish()
-			pd.validate_sa_patterns(config, msg)
+			pd.validate_sa_patterns(config, msg, pattern_list)
 		else:
 			msg.min("+ Warning: No security patterns found, run sagen\n")
 	elif( action == "distribute" ):
 		pd.sub_title("Distribute Patterns")
 		msg.normal("Log Level", msg.get_level_str())
-		pd.distribute_sa_patterns(config)
+		pattern_list = get_pattern_list()
+		if( len(pattern_list) > 0 ):
+			pd.distribute_sa_patterns(config, msg, pattern_list)
+		else:
+			msg.min("+ Warning: No security patterns found, run sagen, then samgr --validate\n")
 	elif( action == "remove" ):
 		pd.sub_title("Remove Uncommitted Patterns")
 		msg.normal("Log Level", msg.get_level_str())
-		pd.remove_sa_patterns(config)
+		pd.remove_sa_patterns(config, msg)
 	elif( action == "config" ):
 		pd.sub_title("Show Configuration File")
 		msg.normal("Log Level", msg.get_level_str())
@@ -155,7 +166,6 @@ def main(argv):
 		pd.show_status(config)
 	else:
 		usage()
-###
 
 # Entry point
 if __name__ == "__main__":
