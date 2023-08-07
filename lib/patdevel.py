@@ -1368,26 +1368,14 @@ class GitHubRepository():
 	def get_local_regular_patterns(self):
 		return self.local_regular_patterns
 
-
-def check_directories(_config):
-	"""check_directories(configparser_object)
-	Checks if the config file directories are present. Returns True if they are and False otherwise."""
-	dir_list = []
-	dir_list_errors = []
-	dir_list.append(_config.get("Common", "sca_arch_dir"))
-	dir_list.append(_config.get("Common", "sca_lib_dir"))
-	dir_list = dir_list + _config.get("Security", "dir_list").split(',')
-	for dir in dir_list:
-		if not os.path.isdir(dir):
-			dir_list_errors.append(dir)
-	if( len(dir_list_errors) > 0 ):
-		print("Error: Missing directories")
-		for dir in dir_list_errors:
-			print("  + {0}".format(dir))
-		return False
-	else:
-		return True
-
+def base_files(_config):
+	base_dir = config_entry(_config.get("Common", "sca_base_dir"), '/')
+	files_found = []
+	for root, dirs, files in os.walk(base_dir, topdown = True):
+		for name in files:
+			files_found.append(os.path.join(root, name))
+	files_found.sort
+	return files_found
 
 def show_config_file(_config):
 	"""Dump the current configuration file object"""
