@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.3'
+SVER = '2.0.4'
 ##############################################################################
 # gstat - Show the current GitHub status of the repository
 # Copyright (C) 2023 SUSE LLC
@@ -62,6 +62,14 @@ def signal_handler(sig, frame):
 	show_summary()
 	sys.exit(1)
 
+def show_git_status(_msg, data):
+	if( _msg.get_level() >= _msg.LOG_NORMAL ):
+		_msg.normal("+ Output", 'git status')
+		_msg.normal()
+		for line in data['content']:
+			print(line)
+		_msg.normal()
+
 def show_repo_status(_path, _msg):
 	state_display = "{:20s} {}"
 	if( _msg.get_level() >= _msg.LOG_NORMAL ):
@@ -71,31 +79,16 @@ def show_repo_status(_path, _msg):
 
 	if( _msg.get_level() >= _msg.LOG_VERBOSE ):
 		_msg.min("Status " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
-		_msg.verbose("+ Output", 'git status')
-		if( _msg.get_level() >= _msg.LOG_VERBOSE ):
-			_msg.verbose()
-			for line in repo_data['content']:
-				print(line)
-			_msg.verbose()
+		show_git_status(_msg, repo_data)
 	else:
 		if repo_data['outdated']:
 			_msg.min("Status " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
 			_msg.verbose("+ Remote Origin", repo_data['origin'])
-			_msg.normal("+ Output", 'git status')
-			if( _msg.get_level() >= _msg.LOG_NORMAL ):
-				_msg.normal()
-				for line in repo_data['content']:
-					print(line)
-				_msg.normal()
+			show_git_status(_msg, repo_data)
 		else:
 			_msg.min("Status " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
 			_msg.verbose("+ Remote Origin", repo_data['origin'])
-			_msg.verbose("+ Output", 'git status')
-			if( _msg.get_level() >= _msg.LOG_VERBOSE ):
-				_msg.verbose()
-				for line in repo_data['content']:
-					print(line)
-				_msg.verbose()
+			show_git_status(_msg, repo_data)
 
 	if( _msg.get_level() >= _msg.LOG_DEBUG ):
 		for key, value in repo_data.items():

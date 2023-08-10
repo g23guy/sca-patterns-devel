@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Aug 10 17:41:14 UTC 2023 - jason.record@suse.com
+
+- gstat command output fixed
+
+-------------------------------------------------------------------
 Thu Aug 10 17:11:59 UTC 2023 - jason.record@suse.com
 
 - gstat logging details issue#22 (pr#23)
