@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.4'
+SVER = '2.0.5'
 ##############################################################################
 # gstat - Show the current GitHub status of the repository
 # Copyright (C) 2023 SUSE LLC
