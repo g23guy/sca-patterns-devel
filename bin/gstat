@@ -183,6 +183,7 @@ def main(argv):
 				msg.set_level(msg.LOG_MIN)
 			msg.normal("Log Level", msg.get_level_str())
 			msg.min("Configuration repositories", repo_dir)
+			pd.check_git_repos(config, msg)
 			for repo in repo_list:
 				path = repo_dir + repo
 				show_repo_status(path, msg)

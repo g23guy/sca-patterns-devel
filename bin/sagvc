@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.13'
+SVER = '2.0.14'
 ##############################################################################
 # sagvc - Security Announcement Patterns Change Log Generator
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Creates a list of new security announcement pattern entries
 #               for the change log
-# Modified:     2023 Aug 04
+# Modified:     2023 Aug 10
 #
 ##############################################################################
 #
@@ -169,6 +169,7 @@ def main(argv):
 			generate_sa_change_log(git_repo, given_date)
 		else:
 			msg.debug("  <conf> GitHub directories", pd.config_file)
+			pd.check_git_repos(config, msg)
 			for repo in repo_list:
 				pd.separator_line('-')
 				path = repo_dir + repo

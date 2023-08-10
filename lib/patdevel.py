@@ -1845,6 +1845,21 @@ def config_entry(_entry, trailer = ''):
 			formatted_entry = formatted_entry + str(trailer)
 	return formatted_entry
 
+def check_git_repos(config, msg):
+	repo_dir = config_entry(config.get("Common", "sca_repo_dir"), '/')
+	repo_list = config_entry(config.get("GitHub", "patdev_repos")).split(',')
+	bar_total = len(repo_list)
+	not_found = False
+	for repo in repo_list:
+		path = repo_dir + repo
+		if not github_path_valid(msg, path):
+			not_found = True
+	if not_found:
+		bar = ProgressBar('Cloning Repositories: ', bar_total)
+		bar.update()
+		update_git_repos(config, msg, bar)
+		bar.finish()
+
 def update_git_repos(_config, _msg, _bar):
 	sca_repo_dir = config_entry(_config.get("Common", "sca_repo_dir"))
 	github_uri_base = config_entry(_config.get("GitHub", "uri_base"))

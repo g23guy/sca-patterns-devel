@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.13'
+SVER = '2.0.14'
 ##############################################################################
 # sagvc - Regular Patterns Change Log Generator
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Creates a list of new regular pattern entries for the change
 #               log
-# Modified:     2023 Aug 04
+# Modified:     2023 Aug 10
 #
 ##############################################################################
 #
@@ -222,14 +222,15 @@ def main(argv):
 
 	else: # No repository path given on the command line
 		path = os.getcwd()
-		msg.debug("  <cwd> GitHub directory given", path)
 		if pd.github_path_valid(msg, path):
+			msg.debug("  <cwd> GitHub directory given", path)
 			pd.separator_line('-')
 			msg.min("Repository location", path)
 			git_repo = pd.GitHubRepository(msg, path)
 			generate_reg_change_log(git_repo, given_date)
 		else:
 			msg.debug("  <conf> GitHub directories", "Config File")
+			pd.check_git_repos(config, msg)
 			for repo in repo_list:
 				pd.separator_line('-')
 				path = repo_dir + repo
