@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Aug 10 17:11:59 UTC 2023 - jason.record@suse.com
+
+- gstat logging details issue#22 (pr#23)
+- Failures when no repos have been cloned issue#21 (pr#24)
+
+-------------------------------------------------------------------
 Mon Aug  7 22:09:41 UTC 2023 - jason.record@suse.com
 
 - usesc needs to use the new config file format (issue#19)
