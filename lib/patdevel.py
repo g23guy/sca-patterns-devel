@@ -2,7 +2,7 @@
 r"""Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Aug 07
+ Modified:     2023 Aug 10
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "0.0.22"
+__version__ = "0.0.23"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 distribution_log_filename = "distribution.log"
@@ -1179,13 +1179,13 @@ class GitHubRepository():
 		return "class %s(level=%r)" % (self.__class__.__name__,self.msg,self.path)
 
 	def __probe_repo_info(self):
-		self.msg.normal("Probing repository information")
-		self.msg.verbose("+ Repository Name", self.info['name'])
+		self.msg.normal("Probing repository", self.info['name'])
 		# Remote origin
 		git_config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 		git_config.read(self.git_config_file)
 		self.info['origin'] = config_entry(git_config.get('remote "origin"', "url"))
 		del git_config
+		self.msg.verbose("+ Remote Origin", self.info['origin'])
 
 		# Spec file version
 		this_version = ""
@@ -1283,7 +1283,7 @@ class GitHubRepository():
 		return self.info
 
 	def get_uncommitted_list(self):
-		self.msg.normal("Searching for local patterns", "uncommitted")
+		self.msg.normal("Searching for local patterns", "Uncommitted")
 		prog = "git status"
 		self.uncommitted_patterns = {}
 		pat_file = re.compile("^patterns/.*")
@@ -1321,7 +1321,7 @@ class GitHubRepository():
 		self.msg.verbose("+ Patterns Found", str(len(self.uncommitted_patterns.keys())))
 
 	def get_committed_list(self):
-		self.msg.normal("Searching for local patterns", "committed, not pushed")
+		self.msg.normal("Searching for local patterns", "Committed, not pushed")
 		prog = "git status"
 		p = sp.run(prog.split(), check=False, stdout=sp.PIPE, stderr=sp.PIPE, universal_newlines=True)
 		if p.returncode != 0:
@@ -1368,7 +1368,7 @@ class GitHubRepository():
 		self.get_uncommitted_list()
 		self.get_committed_list()
 		check_patterns = { **self.uncommitted_patterns, **self.committed_patterns } # Merge the two dictionaries
-		self.msg.normal("Filtering local patterns")
+		self.msg.normal("Filter local patterns", "Done")
 		for key, value in check_patterns.items():
 			if pattern.search(key):
 				self.local_sa_patterns[key] = value

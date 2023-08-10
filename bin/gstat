@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.2'
+SVER = '2.0.3'
 ##############################################################################
 # gstat - Show the current GitHub status of the repository
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Checks the status of the CWD repository or all repos if no
 #               git repo in CWD.
-# Modified:     2023 Aug 04
+# Modified:     2023 Aug 10
 #
 ##############################################################################
 #
@@ -64,14 +64,13 @@ def signal_handler(sig, frame):
 
 def show_repo_status(_path, _msg):
 	state_display = "{:20s} {}"
-	git_repo = pd.GitHubRepository(_msg, _path)
-	repo_data = git_repo.get_info()
 	if( _msg.get_level() >= _msg.LOG_NORMAL ):
 		pd.separator_line('-')
+	git_repo = pd.GitHubRepository(_msg, _path)
+	repo_data = git_repo.get_info()
 
 	if( _msg.get_level() >= _msg.LOG_VERBOSE ):
-		_msg.min("Checking " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
-		_msg.verbose("+ Remote Origin", repo_data['origin'])
+		_msg.min("Status " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
 		_msg.verbose("+ Output", 'git status')
 		if( _msg.get_level() >= _msg.LOG_VERBOSE ):
 			_msg.verbose()
@@ -80,7 +79,7 @@ def show_repo_status(_path, _msg):
 			_msg.verbose()
 	else:
 		if repo_data['outdated']:
-			_msg.min("Checking " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
+			_msg.min("Status " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
 			_msg.verbose("+ Remote Origin", repo_data['origin'])
 			_msg.normal("+ Output", 'git status')
 			if( _msg.get_level() >= _msg.LOG_NORMAL ):
@@ -89,7 +88,7 @@ def show_repo_status(_path, _msg):
 					print(line)
 				_msg.normal()
 		else:
-			_msg.min("Checking " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
+			_msg.min("Status " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
 			_msg.verbose("+ Remote Origin", repo_data['origin'])
 			_msg.verbose("+ Output", 'git status')
 			if( _msg.get_level() >= _msg.LOG_VERBOSE ):
@@ -127,6 +126,7 @@ def main(argv):
 		print()
 		sys.exit(1)
 
+	user_logging = -1
 	try:
 		(optlist, args) = getopt.gnu_getopt(argv[1:], "hl:", ["help", "log_level="])
 	except getopt.GetoptError as exc:
@@ -148,11 +148,12 @@ def main(argv):
 	if( msg.get_level() > msg.LOG_QUIET ):
 		pd.title(title_string, SVER)
 
-	msg.normal("Log Level", msg.get_level_str())
-
 	given_dir = ''
 	if len(args) > 0: # A path to a proposed GitHub repository was given on the command line
 		given_dir = args[0]
+		if user_logging < 0:
+			msg.set_level(msg.LOG_NORMAL)
+		msg.normal("Log Level", msg.get_level_str())
 		if os.path.isdir(given_dir):
 			path = os.path.abspath(given_dir)
 			git_config_file = path + "/.git/config"
@@ -171,10 +172,16 @@ def main(argv):
 		git_config_file = path + "/.git/config"
 		if( os.path.isfile(git_config_file) ): # Check the current working directory for a GitHib repository
 			msg.debug("  <cwd> GitHub config found", git_config_file)
+			if user_logging < 0:
+				msg.set_level(msg.LOG_NORMAL)
+			msg.normal("Log Level", msg.get_level_str())
 			msg.min("Repository location", path)
 			show_repo_status(path, msg)
 		else: # Use the configuration file's path to repositories and check them, if the cwd is not a repository
 			msg.debug("  <cwd> GitHub config not found", git_config_file)
+			if user_logging < 0:
+				msg.set_level(msg.LOG_MIN)
+			msg.normal("Log Level", msg.get_level_str())
 			msg.min("Configuration repositories", repo_dir)
 			for repo in repo_list:
 				path = repo_dir + repo
