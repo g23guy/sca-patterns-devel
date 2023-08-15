@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Aug 15 16:25:33 UTC 2023 - jason.record@suse.com
+
+- samgr -v fails when not supportconfig archives are found. issue#25 (pr#26)
+
+-------------------------------------------------------------------
 Thu Aug 10 17:53:48 UTC 2023 - jason.record@suse.com
 
 - gstat command output fixed
