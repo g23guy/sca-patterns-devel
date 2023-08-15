@@ -2,7 +2,7 @@
 r"""Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Aug 10
+ Modified:     2023 Aug 15
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "0.0.23"
+__version__ = "2.0.0"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 distribution_log_filename = "distribution.log"
@@ -1723,7 +1723,18 @@ def convert_sa_date(given_str, _today, _msg):
 	_msg.debug("  <convert_sa_date> Date Conversion", "given_str=" + str(given_str) + ", converted_str=" + str(converted_str))
 	return converted_str
 
-def get_pattern_list(this_path, _recurse):
+def get_archive_list(this_path, _recurse = True):
+	this_list = []
+	include_file = re.compile("basic-environment.txt")
+	for dirpath, subdirs, files in os.walk(this_path, topdown = True):
+		for file in files:
+			if include_file.search(file):
+				this_list.append(dirpath)
+		if not _recurse:
+			break
+	return this_list
+
+def get_pattern_list(this_path, _recurse = True):
 	this_list = []
 	include_file = re.compile(".py$|.pl$")
 	for dirpath, subdirs, files in os.walk(this_path, topdown = True):
