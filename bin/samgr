@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER='2.0.3'
+SVER='2.0.4'
 # set noet ci pi sts=0 sw=4 ts=4
 ##############################################################################
 # samgr - Security Announcement manager
@@ -7,7 +7,7 @@ SVER='2.0.3'
 #
 # Description:  Runs new security patterns against supportconfigs in the
 #               archive directory using the pat tool.
-# Modified:     2023 Aug 07
+# Modified:     2023 Aug 15
 #
 ##############################################################################
 #
@@ -61,11 +61,11 @@ def signal_handler(sig, frame):
 	print("\n\nAborting...\n")
 	sys.exit(0)
 
-def get_pattern_list():
-	valid_pattern = re.compile("patdevel/patterns/.*_SUSE-SU.*py$|patdevel/patterns/.*_SUSE-SU.*pl$")
-	base_files_list = pd.base_files(config)
+def get_sa_pattern_list(sca_pat_dir):
+	valid_pattern = re.compile("_SUSE-SU.*py$|_SUSE-SU.*pl$")
+	base_pattern_list = pd.get_pattern_list(sca_pat_dir)
 	this_list = []
-	for file in base_files_list:
+	for file in base_pattern_list:
 		if valid_pattern.search(file):
 			this_list.append(file)
 	return this_list
@@ -81,6 +81,8 @@ def main(argv):
 	if( os.path.exists(pd.config_file) ):
 		config.read(pd.config_file)
 		config_log_level = pd.config_entry(config.get("Common", "log_level"))
+		sca_arch_dir = pd.config_entry(config.get("Common", "sca_arch_dir"), '/')
+		sca_pat_dir = pd.config_entry(config.get("Security", "pat_dir"), '/')
 		config_logging = msg.validate_level(config_log_level)
 		if( config_logging >= msg.LOG_QUIET ):
 			msg.set_level(config_logging)
@@ -125,25 +127,40 @@ def main(argv):
 		pd.title(title_string, SVER)
 
 	if( action == "validate" ):
-		pd.sub_title("Validate Security Patterns")
+		if( msg.get_level() > msg.LOG_QUIET ):
+			pd.sub_title("Validate Security Patterns")
 		msg.normal("Log Level", msg.get_level_str())
-		pattern_list = get_pattern_list()
+		msg.normal("Loading security patterns", sca_pat_dir)
+		pattern_list = get_sa_pattern_list(sca_pat_dir)
+		msg.verbose("+ Security patterns", str(len(pattern_list)))
 		if( len(pattern_list) > 0 ):
-			patdev_repos = pd.config_entry(config.get("GitHub", "patdev_repos")).split(',')
-			bar = pd.ProgressBar("Updating: ", len(patdev_repos))
-			msg.normal("Updating Pattern Repositories")
-			pd.update_git_repos(config, msg, bar)
-			if( msg.get_level() == msg.LOG_MIN ):
-				bar.finish()
-			pd.validate_sa_patterns(config, msg, pattern_list)
+			msg.normal("Loading archives", sca_arch_dir)
+			archive_list = pd.get_archive_list(sca_arch_dir)
+			msg.verbose("+ Supportconfigs", str(len(archive_list)))
+			if( len(archive_list) > 0 ):
+				patdev_repos = pd.config_entry(config.get("GitHub", "patdev_repos")).split(',')
+				bar = pd.ProgressBar("Updating: ", len(patdev_repos))
+				msg.normal("Updating Pattern Repositories")
+				pd.update_git_repos(config, msg, bar)
+				if( msg.get_level() == msg.LOG_MIN ):
+					bar.finish()
+				pd.validate_sa_patterns(config, msg, pattern_list)
+				msg.min("Next: Distribute patterns to their respective repositories, with 'samgr -d'\n")
+			else:
+				msg.min("Error: No supportconfig archives found in {}\n".format(sca_arch_dir))
+				sys.exit(5)
 		else:
 			msg.min("+ Warning: No security patterns found, run sagen\n")
 	elif( action == "distribute" ):
-		pd.sub_title("Distribute Patterns")
+		if( msg.get_level() > msg.LOG_QUIET ):
+			pd.sub_title("Distribute Patterns")
 		msg.normal("Log Level", msg.get_level_str())
-		pattern_list = get_pattern_list()
+		msg.normal("Loading security patterns", sca_pat_dir)
+		pattern_list = get_sa_pattern_list(sca_pat_dir)
+		msg.verbose("+ Security patterns", str(len(pattern_list)))
 		if( len(pattern_list) > 0 ):
 			pd.distribute_sa_patterns(config, msg, pattern_list)
+			msg.min("Next: Generate the package change log with sagvc or remove distribution with 'samgr -r'\n")
 		else:
 			msg.min("+ Warning: No security patterns found, run sagen, then samgr --validate\n")
 	elif( action == "remove" ):
@@ -151,11 +168,13 @@ def main(argv):
 		msg.normal("Log Level", msg.get_level_str())
 		pd.remove_sa_patterns(config, msg)
 	elif( action == "config" ):
-		pd.sub_title("Show Configuration File")
+		if( msg.get_level() > msg.LOG_QUIET ):
+			pd.sub_title("Show Configuration File")
 		msg.normal("Log Level", msg.get_level_str())
 		pd.show_config_file(config)
 	elif( action == "repos" ):
-		pd.sub_title("Update Pattern Repositories")
+		if( msg.get_level() > msg.LOG_QUIET ):
+			pd.sub_title("Update Pattern Repositories")
 		msg.normal("Log Level", msg.get_level_str())
 		patdev_repos = pd.config_entry(config.get("GitHub", "patdev_repos")).split(',')
 		bar = pd.ProgressBar("Updating: ", len(patdev_repos))
@@ -166,7 +185,8 @@ def main(argv):
 		else:
 			msg.normal()
 	elif( action == "status" ):
-		pd.sub_title("Development Status")
+		if( msg.get_level() > msg.LOG_QUIET ):
+			pd.sub_title("Development Status")
 		msg.normal("Log Level", msg.get_level_str())
 		pd.show_status(config, msg)
 	else:
