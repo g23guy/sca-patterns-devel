@@ -2,7 +2,7 @@
 r"""Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Aug 15
+ Modified:     2023 Aug 16
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 distribution_log_filename = "distribution.log"
@@ -1172,7 +1172,8 @@ class GitHubRepository():
 		self.committed_patterns = {}
 		self.local_sa_patterns = {}
 		self.local_regular_patterns = {}
-		self.__probe_repo_info()
+		if not self.__probe_repo_info():
+			return
 		self.parse_local_patterns()
 
 	def __str__ (self):
@@ -1181,6 +1182,14 @@ class GitHubRepository():
 	def __probe_repo_info(self):
 		self.msg.normal("Probing repository", self.info['name'])
 		# Remote origin
+		if not os.path.exists(self.path):
+			self.info['valid'] = False
+			self.info['state'] = "Missing"
+			return False
+		elif not os.path.exists(self.git_config_file):
+			self.info['valid'] = False
+			self.info['state'] = "Not Git"
+			return False
 		git_config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
 		git_config.read(self.git_config_file)
 		self.info['origin'] = config_entry(git_config.get('remote "origin"', "url"))
@@ -1246,6 +1255,8 @@ class GitHubRepository():
 			self.info['valid'] = False
 		if( len(self.info['content']) == 0 ):
 			self.info['valid'] = False
+
+		return True
 
 	def __get_committed_repo_range(self):
 		prog = "git --no-pager branch -a"
@@ -1550,6 +1561,7 @@ def remove_sa_patterns(_config, _msg):
 
 def show_status(_config, _msg):
 	base_files_list = base_files(_config)
+	sca_arch_dir = config_entry(_config.get("Common", "sca_arch_dir"), '/')
 	pat_logs_dir = config_entry(_config.get("Security", "pat_logs"), '/')
 	repo_dir = config_entry(_config.get("Common", "sca_repo_dir"), '/')
 	repo_list = config_entry(_config.get("GitHub", "patdev_repos")).split(',')
@@ -1562,6 +1574,7 @@ def show_status(_config, _msg):
 	duplicates_list = []
 	logs_list = []
 	errors_list = []
+	archive_list = get_archive_list(sca_arch_dir)
 
 	for file in base_files_list:
 		if _pattern.search(file):
@@ -1574,6 +1587,10 @@ def show_status(_config, _msg):
 			errors_list.append(file)
 
 	outdated_pattern_repos = 0
+	missing_pattern_repos = 0
+	invalid_pattern_repos = 0
+	invalid_repo_list = []
+	test_archives = len(archive_list)
 	repo_exception = re.compile("sca-patterns-base|sca-server-report")
 	for repo in repo_list:
 		if repo_exception.search(repo):
@@ -1581,8 +1598,15 @@ def show_status(_config, _msg):
 		path = repo_dir + repo
 		git_repo = GitHubRepository(_msg, path)
 		repo_data = git_repo.get_info()
-		if repo_data['outdated']:
-			outdated_pattern_repos += 1
+		_msg.debug(" <> {}: Valid: {}, State: {}".format(repo_data['name'], repo_data['valid'], repo_data['state']))
+		if repo_data['valid']:
+			if repo_data['outdated']:
+				outdated_pattern_repos += 1
+		elif repo_data['state'] == "Missing":
+			missing_pattern_repos += 1
+		else:
+			invalid_repo_list.append(path)
+	invalid_pattern_repos = len(invalid_repo_list)
 
 	if os.path.exists(dist_log):
 		_msg.min("Distribution Log: Found", dist_log)
@@ -1592,9 +1616,20 @@ def show_status(_config, _msg):
 	_msg.min("Pattern Duplicates", str(len(duplicates_list)))
 	_msg.min("Pattern Errors", str(len(errors_list)))
 	_msg.min("Log Files", str(len(logs_list)))
-	_msg.min("Outdated Repositories", str(outdated_pattern_repos))
+	_msg.min("Test Archives", str(test_archives))
+	if test_archives < 1:
+		_msg.min("+ Error: No supportconfig archives found in {}".format(sca_arch_dir))
+	if missing_pattern_repos > 0:
+		_msg.min("Missing Repositories", str(missing_pattern_repos))
+		_msg.min("+ Try running: samgr --repos")
+	elif invalid_pattern_repos > 0:
+		_msg.min("Invalid Repositories", str(invalid_pattern_repos))
+		for this_repo in invalid_repo_list:
+			_msg.min("+ Delete", this_repo)
+		_msg.min("+ Run samgr --repos")
+	else:
+		_msg.min("Outdated Repositories", str(outdated_pattern_repos))
 	_msg.min()
-
 
 def github_path_valid(msg, path):
 	rc = True
