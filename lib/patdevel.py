@@ -1573,15 +1573,26 @@ def show_status(_config, _msg):
 	_duplicates = re.compile(pat_dups_dir + ".*")
 	_logs = re.compile(pat_logs_dir + ".*")
 	_errors = re.compile(pat_error_dir + ".*")
+	_sa_pattern = re.compile("/.*_SUSE-SU")
 	pattern_list = []
+	sa_pattern_list = []
+	reg_pattern_list = []
 	duplicates_list = []
 	logs_list = []
 	errors_list = []
 	archive_list = get_archive_list(sca_arch_dir)
+	outdated_repo_list = []
+	missing_repo_list = []
+	invalid_repo_list = []
+	pre_pattern_str = " + "
 
 	for file in base_files_list:
 		if _pattern.search(file):
 			pattern_list.append(file)
+			if _sa_pattern.search(file):
+				sa_pattern_list.append(file)
+			else:
+				reg_pattern_list.append(file)
 		if _duplicates.search(file):
 			duplicates_list.append(file)
 		if _logs.search(file):
@@ -1589,10 +1600,6 @@ def show_status(_config, _msg):
 		if _errors.search(file):
 			errors_list.append(file)
 
-	outdated_pattern_repos = 0
-	missing_pattern_repos = 0
-	invalid_pattern_repos = 0
-	invalid_repo_list = []
 	test_archives = len(archive_list)
 	repo_exception = re.compile("sca-patterns-base|sca-server-report")
 	for repo in repo_list:
@@ -1604,21 +1611,56 @@ def show_status(_config, _msg):
 		_msg.debug(" <> {}: Valid: {}, State: {}".format(repo_data['name'], repo_data['valid'], repo_data['state']))
 		if repo_data['valid']:
 			if repo_data['outdated']:
-				outdated_pattern_repos += 1
+				outdated_repo_list.append(path)
 		elif repo_data['state'] == "Missing":
-			missing_pattern_repos += 1
+			missing_repo_list.append(path)
 		else:
 			invalid_repo_list.append(path)
+
+	outdated_pattern_repos = len(outdated_repo_list)
+	missing_pattern_repos = len(missing_repo_list)
 	invalid_pattern_repos = len(invalid_repo_list)
+	sa_patterns = len(sa_pattern_list)
+	reg_patterns = len(reg_pattern_list)
+	dup_patterns = len(duplicates_list)
+	err_patterns = len(errors_list)
+	log_patterns = len(logs_list)
+	total_patterns = sa_patterns + reg_patterns
 
 	if os.path.exists(dist_log):
 		_msg.min("Distribution Log: Found", dist_log)
 	else:
 		_msg.min("Distribution Log: Missing", dist_log)
-	_msg.min("Current Patterns", str(len(pattern_list)))
-	_msg.min("Pattern Duplicates", str(len(duplicates_list)))
-	_msg.min("Pattern Errors", str(len(errors_list)))
-	_msg.min("Log Files", str(len(logs_list)))
+	_msg.min("Total Patterns", str(total_patterns))
+
+	_msg.min(" Security Patterns", str(sa_patterns))
+	if _msg.get_level() >= _msg.LOG_NORMAL:
+		for pattern in sa_pattern_list:
+			_msg.normal(pre_pattern_str + pattern)
+
+	_msg.min(" Regular Patterns", str(reg_patterns))
+	if _msg.get_level() >= _msg.LOG_NORMAL:
+		for pattern in reg_pattern_list:
+			_msg.normal(pre_pattern_str + pattern)
+
+	_msg.min("Pattern Duplicates", str(dup_patterns))
+	if _msg.get_level() >= _msg.LOG_NORMAL:
+		for pattern in duplicates_list:
+			_msg.normal(pre_pattern_str + pattern)
+
+
+	_msg.min("Pattern Errors", str(err_patterns))
+	if _msg.get_level() >= _msg.LOG_NORMAL:
+		for pattern in errors_list:
+			_msg.normal(pre_pattern_str + pattern)
+
+
+	_msg.min("Log Files", str(log_patterns))
+	if _msg.get_level() >= _msg.LOG_VERBOSE:
+		for pattern in logs_list:
+			_msg.normal(pre_pattern_str + pattern)
+
+
 	if missing_pattern_repos > 0:
 		_msg.min("Missing Repositories", str(missing_pattern_repos))
 		_msg.min("+ Try running: samgr --repos")
@@ -1629,9 +1671,17 @@ def show_status(_config, _msg):
 		_msg.min("+ Run samgr --repos")
 	else:
 		_msg.min("Outdated Repositories", str(outdated_pattern_repos))
+		if _msg.get_level() >= _msg.LOG_NORMAL:
+			for repo in outdated_repo_list:
+				_msg.normal(pre_pattern_str + repo)
+
 	_msg.min("Test Archives", str(test_archives))
+	if _msg.get_level() >= _msg.LOG_NORMAL:
+		for archive in archive_list:
+			_msg.normal(pre_pattern_str + archive)
 	if test_archives < 1:
 		_msg.min("+ Error: No supportconfig archives found in {}".format(sca_arch_dir))
+
 	_msg.min()
 
 def github_path_valid(msg, path):
