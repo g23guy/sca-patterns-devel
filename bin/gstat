@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.5'
+SVER = '2.0.6'
 ##############################################################################
 # gstat - Show the current GitHub status of the repository
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Checks the status of the CWD repository or all repos if no
 #               git repo in CWD.
-# Modified:     2023 Aug 10
+# Modified:     2023 Aug 16
 #
 ##############################################################################
 #
@@ -71,28 +71,25 @@ def show_git_status(_msg, data):
 		_msg.normal()
 
 def show_repo_status(_path, _msg):
-	state_display = "{:20s} {}"
+	size_base = 43
+	size_brackets = 2
 	if( _msg.get_level() >= _msg.LOG_NORMAL ):
 		pd.separator_line('-')
 	git_repo = pd.GitHubRepository(_msg, _path)
 	repo_data = git_repo.get_info()
+	size_state = len(repo_data['state'])
+	size = size_base - size_brackets - size_state
+	state_display = "Branch: {:" + str(size) + "} [{}]"
 
-	if( _msg.get_level() >= _msg.LOG_VERBOSE ):
-		_msg.min("Status " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
-		show_git_status(_msg, repo_data)
-	else:
-		if repo_data['outdated']:
-			_msg.min("Status " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
-			_msg.verbose("+ Remote Origin", repo_data['origin'])
-			show_git_status(_msg, repo_data)
-		else:
-			_msg.min("Status " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
-			_msg.verbose("+ Remote Origin", repo_data['origin'])
-			show_git_status(_msg, repo_data)
+	_msg.min("Status " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
+	if not repo_data['valid']:
+		_msg.min("+ Remove directory " + _path)
+	_msg.verbose("+ Remote Origin", repo_data['origin'])
 
 	if( _msg.get_level() >= _msg.LOG_DEBUG ):
 		for key, value in repo_data.items():
 			_msg.debug("  <> " + key, str(value))
+	return repo_data
 
 
 ##############################################################################
@@ -144,8 +141,6 @@ def main(argv):
 	given_dir = ''
 	if len(args) > 0: # A path to a proposed GitHub repository was given on the command line
 		given_dir = args[0]
-		if user_logging < 0:
-			msg.set_level(msg.LOG_NORMAL)
 		msg.normal("Log Level", msg.get_level_str())
 		if os.path.isdir(given_dir):
 			path = os.path.abspath(given_dir)
@@ -153,7 +148,12 @@ def main(argv):
 			if( os.path.isfile(git_config_file) ):
 				msg.debug("  <args> GitHub config found", git_config_file)
 				msg.min("Repository location", path)
-				show_repo_status(path, msg)
+				repo_data = show_repo_status(path, msg)
+				if user_logging < 0:
+					if repo_data['outdated']:
+						msg.set_level(msg.LOG_NORMAL)
+					else:
+						msg.set_level(msg.LOG_MIN)
 			else:
 				print("Error: Invalid GitHub repository - " + path)
 				sys.exit(4)
@@ -165,11 +165,15 @@ def main(argv):
 		git_config_file = path + "/.git/config"
 		if( os.path.isfile(git_config_file) ): # Check the current working directory for a GitHib repository
 			msg.debug("  <cwd> GitHub config found", git_config_file)
-			if user_logging < 0:
-				msg.set_level(msg.LOG_NORMAL)
 			msg.normal("Log Level", msg.get_level_str())
 			msg.min("Repository location", path)
-			show_repo_status(path, msg)
+			repo_data = show_repo_status(path, msg)
+			if user_logging < 0:
+				if repo_data['outdated']:
+					msg.set_level(msg.LOG_NORMAL)
+				else:
+					msg.set_level(msg.LOG_MIN)
+			show_git_status(msg, repo_data)
 		else: # Use the configuration file's path to repositories and check them, if the cwd is not a repository
 			msg.debug("  <cwd> GitHub config not found", git_config_file)
 			if user_logging < 0:
