@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER='2.0.4'
+SVER='2.0.5'
 # set noet ci pi sts=0 sw=4 ts=4
 ##############################################################################
 # samgr - Security Announcement manager
@@ -7,7 +7,7 @@ SVER='2.0.4'
 #
 # Description:  Runs new security patterns against supportconfigs in the
 #               archive directory using the pat tool.
-# Modified:     2023 Aug 15
+# Modified:     2023 Aug 16
 #
 ##############################################################################
 #
@@ -184,6 +184,9 @@ def main(argv):
 			bar.finish()
 		else:
 			msg.normal()
+		if( msg.get_level() > msg.LOG_QUIET ):
+			pd.sub_title("Development Status")
+		pd.show_status(config, msg)
 	elif( action == "status" ):
 		if( msg.get_level() > msg.LOG_QUIET ):
 			pd.sub_title("Development Status")
