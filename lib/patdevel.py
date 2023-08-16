@@ -1562,14 +1562,17 @@ def remove_sa_patterns(_config, _msg):
 def show_status(_config, _msg):
 	base_files_list = base_files(_config)
 	sca_arch_dir = config_entry(_config.get("Common", "sca_arch_dir"), '/')
+	pat_dir = config_entry(_config.get("Security", "pat_dir"), '/')
+	pat_dups_dir = config_entry(_config.get("Security", "pat_dups"), '/')
 	pat_logs_dir = config_entry(_config.get("Security", "pat_logs"), '/')
+	pat_error_dir = config_entry(_config.get("Security", "pat_error"), '/')
 	repo_dir = config_entry(_config.get("Common", "sca_repo_dir"), '/')
 	repo_list = config_entry(_config.get("GitHub", "patdev_repos")).split(',')
 	dist_log = pat_logs_dir + distribution_log_filename
-	_pattern = re.compile("patdevel/patterns/.*py$|patdevel/patterns/.*pl$")
-	_duplicates = re.compile("patdevel/duplicates/.*")
-	_logs = re.compile("patdevel/logs/.*")
-	_errors = re.compile("patdevel/errors/.*")
+	_pattern = re.compile(pat_dir + ".*py$|" + pat_dir + ".*pl$")
+	_duplicates = re.compile(pat_dups_dir + ".*")
+	_logs = re.compile(pat_logs_dir + ".*")
+	_errors = re.compile(pat_error_dir + ".*")
 	pattern_list = []
 	duplicates_list = []
 	logs_list = []
@@ -1616,9 +1619,6 @@ def show_status(_config, _msg):
 	_msg.min("Pattern Duplicates", str(len(duplicates_list)))
 	_msg.min("Pattern Errors", str(len(errors_list)))
 	_msg.min("Log Files", str(len(logs_list)))
-	_msg.min("Test Archives", str(test_archives))
-	if test_archives < 1:
-		_msg.min("+ Error: No supportconfig archives found in {}".format(sca_arch_dir))
 	if missing_pattern_repos > 0:
 		_msg.min("Missing Repositories", str(missing_pattern_repos))
 		_msg.min("+ Try running: samgr --repos")
@@ -1629,6 +1629,9 @@ def show_status(_config, _msg):
 		_msg.min("+ Run samgr --repos")
 	else:
 		_msg.min("Outdated Repositories", str(outdated_pattern_repos))
+	_msg.min("Test Archives", str(test_archives))
+	if test_archives < 1:
+		_msg.min("+ Error: No supportconfig archives found in {}".format(sca_arch_dir))
 	_msg.min()
 
 def github_path_valid(msg, path):
