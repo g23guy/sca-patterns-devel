@@ -76,7 +76,7 @@ def get_sa_pattern_list(sca_pat_dir):
 
 def main(argv):
 	global SVER, title_string
-	action = "validate"
+	action = "status"
 
 	if( os.path.exists(pd.config_file) ):
 		config.read(pd.config_file)
