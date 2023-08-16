@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Wed Aug 16 22:20:26 UTC 2023 - jason.record@suse.com
+
+Changes to version 2.0.6
+- samgr status shows repository error (pr#31)
+- patdevel.py show_status must include config file paths (pr#33)
+- samgr should default to status (pr#36)
+- samgr status should show number SA and regular patterns (pr#35)
+- gstat should show minimum output when repo is current (pr#34)
+
+-------------------------------------------------------------------
 Tue Aug 15 16:25:33 UTC 2023 - jason.record@suse.com
 
 - samgr -v fails when not supportconfig archives are found. issue#25 (pr#26)

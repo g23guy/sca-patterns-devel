@@ -18,7 +18,7 @@
 %define pythondir %{_libexecdir}/python3.6/site-packages
 
 Name:         sca-patterns-devel
-Version:      2.0.5
+Version:      2.0.6
 Release:      0
 Summary:      Supportconf Analysis Pattern Development Tools
 License:      GPL-2.0-only
