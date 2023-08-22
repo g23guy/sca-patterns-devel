@@ -851,10 +851,6 @@ class SecurityAnnouncement():
 	def __str__(self):
 		return 'class %s(\n  package_lists=%r \n  safilepath=%r \n  sauri=%r \n  main_package=%r \n  announcement_id=%r \n  rating=%r\n)' % (self.__class__.__name__,self.package_lists, self.safilepath, self.sauri, self.main_package, self.announcement_id, self.rating)
 
-	def __cleanup(self):
-		print("!Cleanup skipped")
-		pass
-
 	def __load_file(self):
 		self.msg.debug('Loading file', self.safilepath)
 		try:
@@ -862,7 +858,6 @@ class SecurityAnnouncement():
 		except Exception as error:
 			self.msg.min("ERROR: Cannot open", str(self.safilepath) + ": " + str(error))
 			self.stat['a_errors'] += 1
-			self.__cleanup()
 			sys.exit()
 
 		invalid = re.compile(r'>Object not found!<', re.IGNORECASE)
@@ -873,7 +868,6 @@ class SecurityAnnouncement():
 				self.msg.min("ERROR: Invalid file", str(safilepath))
 				self.stat['a_errors'] += 1
 				f.close()
-				self.__cleanup()
 				sys.exit()
 			self.loaded_file.append(line)
 		f.close()
