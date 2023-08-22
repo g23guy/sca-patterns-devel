@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.6'
+SVER = '2.0.7'
 ##############################################################################
 # gstat - Show the current GitHub status of the repository
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Checks the status of the CWD repository or all repos if no
 #               git repo in CWD.
-# Modified:     2023 Aug 16
+# Modified:     2023 Aug 22
 #
 ##############################################################################
 #
@@ -69,6 +69,14 @@ def show_git_status(_msg, data):
 		for line in data['content']:
 			print(line)
 		_msg.normal()
+
+def show_git_branches(_msg, data):
+	if( _msg.get_level() >= _msg.LOG_VERBOSE ):
+		_msg.verbose("+ Output", 'git branch -a')
+		_msg.verbose()
+		for line in data['branches']:
+			print(line)
+		_msg.verbose()
 
 def show_repo_status(_path, _msg):
 	size_base = 43
@@ -154,6 +162,8 @@ def main(argv):
 						msg.set_level(msg.LOG_NORMAL)
 					else:
 						msg.set_level(msg.LOG_MIN)
+				show_git_status(msg, repo_data)
+				show_git_branches(msg, repo_data)
 			else:
 				print("Error: Invalid GitHub repository - " + path)
 				sys.exit(4)
@@ -174,6 +184,7 @@ def main(argv):
 				else:
 					msg.set_level(msg.LOG_MIN)
 			show_git_status(msg, repo_data)
+			show_git_branches(msg, repo_data)
 		else: # Use the configuration file's path to repositories and check them, if the cwd is not a repository
 			msg.debug("  <cwd> GitHub config not found", git_config_file)
 			if user_logging < 0:
@@ -183,7 +194,9 @@ def main(argv):
 			pd.check_git_repos(config, msg)
 			for repo in repo_list:
 				path = repo_dir + repo
-				show_repo_status(path, msg)
+				repo_data = show_repo_status(path, msg)
+				show_git_status(msg, repo_data)
+				show_git_branches(msg, repo_data)
 	msg.min()
 
 # Entry point
