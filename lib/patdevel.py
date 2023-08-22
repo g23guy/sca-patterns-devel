@@ -2,7 +2,7 @@
 r"""Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Aug 16
+ Modified:     2023 Aug 22
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 distribution_log_filename = "distribution.log"
@@ -1165,7 +1165,7 @@ class GitHubRepository():
 	def __init__(self, _msg, _path):
 		self.msg = _msg
 		self.path = _path
-		self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'outdated': False, 'state': 'Current', 'content': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
+		self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'outdated': False, 'state': 'Current', 'content': '', 'branches': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
 		self.git_config_file = self.path + "/.git/config"
 		self.spec_file = self.path + '/spec/' + self.info['name'] + ".spec"
 		self.uncommitted_patterns = {}
@@ -1219,12 +1219,13 @@ class GitHubRepository():
 		else:
 			self.msg.verbose("+ Could not find package version in {0}".format(get_spec_file))
 
-		# Git remote status
+		# Get repo status
 		os.chdir(self.path)
 		try:
-			p = sp.run(['/usr/bin/git', 'status'], universal_newlines=True, stdout=sp.PIPE, stderr=sp.PIPE)
+			prog = '/usr/bin/git status'
+			p = sp.run(prog.split(), universal_newlines=True, stdout=sp.PIPE, stderr=sp.PIPE)
 		except Exception as e:
-			self.msg.debug('  <> sp.run Exception')
+			self.msg.debug('  <status> sp.run Exception: {}'.format(prog))
 
 			if( self.msg.get_level() >= self.msg.LOG_NORMAL ):
 				self.msg.normal()
@@ -1234,12 +1235,12 @@ class GitHubRepository():
 			return self.info
 
 		if p.returncode > 0:
-			self.msg.debug("  <> Non-Zero return code, p.returncode > 0")
+			self.msg.debug("  <status> Non-Zero return code, p.returncode > 0")
 		else:
 			this_branch = re.compile("On branch", re.IGNORECASE)
 			this_status = re.compile("is ahead of|Changes not staged for commit|Untracked files", re.IGNORECASE)
 			data = p.stdout.splitlines()
-			self.msg.debug("<> Command Output", "git status")
+			self.msg.debug("<> Command Output", prog)
 			for line in data:
 				self.msg.debug("> " + line)
 				if this_branch.search(line):
@@ -1248,6 +1249,29 @@ class GitHubRepository():
 					self.info['outdated'] = True
 					self.info['state'] = "Push"
 			self.info['content'] = data
+
+		# Get branch data
+		try:
+			prog = '/usr/bin/git -P branch -a'
+			p = sp.run(prog.split(), universal_newlines=True, stdout=sp.PIPE, stderr=sp.PIPE)
+		except Exception as e:
+			self.msg.debug('  <branch> sp.run Exception: {}'.format(prog))
+
+			if( self.msg.get_level() >= self.msg.LOG_NORMAL ):
+				self.msg.normal()
+				print(str(e) + "\n")
+				separator_line('-')
+				print()
+			return self.info
+
+		if p.returncode > 0:
+			self.msg.debug("  <branch> Non-Zero return code, p.returncode > 0")
+		else:
+			data = p.stdout.splitlines()
+			self.msg.debug("<> Command Output", prog)
+			for line in data:
+				self.msg.debug("> " + line)
+			self.info['branches'] = data
 
 		if( len(self.info['origin']) == 0 ):
 			self.info['valid'] = False
