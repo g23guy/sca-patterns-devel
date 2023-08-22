@@ -1510,7 +1510,7 @@ def distribute_sa_patterns(_config, _msg, pattern_list):
 	distro_list = config_entry(_config.get("Distribution", "supported")).split(",")
 	log_file = pat_logs_dir + distribution_log_filename
 	total = len(pattern_list)
-	_msg.normal("Distributing patterns for associated distributions")
+	_msg.normal("Distributing patterns to associated distributions")
 	log = configparser.ConfigParser()
 	log.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
 	# Remove any obsolete log entries
@@ -1522,37 +1522,37 @@ def distribute_sa_patterns(_config, _msg, pattern_list):
 	else:
 		log.add_section(distribution_log_section)
 	for distro in distro_list:
-#		print(distro)
 		count = 0
 		distro_major = re.sub(r"sle(\d.*)sp(\d)", r"\1", distro)
 		distro_version = re.sub(r"sle(\d.*)sp(\d)", r"\1.\2", distro)
 		distro_str = "_" + str(distro_version) + ".*py$"
 		matchdistro = re.compile(distro_str)
 		for pattern in pattern_list:
-#			print("+ {}".format(pattern))
+			_msg.debug("<> {}".format(pattern))
 			if matchdistro.search(pattern):
-#				print(" + Distro {}".format('MATCHED'))
+				_msg.verbose(" + Distro {}".format('MATCHED'))
 				count += 1
 				pattern_file = os.path.basename(pattern)
 				distributed_dir = sca_repo_dir + "sca-patterns-sle" + str(distro_major) + "/patterns/SLE/" + distro
 				if( os.path.exists(distributed_dir) ):
 					distributed_pattern = distributed_dir + "/" + pattern_file
-#					print("+ File {}".format(distributed_pattern))
+					_msg.verbose("+ File {}".format(distributed_pattern))
 					if( os.path.isfile(distributed_pattern) ):
-						print("Error: Duplicate file found - {0}".format(distributed_pattern))
+						_msg.normal("Error: Duplicate file found - {0}".format(distributed_pattern))
 					else:
-						#print("Copy {0}\n{1}".format(pattern, distributed_pattern))
+						_msg.verbose("Copy {0}\n{1}".format(pattern, distributed_pattern))
 						copyfile(pattern, distributed_pattern)
 						log[distribution_log_section][distributed_pattern] = 'true'
 				else:
-					print("Error: Directory not found - {0}".format(distributed_dir))
-#			else:
-#				print(" + Distro {}".format('SKIPPED'))
+					_msg.normal("Error: Directory not found - {0}".format(distributed_dir))
 
-		print(SUMMARY_FMT.format("+ " + distro + ":", count))
-		with open(log_file, 'w') as logfile:
-			log.write(logfile)
-	print()
+		_msg.min(SUMMARY_FMT.format("+ " + distro + ":", count))
+
+	_msg.normal("Writing to log file", log_file)
+	with open(log_file, 'w') as logfile:
+		log.write(logfile)
+
+	_msg.min()
 
 	return total
 
