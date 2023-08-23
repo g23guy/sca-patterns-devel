@@ -1,12 +1,22 @@
 -------------------------------------------------------------------
+Wed Aug 23 19:47:23 UTC 2023 - jason.record@suse.com
+
+- Changes to version 2.0.7
+  + Add git branch to gstat #40 (pr#41)
+  + SecurityAnnouncement __cleanup method is not used #39 (pr#42)
+  + distribute_sa_patterns has hard coded print statements #38 (pr#43)
+  + Show distribution details with samgr status #37 (pr#45)
+  + Add a gstat option to list all repo status #44 (pr#46)
+
+-------------------------------------------------------------------
 Wed Aug 16 22:20:26 UTC 2023 - jason.record@suse.com
 
-Changes to version 2.0.6
-- samgr status shows repository error (pr#31)
-- patdevel.py show_status must include config file paths (pr#33)
-- samgr should default to status (pr#36)
-- samgr status should show number SA and regular patterns (pr#35)
-- gstat should show minimum output when repo is current (pr#34)
+- Changes to version 2.0.6
+  + samgr status shows repository error (pr#31)
+  + patdevel.py show_status must include config file paths (pr#33)
+  + samgr should default to status (pr#36)
+  + samgr status should show number SA and regular patterns (pr#35)
+  + gstat should show minimum output when repo is current (pr#34)
 
 -------------------------------------------------------------------
 Tue Aug 15 16:25:33 UTC 2023 - jason.record@suse.com
