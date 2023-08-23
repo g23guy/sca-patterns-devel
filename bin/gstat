@@ -6,7 +6,7 @@ SVER = '2.0.7'
 #
 # Description:  Checks the status of the CWD repository or all repos if no
 #               git repo in CWD.
-# Modified:     2023 Aug 22
+# Modified:     2023 Aug 23
 #
 ##############################################################################
 #
@@ -53,6 +53,7 @@ def usage():
 	print()
 	print("Options:")
 	print(display.format("-h, --help", "Display this help"))
+	print(display.format("-a, --all", "Force checking configured reposistories"))
 	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
 	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
 	print()
@@ -99,6 +100,17 @@ def show_repo_status(_path, _msg):
 			_msg.debug("  <> " + key, str(value))
 	return repo_data
 
+def show_all_repo_status(_msg, _config):
+	repo_dir = pd.config_entry(_config.get("Common", "sca_repo_dir"), '/')
+	repo_list = pd.config_entry(_config.get("GitHub", "patdev_repos")).split(',')
+	_msg.min("Configuration repositories", repo_dir)
+	pd.check_git_repos(_config, _msg)
+	for repo in repo_list:
+		path = repo_dir + repo
+		repo_data = show_repo_status(path, _msg)
+		show_git_status(_msg, repo_data)
+		show_git_branches(_msg, repo_data)
+
 
 ##############################################################################
 # Main
@@ -107,11 +119,10 @@ def show_repo_status(_path, _msg):
 def main(argv):
 	"main entry point"
 	global SVER
+	force_all = False
 	
 	if( os.path.exists(pd.config_file) ):
 		config.read(pd.config_file)
-		repo_dir = pd.config_entry(config.get("Common", "sca_repo_dir"), '/')
-		repo_list = pd.config_entry(config.get("GitHub", "patdev_repos")).split(',')
 		config_log_level = pd.config_entry(config.get("Common", "log_level"))
 		config_logging = msg.validate_level(config_log_level)
 		if( config_logging >= msg.LOG_QUIET ):
@@ -126,7 +137,7 @@ def main(argv):
 
 	user_logging = -1
 	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "hl:", ["help", "log_level="])
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hal:", ["help", "all", "log_level="])
 	except getopt.GetoptError as exc:
 		pd.title(title_string, SVER)
 		print("Error:", exc, file=sys.stderr)
@@ -136,6 +147,8 @@ def main(argv):
 			pd.title(title_string, SVER)
 			usage()
 			sys.exit(0)
+		elif opt in {"-a", "--all"}:
+			force_all = True
 		elif opt in {"-l", "--log_level"}:
 			user_logging = msg.validate_level(arg)
 			if( user_logging >= msg.LOG_QUIET ):
@@ -146,15 +159,42 @@ def main(argv):
 	if( msg.get_level() > msg.LOG_QUIET ):
 		pd.title(title_string, SVER)
 
-	given_dir = ''
-	if len(args) > 0: # A path to a proposed GitHub repository was given on the command line
-		given_dir = args[0]
+	if force_all:
+		if user_logging < 0:
+			msg.set_level(msg.LOG_MIN)
 		msg.normal("Log Level", msg.get_level_str())
-		if os.path.isdir(given_dir):
-			path = os.path.abspath(given_dir)
+		show_all_repo_status(msg, config)
+	else:
+		given_dir = ''
+		if len(args) > 0: # A path to a proposed GitHub repository was given on the command line
+			given_dir = args[0]
+			msg.normal("Log Level", msg.get_level_str())
+			if os.path.isdir(given_dir):
+				path = os.path.abspath(given_dir)
+				git_config_file = path + "/.git/config"
+				if( os.path.isfile(git_config_file) ):
+					msg.debug("  <args> GitHub config found", git_config_file)
+					msg.min("Repository location", path)
+					repo_data = show_repo_status(path, msg)
+					if user_logging < 0:
+						if repo_data['outdated']:
+							msg.set_level(msg.LOG_NORMAL)
+						else:
+							msg.set_level(msg.LOG_MIN)
+					show_git_status(msg, repo_data)
+					show_git_branches(msg, repo_data)
+				else:
+					print("Error: Invalid GitHub repository - " + path)
+					sys.exit(4)
+			else:
+				print("Error: Invalid file or path - " + given_dir)
+				sys.exit(5)
+		else: # No repository path given on the command line
+			path = os.getcwd()
 			git_config_file = path + "/.git/config"
-			if( os.path.isfile(git_config_file) ):
-				msg.debug("  <args> GitHub config found", git_config_file)
+			if( os.path.isfile(git_config_file) ): # Check the current working directory for a GitHib repository
+				msg.debug("  <cwd> GitHub config found", git_config_file)
+				msg.normal("Log Level", msg.get_level_str())
 				msg.min("Repository location", path)
 				repo_data = show_repo_status(path, msg)
 				if user_logging < 0:
@@ -164,39 +204,12 @@ def main(argv):
 						msg.set_level(msg.LOG_MIN)
 				show_git_status(msg, repo_data)
 				show_git_branches(msg, repo_data)
-			else:
-				print("Error: Invalid GitHub repository - " + path)
-				sys.exit(4)
-		else:
-			print("Error: Invalid file or path - " + given_dir)
-			sys.exit(5)
-	else: # No repository path given on the command line
-		path = os.getcwd()
-		git_config_file = path + "/.git/config"
-		if( os.path.isfile(git_config_file) ): # Check the current working directory for a GitHib repository
-			msg.debug("  <cwd> GitHub config found", git_config_file)
-			msg.normal("Log Level", msg.get_level_str())
-			msg.min("Repository location", path)
-			repo_data = show_repo_status(path, msg)
-			if user_logging < 0:
-				if repo_data['outdated']:
-					msg.set_level(msg.LOG_NORMAL)
-				else:
+			else: # Use the configuration file's path to repositories and check them, if the cwd is not a repository
+				msg.debug("  <cwd> GitHub config not found", git_config_file)
+				if user_logging < 0:
 					msg.set_level(msg.LOG_MIN)
-			show_git_status(msg, repo_data)
-			show_git_branches(msg, repo_data)
-		else: # Use the configuration file's path to repositories and check them, if the cwd is not a repository
-			msg.debug("  <cwd> GitHub config not found", git_config_file)
-			if user_logging < 0:
-				msg.set_level(msg.LOG_MIN)
-			msg.normal("Log Level", msg.get_level_str())
-			msg.min("Configuration repositories", repo_dir)
-			pd.check_git_repos(config, msg)
-			for repo in repo_list:
-				path = repo_dir + repo
-				repo_data = show_repo_status(path, msg)
-				show_git_status(msg, repo_data)
-				show_git_branches(msg, repo_data)
+				msg.normal("Log Level", msg.get_level_str())
+				show_all_repo_status(msg, config)
 	msg.min()
 
 # Entry point
