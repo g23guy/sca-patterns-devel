@@ -2,7 +2,7 @@
 r"""Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Aug 22
+ Modified:     2023 Aug 23
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,8 +41,8 @@ __all__ = [
 __version__ = "2.0.2"
 
 SUMMARY_FMT = "{0:30} {1:g}"
-distribution_log_filename = "distribution.log"
-distribution_log_section = "metadata"
+sa_distribution_log_filename = "distribution.log"
+sa_main_section = "Main"
 seperator_len = 85
 config_file = "/etc/opt/patdevel/patdev.conf"
 
@@ -1508,48 +1508,59 @@ def distribute_sa_patterns(_config, _msg, pattern_list):
 	pat_logs_dir = config_entry(_config.get("Security", "pat_logs"), '/')
 	sca_repo_dir = config_entry(_config.get("Common", "sca_repo_dir"), '/')
 	distro_list = config_entry(_config.get("Distribution", "supported")).split(",")
-	log_file = pat_logs_dir + distribution_log_filename
+	sa_log_file = pat_logs_dir + sa_distribution_log_filename
 	total = len(pattern_list)
-	_msg.normal("Distributing patterns to associated distributions")
 	log = configparser.ConfigParser()
 	log.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
 	# Remove any obsolete log entries
-	if os.path.exists(log_file):
-		log.read(log_file)
-		for _file, value in log.items(distribution_log_section):
-			if not os.path.exists(_file):
-				log.remove_option(distribution_log_section, _file)
+	if os.path.exists(sa_log_file):
+		log.read(sa_log_file)
+		for distro in distro_list:
+			count = int(log[distro]['Count'])
+			if count > 0:
+				for _file, value in log.items(distro):
+					if value == "Distributed":
+						if not os.path.exists(_file):
+							log.remove_option(distro, _file)
 	else:
-		log.add_section(distribution_log_section)
+		log.add_section('Main')
+		log['Main']['Total'] = str(total)
+		for distro in distro_list:
+			log.add_section(distro)
+
+	_msg.normal("Distributing patterns to associated distributions")
 	for distro in distro_list:
+		_msg.normal("Evaluating " + distro)
 		count = 0
 		distro_major = re.sub(r"sle(\d.*)sp(\d)", r"\1", distro)
 		distro_version = re.sub(r"sle(\d.*)sp(\d)", r"\1.\2", distro)
 		distro_str = "_" + str(distro_version) + ".*py$"
 		matchdistro = re.compile(distro_str)
 		for pattern in pattern_list:
-			_msg.debug("<> {}".format(pattern))
 			if matchdistro.search(pattern):
-				_msg.verbose(" + Distro {}".format('MATCHED'))
+				_msg.verbose("+ Pattern {}".format(pattern))
+				_msg.verbose("+ Pattern to distro", 'MATCHED')
 				count += 1
 				pattern_file = os.path.basename(pattern)
 				distributed_dir = sca_repo_dir + "sca-patterns-sle" + str(distro_major) + "/patterns/SLE/" + distro
 				if( os.path.exists(distributed_dir) ):
 					distributed_pattern = distributed_dir + "/" + pattern_file
-					_msg.verbose("+ File {}".format(distributed_pattern))
 					if( os.path.isfile(distributed_pattern) ):
-						_msg.normal("Error: Duplicate file found - {0}".format(distributed_pattern))
+						_msg.normal("+ Error: Duplicate file found - {0}".format(distributed_pattern))
 					else:
-						_msg.verbose("Copy {0}\n{1}".format(pattern, distributed_pattern))
+						_msg.verbose("+ Copy {0} to \n       {1}".format(pattern, distributed_pattern))
 						copyfile(pattern, distributed_pattern)
-						log[distribution_log_section][distributed_pattern] = 'true'
+						log[distro][distributed_pattern] = 'Distributed'
+						_msg.verbose()
 				else:
 					_msg.normal("Error: Directory not found - {0}".format(distributed_dir))
+		
+		log[distro]['Count'] = str(count)
+		if count > 0:
+			_msg.min(SUMMARY_FMT.format("+ " + distro + ":", count))
 
-		_msg.min(SUMMARY_FMT.format("+ " + distro + ":", count))
-
-	_msg.normal("Writing to log file", log_file)
-	with open(log_file, 'w') as logfile:
+	_msg.normal("Writing to log file", sa_log_file)
+	with open(sa_log_file, 'w') as logfile:
 		log.write(logfile)
 
 	_msg.min()
@@ -1558,24 +1569,35 @@ def distribute_sa_patterns(_config, _msg, pattern_list):
 
 def remove_sa_patterns(_config, _msg):
 	pat_logs_dir = config_entry(_config.get("Security", "pat_logs"), '/')
-	log_file = pat_logs_dir + distribution_log_filename
-	log = configparser.ConfigParser()
-	log.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
-	_msg.min("Removing previously distributed security patterns")
+	sa_log_file = pat_logs_dir + sa_distribution_log_filename
 	# Remove any obsolete log entries
-	if os.path.exists(log_file):
-		log.read(log_file)
-		for _file, value in log.items(distribution_log_section):
-			if os.path.exists(_file):
-				_msg.normal("Deleting", _file)
-				os.remove(_file)
-		os.remove(log_file)
-		_msg.normal()
+	if os.path.exists(sa_log_file):
+		log = configparser.ConfigParser()
+		log.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
+		log.read(sa_log_file)
+		total = log.get(sa_main_section, "Total")
+		for distro in log.sections():
+			_msg.normal("Evaluating " + distro)
+			if distro == sa_main_section:
+				continue
+			count = int(log.get(distro, 'Count'))
+			if count > 0:
+				for _file, value in log.items(distro):
+					if value == "Distributed" and os.path.exists(_file):
+						_msg.normal("+ Deleting", _file)
+						os.remove(_file)
+				_msg.min("+ {}".format(distro), str(count))
+		os.remove(sa_log_file)
+		_msg.min()
 		return True
 	else:
-		_msg.min("+ File not found", log_file)
+		total = 0
+		_msg.min("Security patterns to remove", str(total))
+		_msg.min("+ File not found", sa_log_file)
 		_msg.min("+ Run: sagen, then samgr --validate, and samgr --distribute\n")
 		return False
+
+
 
 def show_status(_config, _msg):
 	base_files_list = base_files(_config)
@@ -1586,7 +1608,7 @@ def show_status(_config, _msg):
 	pat_error_dir = config_entry(_config.get("Security", "pat_error"), '/')
 	repo_dir = config_entry(_config.get("Common", "sca_repo_dir"), '/')
 	repo_list = config_entry(_config.get("GitHub", "patdev_repos")).split(',')
-	dist_log = pat_logs_dir + distribution_log_filename
+	sa_log_file = pat_logs_dir + sa_distribution_log_filename
 	_pattern = re.compile(pat_dir + ".*py$|" + pat_dir + ".*pl$")
 	_duplicates = re.compile(pat_dups_dir + ".*")
 	_logs = re.compile(pat_logs_dir + ".*")
@@ -1645,10 +1667,6 @@ def show_status(_config, _msg):
 	log_patterns = len(logs_list)
 	total_patterns = sa_patterns + reg_patterns
 
-	if os.path.exists(dist_log):
-		_msg.min("Distribution Log: Found", dist_log)
-	else:
-		_msg.min("Distribution Log: Missing", dist_log)
 	_msg.min("Total Patterns", str(total_patterns))
 
 	_msg.min(" Security Patterns", str(sa_patterns))
@@ -1660,6 +1678,29 @@ def show_status(_config, _msg):
 	if _msg.get_level() >= _msg.LOG_NORMAL:
 		for pattern in reg_pattern_list:
 			_msg.normal(pre_pattern_str + pattern)
+
+	if os.path.exists(sa_log_file):
+		log = configparser.ConfigParser()
+		log.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
+		log.read(sa_log_file)
+		sa_total = log.get(sa_main_section, "Total")
+		_msg.min("Security Patterns Distributed", str(sa_total))
+		if _msg.get_level() >= _msg.LOG_NORMAL:
+			for distro in log.sections():
+				if distro == sa_main_section:
+					continue
+				count = int(log.get(distro, "Count"))
+				if _msg.get_level() >= _msg.LOG_VERBOSE:
+					_msg.normal("+ {}".format(distro), str(count))
+					for _file, value in log.items(distro):
+						if value == "Distributed":
+							_msg.verbose("  + {}".format(_file))
+				else:
+					if count > 0:
+						_msg.normal("+ {}".format(distro), str(count))
+	else:
+		sa_total = 0
+		_msg.min("Security Patterns Distributed", str(sa_total))
 
 	_msg.min("Pattern Duplicates", str(dup_patterns))
 	if _msg.get_level() >= _msg.LOG_NORMAL:
@@ -1694,7 +1735,7 @@ def show_status(_config, _msg):
 				_msg.normal(pre_pattern_str + repo)
 
 	_msg.min("Test Archives", str(test_archives))
-	if _msg.get_level() >= _msg.LOG_NORMAL:
+	if _msg.get_level() >= _msg.LOG_VERBOSE:
 		for archive in archive_list:
 			_msg.normal(pre_pattern_str + archive)
 	if test_archives < 1:
