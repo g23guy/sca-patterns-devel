@@ -2,7 +2,7 @@
 r"""Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Aug 23
+ Modified:     2023 Aug 25
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "2.0.2"
+__version__ = "2.0.3"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"
@@ -1597,6 +1597,82 @@ def remove_sa_patterns(_config, _msg):
 		_msg.min("+ Run: sagen, then samgr --validate, and samgr --distribute\n")
 		return False
 
+def reset_sa_patterns(_config, _msg):
+	pat_dir = config_entry(_config.get("Security", "pat_dir"), '/')
+	pat_error = config_entry(_config.get("Security", "pat_error"), '/')
+	pat_logs = config_entry(_config.get("Security", "pat_logs"), '/')
+	pat_dups = config_entry(_config.get("Security", "pat_dups"), '/')
+	manifest_files = []
+	file_list = []
+	sections = []
+	directories = {'patterns': pat_dir, 'errors': pat_error, 'duplicates': pat_dups}
+
+	# Find sagen manifests in the logs directory
+	for dirpath, subdirs, files in os.walk(pat_logs, topdown = True):
+		for name in files:
+			if name.startswith("manifest-sagen_"):
+				manifest_files.append(os.path.join(dirpath, name))
+
+	if len(manifest_files) > 0:
+		for manifest_file in manifest_files:
+			_msg.min("Processing Manifest", manifest_file)
+			manifest = configparser.ConfigParser()
+			manifest.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
+			manifest.read(manifest_file)
+			sections = manifest.sections()
+			for section in sections:
+				for key, value in manifest.items(section):
+					if section == "metadata" or key == "status":
+						continue
+					file_list.append(key)
+			del manifest
+
+			# Remove pattern files
+			for directory, path in directories.items():
+				_msg.min("+ Removing patterns from {} directory".format(directory))
+				count = 0
+				for name in file_list:
+					_file = path + name
+					if os.path.exists(_file):
+						_msg.normal("  - Delete {}".format(_file))
+						os.remove(_file)
+						count += 1
+				if count > 0:
+					_msg.min("  - Files removed", str(count))
+				else:
+					_msg.normal("  - Files removed", str(count))
+
+			# Remove log files
+			_msg.min("+ Removing working files in logs directory")
+			count = 0
+			for name in sections:
+				_file = pat_logs + name
+				if os.path.exists(_file):
+					_msg.normal("  - Delete {}".format(_file))
+					os.remove(_file)
+					count += 1
+			if count > 0:
+				_msg.min("  - Files removed", str(count))
+			else:
+				_msg.normal("  - Files removed", str(count))
+
+			# Remove the manifest file
+			_msg.min("+ Removing manifest file")
+			count = 0
+			_file = manifest_file
+			if os.path.exists(_file):
+				_msg.normal("  - Delete {}".format(_file))
+				os.remove(_file)
+				count += 1
+			if count > 0:
+				_msg.min("  - Files removed", str(count))
+			else:
+				_msg.normal("  - Files removed", str(count))
+
+	else:
+		_msg.min("No manifest files found")
+
+	_msg.min()
 
 
 def show_status(_config, _msg):
