@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.14'
+SVER = '2.0.15'
 ##############################################################################
 # sagvc - Regular Patterns Change Log Generator
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Creates a list of new regular pattern entries for the change
 #               log
-# Modified:     2023 Aug 10
+# Modified:     2023 Aug 25
 #
 ##############################################################################
 #
@@ -54,6 +54,7 @@ def usage():
 	print("Options:")
 	print(display.format("-h, --help", "Display this help"))
 	print(display.format('-d <dir>, --dir <dir>', "Set the path to a GitHub repository directory"))
+	print(display.format('-a, --all', "Generate change logs from all GitHub repository directories"))
 	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
 	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
 	print()
