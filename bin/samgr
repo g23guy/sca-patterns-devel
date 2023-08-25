@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER='2.0.5'
+SVER='2.0.6'
 # set noet ci pi sts=0 sw=4 ts=4
 ##############################################################################
 # samgr - Security Announcement manager
@@ -7,7 +7,7 @@ SVER='2.0.5'
 #
 # Description:  Runs new security patterns against supportconfigs in the
 #               archive directory using the pat tool.
-# Modified:     2023 Aug 16
+# Modified:     2023 Aug 25
 #
 ##############################################################################
 #
@@ -55,6 +55,7 @@ def usage():
 	print(display.format('-p, --repos', "Update GitHub repositories"))
 	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
 	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
+	print(display.format('-E, --reset', "Clean security patterns from the patterns, logs, errors and duplicates directories"))
 	print()
 
 def signal_handler(sig, frame):
@@ -94,10 +95,13 @@ def main(argv):
 		sys.exit(1)
 
 	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "hvdrcspl:", ["help", "validate", "distribute", "remove", "config", "status", "repos", "log_level="])
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hvdrcspEl:", ["help", "validate", "distribute", "remove", "config", "status", "repos", "reset", "log_level="])
 	except getopt.GetoptError as exc:
 		pd.title(title_string, SVER)
 		print("Error:", exc, file=sys.stderr)
+		print()
+		usage()
+		print()
 		sys.exit(2)
 	for opt, arg in optlist:
 		if opt in {"-h", "--help"}:
@@ -110,6 +114,8 @@ def main(argv):
 			action = "distribute"
 		elif opt in {"-r", "--remove"}:
 			action = "remove"
+		elif opt in {"-E", "--reset"}:
+			action = "reset"
 		elif opt in {"-c", "--config"}:
 			action = "config"
 		elif opt in {"-s", "--status"}:
@@ -164,9 +170,18 @@ def main(argv):
 		else:
 			msg.min("+ Warning: No security patterns found, run sagen, then samgr --validate\n")
 	elif( action == "remove" ):
-		pd.sub_title("Remove Uncommitted Patterns")
+		if( msg.get_level() > msg.LOG_QUIET ):
+			pd.sub_title("Remove Uncommitted Patterns")
 		msg.normal("Log Level", msg.get_level_str())
 		pd.remove_sa_patterns(config, msg)
+	elif( action == "reset" ):
+		if( msg.get_level() > msg.LOG_QUIET ):
+			pd.sub_title("Reset Security Patterns")
+		msg.normal("Log Level", msg.get_level_str())
+		pd.reset_sa_patterns(config, msg)
+		if( msg.get_level() > msg.LOG_QUIET ):
+			pd.sub_title("Development Status")
+		pd.show_status(config, msg)
 	elif( action == "config" ):
 		if( msg.get_level() > msg.LOG_QUIET ):
 			pd.sub_title("Show Configuration File")
