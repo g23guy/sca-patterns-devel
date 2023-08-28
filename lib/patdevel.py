@@ -2,7 +2,7 @@
 r"""Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Aug 25
+ Modified:     2023 Aug 28
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "2.0.3"
+__version__ = "2.0.4"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"
@@ -1190,28 +1190,29 @@ class GitHubRepository():
 		del git_config
 		self.msg.verbose("+ Remote Origin", self.info['origin'])
 
-		# Spec file version
-		this_version = ""
-		version = re.compile("^Version:\s.*[0-9]", re.IGNORECASE)
-		fd = open(self.spec_file, "r")
-		lines = fd.readlines()
-		fd.close()
-		for line in lines:
-			if version.search(line):
-				this_version = line.split()[-1]
-				break
+		if os.path.exists(self.spec_file):
+			# Spec file version
+			this_version = ""
+			version = re.compile("^Version:\s.*[0-9]", re.IGNORECASE)
+			fd = open(self.spec_file, "r")
+			lines = fd.readlines()
+			fd.close()
+			for line in lines:
+				if version.search(line):
+					this_version = line.split()[-1]
+					break
 
-		self.info['spec_ver'] = this_version
+			self.info['spec_ver'] = this_version
 
-		if( this_version ):
-			parts = this_version.split('.')
-			bumped = str(int(parts[-1]) + 1)
-			parts[-1] = str(bumped)
-			bumped_version = '.'.join(parts)
-			self.info['spec_ver_bumped'] = bumped_version
-			self.msg.verbose("+ Bumping package version", "{0} -> {1}".format(self.info['spec_ver'], self.info['spec_ver_bumped']))
-		else:
-			self.msg.verbose("+ Could not find package version in {0}".format(get_spec_file))
+			if( this_version ):
+				parts = this_version.split('.')
+				bumped = str(int(parts[-1]) + 1)
+				parts[-1] = str(bumped)
+				bumped_version = '.'.join(parts)
+				self.info['spec_ver_bumped'] = bumped_version
+				self.msg.verbose("+ Bumping package version", "{0} -> {1}".format(self.info['spec_ver'], self.info['spec_ver_bumped']))
+			else:
+				self.msg.verbose("+ Could not find package version in {0}".format(get_spec_file))
 
 		# Get repo status
 		os.chdir(self.path)
