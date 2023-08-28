@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Aug 28 12:23:40 UTC 2023 - jason.record@suse.com
+
+- Changes to version 2.0.8
+  + samgr needs a reset option #47 (pr#48)
+  + add option to get gvc for all repos #49 (pr#50)
+
+-------------------------------------------------------------------
 Wed Aug 23 19:47:23 UTC 2023 - jason.record@suse.com
 
 - Changes to version 2.0.7
