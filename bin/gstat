@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.7'
+SVER = '2.0.8'
 ##############################################################################
 # gstat - Show the current GitHub status of the repository
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Checks the status of the CWD repository or all repos if no
 #               git repo in CWD.
-# Modified:     2023 Aug 23
+# Modified:     2023 Aug 28
 #
 ##############################################################################
 #
@@ -111,6 +111,24 @@ def show_all_repo_status(_msg, _config):
 		show_git_status(_msg, repo_data)
 		show_git_branches(_msg, repo_data)
 
+def show_discovered_repo_status(_msg, _path):
+	_msg.min("Discover GitHub repos in", _path)
+	git_repos_found = []
+	for root, dirs, files in os.walk(_path, topdown = True):
+		for name in dirs:
+			git_dir = os.path.join(root, name)
+			git_config_file = git_dir + "/.git/config"
+			if( os.path.isfile(git_config_file) ):
+				git_repos_found.append(git_dir)
+		break
+	git_repos_found.sort()
+	count = len(git_repos_found)
+	_msg.min("+ GitHub repositories", str(count))
+	if count > 0:
+		for path in git_repos_found:
+			repo_data = show_repo_status(path, _msg)
+			show_git_status(_msg, repo_data)
+			show_git_branches(_msg, repo_data)
 
 ##############################################################################
 # Main
@@ -184,8 +202,9 @@ def main(argv):
 					show_git_status(msg, repo_data)
 					show_git_branches(msg, repo_data)
 				else:
-					print("Error: Invalid GitHub repository - " + path)
-					sys.exit(4)
+					if user_logging < 0:
+						msg.set_level(msg.LOG_MIN)
+					show_discovered_repo_status(msg, path)
 			else:
 				print("Error: Invalid file or path - " + given_dir)
 				sys.exit(5)
@@ -209,7 +228,7 @@ def main(argv):
 				if user_logging < 0:
 					msg.set_level(msg.LOG_MIN)
 				msg.normal("Log Level", msg.get_level_str())
-				show_all_repo_status(msg, config)
+				show_discovered_repo_status(msg, path)
 	msg.min()
 
 # Entry point
