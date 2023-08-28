@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Mon Aug 28 22:13:01 UTC 2023 - jason.record@suse.com
+
+- Changes to version 2.0.9
+  + gstat checks status for all directories in the given path issue#51 (pr#53)
+  + gstat handles missing spec files gracefully issue#52 (pr#54)
+
+-------------------------------------------------------------------
 Mon Aug 28 12:23:40 UTC 2023 - jason.record@suse.com
 
 - Changes to version 2.0.8
