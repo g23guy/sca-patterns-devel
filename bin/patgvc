@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.14'
+SVER = '2.0.15'
 ##############################################################################
 # sagvc - Regular Patterns Change Log Generator
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Creates a list of new regular pattern entries for the change
 #               log
-# Modified:     2023 Aug 10
+# Modified:     2023 Aug 25
 #
 ##############################################################################
 #
@@ -54,6 +54,7 @@ def usage():
 	print("Options:")
 	print(display.format("-h, --help", "Display this help"))
 	print(display.format('-d <dir>, --dir <dir>', "Set the path to a GitHub repository directory"))
+	print(display.format('-a, --all', "Generate change logs from all GitHub repository directories"))
 	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
 	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
 	print()
@@ -147,6 +148,27 @@ def generate_reg_change_log(_git_repo, _given_date):
 		print("Warning: No regular patterns found for the change log")
 	print()
 
+def generate_all_reg_change_logs(msg, config, given_date):
+	repo_dir = pd.config_entry(config.get("Common", "sca_repo_dir"), '/')
+	repo_list = pd.config_entry(config.get("GitHub", "patdev_repos")).split(',')
+	pd.check_git_repos(config, msg)
+	current_log_level = msg.get_level()
+	for repo in repo_list:
+		if current_log_level > msg.LOG_MIN:
+			pd.separator_line('-')
+		path = repo_dir + repo
+		git_repo = pd.GitHubRepository(msg, path)
+		patterns = len(git_repo.get_local_regular_patterns())
+		if( msg.get_level() >= msg.LOG_NORMAL ):
+			msg.min("Repository location", path)
+			generate_reg_change_log(git_repo, given_date)
+		else:
+			if patterns > 0:
+				pd.separator_line('-')
+				msg.min("Repository location", path)
+				generate_reg_change_log(git_repo, given_date)
+
+
 ##############################################################################
 # Main
 ##############################################################################
@@ -156,11 +178,10 @@ def main(argv):
 	global SVER
 	parse_patterns = []
 	given_dir = ''
+	force_all = False
 	
 	if( os.path.exists(pd.config_file) ):
 		config.read(pd.config_file)
-		repo_dir = pd.config_entry(config.get("Common", "sca_repo_dir"), '/')
-		repo_list = pd.config_entry(config.get("GitHub", "patdev_repos")).split(',')
 		config_log_level = pd.config_entry(config.get("Common", "log_level"))
 		config_logging = msg.validate_level(config_log_level)
 		if( config_logging >= msg.LOG_QUIET ):
@@ -174,7 +195,7 @@ def main(argv):
 		sys.exit(1)
 
 	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "hd:l:", ["help", "dir=", "log_level="])
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hd:al:", ["help", "dir=", "all", "log_level="])
 	except getopt.GetoptError as exc:
 		pd.title(title_string, SVER)
 		print("Error:", exc, file=sys.stderr)
@@ -191,6 +212,8 @@ def main(argv):
 				print("Error: Directory not found - {}".format(given_dir))
 				usage()
 				sys.exit(1)
+		elif opt in {"-a", "--all"}:
+			force_all = True
 		elif opt in {"-l", "--log_level"}:
 			user_logging = msg.validate_level(arg)
 			if( user_logging >= msg.LOG_QUIET ):
@@ -208,35 +231,33 @@ def main(argv):
 	else:
 		given_date = ''
 
-	if( len(given_dir) > 0 ):
-		path = os.path.abspath(given_dir)
-		msg.debug("  <arg> GitHub directory given", path)
-		if pd.github_path_valid(msg, path):
-			pd.separator_line('-')
-			msg.min("Repository location", path)
-			git_repo = pd.GitHubRepository(msg, path)
-			generate_reg_change_log(git_repo, given_date)
-		else:
-			msg.min("Invalid GitHub repository", path)
-			sys.exit(4)
-
-	else: # No repository path given on the command line
-		path = os.getcwd()
-		if pd.github_path_valid(msg, path):
-			msg.debug("  <cwd> GitHub directory given", path)
-			pd.separator_line('-')
-			msg.min("Repository location", path)
-			git_repo = pd.GitHubRepository(msg, path)
-			generate_reg_change_log(git_repo, given_date)
-		else:
-			msg.debug("  <conf> GitHub directories", "Config File")
-			pd.check_git_repos(config, msg)
-			for repo in repo_list:
+	if force_all:
+		msg.debug("  <conf> Force using GitHub directories", "Config File")
+		generate_all_reg_change_logs(msg, config, given_date)
+	else:
+		if( len(given_dir) > 0 ):
+			path = os.path.abspath(given_dir)
+			msg.debug("  <arg> GitHub directory given", path)
+			if pd.github_path_valid(msg, path):
 				pd.separator_line('-')
-				path = repo_dir + repo
 				msg.min("Repository location", path)
 				git_repo = pd.GitHubRepository(msg, path)
 				generate_reg_change_log(git_repo, given_date)
+			else:
+				msg.min("Invalid GitHub repository", path)
+				sys.exit(4)
+
+		else: # No repository path given on the command line
+			path = os.getcwd()
+			if pd.github_path_valid(msg, path):
+				msg.debug("  <cwd> GitHub directory given", path)
+				pd.separator_line('-')
+				msg.min("Repository location", path)
+				git_repo = pd.GitHubRepository(msg, path)
+				generate_reg_change_log(git_repo, given_date)
+			else:
+				msg.debug("  <conf> GitHub directories", "Config File")
+				generate_all_reg_change_logs(msg, config, given_date)
 
 # Entry point
 if __name__ == "__main__":
