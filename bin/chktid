@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.2'
+SVER = '2.0.3'
 ##############################################################################
 # chktid - Checks for Existing or Suggested TIDs
 # Copyright (C) 2023 SUSE LLC
@@ -8,7 +8,7 @@ SVER = '2.0.2'
 #               if a pattern has already been written. Likewise, it can search
 #               the SUSE support site for TIDs that currently don't have a 
 #               pattern.
-# Modified:     2023 Aug 04
+# Modified:     2023 Aug 30
 #
 ##############################################################################
 #
@@ -155,7 +155,7 @@ def get_suggestions_from_web(pages, _log_file):
 	maxIndex = 300
 	data = []
 
-	log = configparser.ConfigParser()
+	log = configparser.ConfigParser(interpolation=None)
 	log.optionxform = str # Ensures manifest keys are saved as case sensitive and not lowercase
 
 	msg.min("Retrieving TIDs from SUSE Support")
