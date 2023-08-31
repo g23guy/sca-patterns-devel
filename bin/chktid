@@ -148,8 +148,7 @@ def get_web_data(_url):
 	return this_data
 
 def get_suggestions_from_web(pages, _log_file):
-	check_tid_dict = {}
-	suggestion_list = {}
+	tid_dict = {}
 	c_ = {'count': 0, 'total': 0, 'suggested': 0, 'web': 0, 'dup': 0, 'prod': 0 }
 	page_entries = 25
 	maxIndex = 300
@@ -191,39 +190,46 @@ def get_suggestions_from_web(pages, _log_file):
 				tid_id = line.split('(')[-1].split(')')[0]
 				tid_url = target_tid_url + tid_id
 				tid_title = line.split('>')[1].split('<')[0].strip()
-				check_tid_dict[tid_id] = {}
-				check_tid_dict[tid_id]['url'] = tid_url
-				check_tid_dict[tid_id]['title'] = tid_title
-				check_tid_dict[tid_id]['prod'] = "Unknown"
-		c_['total'] = len(check_tid_dict.keys())
+				tid_dict[tid_id] = {}
+				tid_dict[tid_id]['url'] = tid_url
+				tid_dict[tid_id]['title'] = tid_title
+				tid_dict[tid_id]['prod'] = "Unknown"
+				tid_dict[tid_id]['status'] = "Ignored"
+				tid_dict[tid_id]['pattern'] = ''
+		c_['total'] = len(tid_dict.keys())
 		if( msg.get_level() == msg.LOG_MIN ):
 			bar2 = pd.ProgressBar("Evaluating: ", c_['total'])
 		msg.normal("+ Total TIDs to evaluate: {}".format(c_['total']))
 		msg.normal("Retrieving Pattern List")
 		pattern_list = retrieve_pattern_file_list()
 		msg.normal("Searching for Suggestions")
-		for tid_id in check_tid_dict.keys():
+		for tid_id in tid_dict.keys():
 			msg.normal("+ Evaluating TID [{}/{}]".format(c_['count'], c_['total']), tid_id)
 			check_pattern = re.compile(tid_id)
-			suggestion_list[tid_id] = check_tid_dict[tid_id]
+			duplicate = False
 			for filename in pattern_list:
 				if check_pattern.search(filename):
-					msg.normal("  - Pre-existing TID", filename)
+					msg.normal("  - Pre-existing TID Filename", filename)
+					tid_dict[tid_id]['status'] = "Pre-existing Filename"
+					tid_dict[tid_id]['pattern'] = filename
 					c_['dup'] += 1
-					del suggestion_list[tid_id]
+					duplicate = True
 					break
-				if search_file_content(filename, check_pattern):
-					msg.normal("  - Pre-existing TID Found", filename)
+				elif search_file_content(filename, check_pattern):
+					msg.normal("  - Pre-existing TID Content", filename)
+					tid_dict[tid_id]['status'] = "Pre-existing Content"
+					tid_dict[tid_id]['pattern'] = filename
 					c_['dup'] += 1
-					del suggestion_list[tid_id]
+					duplicate = True
 					break
+			if duplicate:
+				continue
 			in_state = False
 			get_state = re.compile("\>Modified Date:\<")
 			end_state = re.compile("</ul>")
-			if( tid_id in suggestion_list ):
-				msg.verbose("  Loading URL", check_tid_dict[tid_id]['url'])
-				suggestion_list[tid_id]['prod'] = "Unknown"
-				tid_data = get_web_data(check_tid_dict[tid_id]['url'])
+			if( tid_id in tid_dict ):
+				msg.verbose("  Loading URL", tid_dict[tid_id]['url'])
+				tid_data = get_web_data(tid_dict[tid_id]['url'])
 				if( len(tid_data) > 0 ):
 					for tid_line in tid_data:
 						tid_line = tid_line.strip()
@@ -231,30 +237,38 @@ def get_suggestions_from_web(pages, _log_file):
 							if( end_state.search(tid_line) ):
 								break
 							elif "SUSE Linux Enterprise Server" in tid_line:
-								suggestion_list[tid_id]['prod'] = "SLES"
+								tid_dict[tid_id]['prod'] = "SLES"
+								tid_dict[tid_id]['status'] = "Suggested"
 								break
 							elif "SUSE Linux Enterprise High Avail" in tid_line:
-								suggestion_list[tid_id]['prod'] = "HAE"
+								tid_dict[tid_id]['prod'] = "HAE"
+								tid_dict[tid_id]['status'] = "Suggested"
 								break
 							elif "SUSE Linux Enterprise Desktop" in tid_line:
-								suggestion_list[tid_id]['prod'] = "SLED"
+								tid_dict[tid_id]['prod'] = "SLED"
+								tid_dict[tid_id]['status'] = "Suggested"
 								break
 							elif "SUSE Manager" in tid_line:
-								suggestion_list[tid_id]['prod'] = "SUMA"
+								tid_dict[tid_id]['prod'] = "SUMA"
+								tid_dict[tid_id]['status'] = "Suggested"
 								break
 							elif "SUSE Enterprise Storage" in tid_line:
-								suggestion_list[tid_id]['prod'] = "SES"
+								tid_dict[tid_id]['prod'] = "SES"
+								tid_dict[tid_id]['status'] = "Suggested"
 								break
 							elif "SUSE Linux Enterprise Micro" in tid_line:
-								suggestion_list[tid_id]['prod'] = "Micro"
+								tid_dict[tid_id]['prod'] = "Micro"
+								tid_dict[tid_id]['status'] = "Suggested"
 								break
 							elif "SUSE Rancher" in tid_line:
-								del suggestion_list[tid_id]
+								tid_dict[tid_id]['prod'] = "Rancher"
+								tid_dict[tid_id]['status'] = "Skipped"
 								msg.normal("  - Product Skipped", "Rancher")
 								c_['prod'] += 1
 								break
 							elif "SUSE NeuVector" in tid_line:
-								del suggestion_list[tid_id]
+								tid_dict[tid_id]['prod'] = "NeuVector"
+								tid_dict[tid_id]['status'] = "Skipped"
 								msg.normal("  - Product Skipped", "NeuVector")
 								c_['prod'] += 1
 								break
@@ -263,9 +277,6 @@ def get_suggestions_from_web(pages, _log_file):
 				else:
 					msg.normal("  - No TID data")
 					c_['web'] += 1
-			else:
-				if ( tid_id in suggestion_list ):
-					del suggestion_list[tid_id]
 
 			c_['count'] += 1
 			if( msg.get_level() == msg.LOG_MIN ):
@@ -280,21 +291,24 @@ def get_suggestions_from_web(pages, _log_file):
 
 		# Build a sorted index list of suggested TIDs
 		tid_index = []
-		for key, value in suggestion_list.items():
+		for key, value in tid_dict.items():
 			sort_key = str(value['prod']) + ":" + str(key)
 			tid_index.append(sort_key)
 		tid_index.sort()
 
-		c_['suggested'] = len(suggestion_list)
 		msg.min("Suggested TIDs for New Patterns")
 		for i in tid_index:
 			tid = i.split(':')[-1]
-			msg.min("TID{} - {}\n + Product: {}\n + {}\n".format(tid, suggestion_list[tid]['title'], suggestion_list[tid]['prod'], suggestion_list[tid]['url']))
+			if "Suggested" in tid_dict[tid]['status']:
+				c_['suggested'] += 1
+				msg.min("TID{} - {}\n + Product: {}\n + {}\n".format(tid, tid_dict[tid]['title'], tid_dict[tid]['prod'], tid_dict[tid]['url']))
 			log.add_section(tid)
-			log[tid]['Title'] = suggestion_list[tid]['title']
-			log[tid]['Status'] = 'New'
-			log[tid]['Product'] = suggestion_list[tid]['prod']
-			log[tid]['URL'] = suggestion_list[tid]['url']
+			log[tid]['Title'] = tid_dict[tid]['title']
+			log[tid]['Status'] = tid_dict[tid]['status']
+			log[tid]['Product'] = tid_dict[tid]['prod']
+			log[tid]['URL'] = tid_dict[tid]['url']
+			if len(tid_dict[tid]['pattern']) > 0:
+				log[tid]['Pattern'] = tid_dict[tid]['pattern']
 		with open(_log_file, 'w') as logfile:
 			log.write(logfile)
 
