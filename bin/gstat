@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.10'
+SVER = '2.0.11'
 ##############################################################################
 # gstat - Show the current GitHub status of the repository
 # Copyright (C) 2023 SUSE LLC
@@ -82,9 +82,12 @@ def show_git_branches(_msg, data):
 def show_git_diff(_msg, data):
     if( _msg.get_level() >= _msg.LOG_VERBOSE ):
         _msg.verbose("+ Output", 'git --no-pager diff')
-        _msg.verbose()
-        for line in data['diff']:
-            print(line)
+        if len(data['diff']) > 0:
+            _msg.verbose()
+            for line in data['diff']:
+                print(line)
+        else:
+            _msg.verbose('  No differences found')
         _msg.verbose()
 
 def show_repo_status(_path, _msg):

@@ -38,7 +38,7 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "2.0.5"
+__version__ = "2.0.6"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"
@@ -1159,7 +1159,7 @@ class GitHubRepository():
 	def __init__(self, _msg, _path):
 		self.msg = _msg
 		self.path = _path
-		self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'outdated': False, 'state': 'Current', 'content': '', 'branches': '', 'diff': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
+		self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'outdated': True, 'state': 'Push', 'content': '', 'branches': '', 'diff': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
 		self.git_config_file = self.path + "/.git/config"
 		self.spec_file = self.path + '/spec/' + self.info['name'] + ".spec"
 		self.uncommitted_patterns = {}
@@ -1233,7 +1233,7 @@ class GitHubRepository():
 			self.msg.debug("  <status> Non-Zero return code, p.returncode > 0")
 		else:
 			this_branch = re.compile("On branch", re.IGNORECASE)
-			this_status = re.compile("is ahead of|Changes not staged for commit|Untracked files", re.IGNORECASE)
+			this_status = re.compile("nothing to commit, working tree clean", re.IGNORECASE)
 			data = p.stdout.splitlines()
 			self.msg.debug("<> Command Output", prog)
 			for line in data:
@@ -1241,8 +1241,8 @@ class GitHubRepository():
 				if this_branch.search(line):
 					self.info['branch'] = line.split()[-1]
 				elif this_status.search(line):
-					self.info['outdated'] = True
-					self.info['state'] = "Push"
+					self.info['outdated'] = False
+					self.info['state'] = "Current"
 			self.info['content'] = data
 
 		# Get branch data
