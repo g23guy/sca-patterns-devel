@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.8'
+SVER = '2.0.9'
 ##############################################################################
 # gstat - Show the current GitHub status of the repository
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Checks the status of the CWD repository or all repos if no
 #               git repo in CWD.
-# Modified:     2023 Aug 28
+# Modified:     2023 Oct 19
 #
 ##############################################################################
 #
@@ -47,194 +47,205 @@ title_string = "SCA GitHub Repository Status"
 ##############################################################################
 
 def usage():
-	"Displays usage information"
-	display = "  {:33s} {}"
-	print("Usage: gstat [options] [github_directory_path]")
-	print()
-	print("Options:")
-	print(display.format("-h, --help", "Display this help"))
-	print(display.format("-a, --all", "Force checking configured reposistories"))
-	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
-	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
-	print()
+    "Displays usage information"
+    display = "  {:33s} {}"
+    print("Usage: gstat [options] [github_directory_path]")
+    print()
+    print("Options:")
+    print(display.format("-h, --help", "Display this help"))
+    print(display.format("-a, --all", "Force checking configured reposistories"))
+    print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
+    print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
+    print()
 
 def signal_handler(sig, frame):
-	print("\n\nAborting...\n")
-	show_summary()
-	sys.exit(1)
+    print("\n\nAborting...\n")
+    show_summary()
+    sys.exit(1)
 
 def show_git_status(_msg, data):
-	if( _msg.get_level() >= _msg.LOG_NORMAL ):
-		_msg.normal("+ Output", 'git status')
-		_msg.normal()
-		for line in data['content']:
-			print(line)
-		_msg.normal()
+    if( _msg.get_level() >= _msg.LOG_NORMAL ):
+        _msg.normal("+ Output", 'git status')
+        _msg.normal()
+        for line in data['content']:
+            print(line)
+        _msg.normal()
 
 def show_git_branches(_msg, data):
-	if( _msg.get_level() >= _msg.LOG_VERBOSE ):
-		_msg.verbose("+ Output", 'git branch -a')
-		_msg.verbose()
-		for line in data['branches']:
-			print(line)
-		_msg.verbose()
+    if( _msg.get_level() >= _msg.LOG_VERBOSE ):
+        _msg.verbose("+ Output", 'git branch -a')
+        _msg.verbose()
+        for line in data['branches']:
+            print(line)
+        _msg.verbose()
 
 def show_repo_status(_path, _msg):
-	size_base = 43
-	size_brackets = 2
-	if( _msg.get_level() >= _msg.LOG_NORMAL ):
-		pd.separator_line('-')
-	git_repo = pd.GitHubRepository(_msg, _path)
-	repo_data = git_repo.get_info()
-	size_state = len(repo_data['state'])
-	size = size_base - size_brackets - size_state
-	state_display = "Branch: {:" + str(size) + "} [{}]"
+    size_base = 43
+    size_brackets = 2
+    if( _msg.get_level() >= _msg.LOG_NORMAL ):
+        pd.separator_line('-')
+    git_repo = pd.GitHubRepository(_msg, _path)
+    repo_data = git_repo.get_info()
+    size_state = len(repo_data['state'])
+    size = size_base - size_brackets - size_state
+    state_display = "Branch: {:" + str(size) + "} [{}]"
 
-	_msg.min("Status " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
-	if not repo_data['valid']:
-		_msg.min("+ Remove directory " + _path)
-	_msg.verbose("+ Remote Origin", repo_data['origin'])
+    _msg.min("Status " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
+    if not repo_data['valid']:
+        _msg.min("+ Remove directory " + _path)
+    _msg.verbose("+ Remote Origin", repo_data['origin'])
 
-	if( _msg.get_level() >= _msg.LOG_DEBUG ):
-		for key, value in repo_data.items():
-			_msg.debug("  <> " + key, str(value))
-	return repo_data
+    if( _msg.get_level() >= _msg.LOG_DEBUG ):
+        for key, value in repo_data.items():
+            _msg.debug("  <> " + key, str(value))
+    return repo_data
 
 def show_all_repo_status(_msg, _config):
-	repo_dir = pd.config_entry(_config.get("Common", "sca_repo_dir"), '/')
-	repo_list = pd.config_entry(_config.get("GitHub", "patdev_repos")).split(',')
-	_msg.min("Configuration repositories", repo_dir)
-	pd.check_git_repos(_config, _msg)
-	for repo in repo_list:
-		path = repo_dir + repo
-		repo_data = show_repo_status(path, _msg)
-		show_git_status(_msg, repo_data)
-		show_git_branches(_msg, repo_data)
+    repo_dir = pd.config_entry(_config.get("Common", "sca_repo_dir"), '/')
+    repo_list = pd.config_entry(_config.get("GitHub", "patdev_repos")).split(',')
+    _msg.min("Configuration repositories", repo_dir)
+    pd.check_git_repos(_config, _msg)
+    for repo in repo_list:
+        path = repo_dir + repo
+        repo_data = show_repo_status(path, _msg)
+        show_git_status(_msg, repo_data)
+        show_git_branches(_msg, repo_data)
 
 def show_discovered_repo_status(_msg, _path):
-	_msg.min("Discover GitHub repos in", _path)
-	git_repos_found = []
-	for root, dirs, files in os.walk(_path, topdown = True):
-		for name in dirs:
-			git_dir = os.path.join(root, name)
-			git_config_file = git_dir + "/.git/config"
-			if( os.path.isfile(git_config_file) ):
-				git_repos_found.append(git_dir)
-		break
-	git_repos_found.sort()
-	count = len(git_repos_found)
-	_msg.min("+ GitHub repositories", str(count))
-	if count > 0:
-		for path in git_repos_found:
-			repo_data = show_repo_status(path, _msg)
-			show_git_status(_msg, repo_data)
-			show_git_branches(_msg, repo_data)
+    _msg.min("Discover GitHub repos in", _path)
+    git_repos_found = []
+    for root, dirs, files in os.walk(_path, topdown = True):
+        for name in dirs:
+            git_dir = os.path.join(root, name)
+            git_config_file = git_dir + "/.git/config"
+            if( os.path.isfile(git_config_file) ):
+                git_repos_found.append(git_dir)
+        break
+    git_repos_found.sort()
+    count = len(git_repos_found)
+    _msg.min("+ GitHub repositories", str(count))
+    if count > 0:
+        for path in git_repos_found:
+            repo_data = show_repo_status(path, _msg)
+            show_git_status(_msg, repo_data)
+            show_git_branches(_msg, repo_data)
 
 ##############################################################################
 # Main
 ##############################################################################
 
 def main(argv):
-	"main entry point"
-	global SVER
-	force_all = False
-	
-	if( os.path.exists(pd.config_file) ):
-		config.read(pd.config_file)
-		config_log_level = pd.config_entry(config.get("Common", "log_level"))
-		config_logging = msg.validate_level(config_log_level)
-		if( config_logging >= msg.LOG_QUIET ):
-			msg.set_level(config_logging)
-		else:
-			print("Warning: Invalid log level in config file, using instance default")
-	else:
-		pd.title(title_string, SVER)
-		print("Error: Config file not found - {}".format(pd.config_file))
-		print()
-		sys.exit(1)
+    "main entry point"
+    global SVER
+    force_all = False
+    branches_only = False
+    
+    if( os.path.exists(pd.config_file) ):
+        config.read(pd.config_file)
+        config_log_level = pd.config_entry(config.get("Common", "log_level"))
+        config_logging = msg.validate_level(config_log_level)
+        if( config_logging >= msg.LOG_QUIET ):
+            msg.set_level(config_logging)
+        else:
+            print("Warning: Invalid log level in config file, using instance default")
+    else:
+        pd.title(title_string, SVER)
+        print("Error: Config file not found - {}".format(pd.config_file))
+        print()
+        sys.exit(1)
 
-	user_logging = -1
-	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "hal:", ["help", "all", "log_level="])
-	except getopt.GetoptError as exc:
-		pd.title(title_string, SVER)
-		print("Error:", exc, file=sys.stderr)
-		sys.exit(2)
-	for opt, arg in optlist:
-		if opt in {"-h", "--help"}:
-			pd.title(title_string, SVER)
-			usage()
-			sys.exit(0)
-		elif opt in {"-a", "--all"}:
-			force_all = True
-		elif opt in {"-l", "--log_level"}:
-			user_logging = msg.validate_level(arg)
-			if( user_logging >= msg.LOG_QUIET ):
-				msg.set_level(user_logging)
-			else:
-				print("Warning: Invalid log level, using instance default")
+    user_logging = -1
+    try:
+        (optlist, args) = getopt.gnu_getopt(argv[1:], "hal:b", ["help", "all", "log_level=", "branches"])
+    except getopt.GetoptError as exc:
+        pd.title(title_string, SVER)
+        print("Error:", exc, file=sys.stderr)
+        sys.exit(2)
+    for opt, arg in optlist:
+        if opt in {"-h", "--help"}:
+            pd.title(title_string, SVER)
+            usage()
+            sys.exit(0)
+        elif opt in {"-a", "--all"}:
+            force_all = True
+        elif opt in {"-b", "--branches"}:
+            branches_only = True
+        elif opt in {"-l", "--log_level"}:
+            user_logging = msg.validate_level(arg)
+            if( user_logging >= msg.LOG_QUIET ):
+                msg.set_level(user_logging)
+            else:
+                print("Warning: Invalid log level, using instance default")
 
-	if( msg.get_level() > msg.LOG_QUIET ):
-		pd.title(title_string, SVER)
+    if( msg.get_level() > msg.LOG_QUIET ):
+        pd.title(title_string, SVER)
 
-	if force_all:
-		if user_logging < 0:
-			msg.set_level(msg.LOG_MIN)
-		msg.normal("Log Level", msg.get_level_str())
-		show_all_repo_status(msg, config)
-	else:
-		given_dir = ''
-		if len(args) > 0: # A path to a proposed GitHub repository was given on the command line
-			given_dir = args[0]
-			msg.normal("Log Level", msg.get_level_str())
-			if os.path.isdir(given_dir):
-				path = os.path.abspath(given_dir)
-				git_config_file = path + "/.git/config"
-				if( os.path.isfile(git_config_file) ):
-					msg.debug("  <args> GitHub config found", git_config_file)
-					msg.min("Repository location", path)
-					repo_data = show_repo_status(path, msg)
-					if user_logging < 0:
-						if repo_data['outdated']:
-							msg.set_level(msg.LOG_NORMAL)
-						else:
-							msg.set_level(msg.LOG_MIN)
-					show_git_status(msg, repo_data)
-					show_git_branches(msg, repo_data)
-				else:
-					if user_logging < 0:
-						msg.set_level(msg.LOG_MIN)
-					show_discovered_repo_status(msg, path)
-			else:
-				print("Error: Invalid file or path - " + given_dir)
-				sys.exit(5)
-		else: # No repository path given on the command line
-			path = os.getcwd()
-			git_config_file = path + "/.git/config"
-			if( os.path.isfile(git_config_file) ): # Check the current working directory for a GitHib repository
-				msg.debug("  <cwd> GitHub config found", git_config_file)
-				msg.normal("Log Level", msg.get_level_str())
-				msg.min("Repository location", path)
-				repo_data = show_repo_status(path, msg)
-				if user_logging < 0:
-					if repo_data['outdated']:
-						msg.set_level(msg.LOG_NORMAL)
-					else:
-						msg.set_level(msg.LOG_MIN)
-				show_git_status(msg, repo_data)
-				show_git_branches(msg, repo_data)
-			else: # Use the configuration file's path to repositories and check them, if the cwd is not a repository
-				msg.debug("  <cwd> GitHub config not found", git_config_file)
-				if user_logging < 0:
-					msg.set_level(msg.LOG_MIN)
-				msg.normal("Log Level", msg.get_level_str())
-				show_discovered_repo_status(msg, path)
-	msg.min()
+    if force_all:
+        if user_logging < 0:
+            msg.set_level(msg.LOG_MIN)
+        msg.normal("Log Level", msg.get_level_str())
+        show_all_repo_status(msg, config)
+    else:
+        given_dir = ''
+        if len(args) > 0: # A path to a proposed GitHub repository was given on the command line
+            given_dir = args[0]
+            msg.normal("Log Level", msg.get_level_str())
+            if os.path.isdir(given_dir):
+                path = os.path.abspath(given_dir)
+                git_config_file = path + "/.git/config"
+                if( os.path.isfile(git_config_file) ):
+                    msg.debug("  <args> GitHub config found", git_config_file)
+                    msg.min("Repository location", path)
+                    repo_data = show_repo_status(path, msg)
+                    if branches_only:
+                        msg.set_level(msg.LOG_VERBOSE)
+                        show_git_branches(msg, repo_data)
+                    else:
+                        if user_logging < 0:
+                            if repo_data['outdated']:
+                                msg.set_level(msg.LOG_NORMAL)
+                            else:
+                                msg.set_level(msg.LOG_MIN)
+                        show_git_status(msg, repo_data)
+                        show_git_branches(msg, repo_data)
+                else:
+                    if user_logging < 0:
+                        msg.set_level(msg.LOG_MIN)
+                    show_discovered_repo_status(msg, path)
+            else:
+                print("Error: Invalid file or path - " + given_dir)
+                sys.exit(5)
+        else: # No repository path given on the command line
+            path = os.getcwd()
+            git_config_file = path + "/.git/config"
+            if( os.path.isfile(git_config_file) ): # Check the current working directory for a GitHib repository
+                msg.debug("  <cwd> GitHub config found", git_config_file)
+                msg.normal("Log Level", msg.get_level_str())
+                msg.min("Repository location", path)
+                repo_data = show_repo_status(path, msg)
+                if branches_only:
+                    msg.set_level(msg.LOG_VERBOSE)
+                    show_git_branches(msg, repo_data)
+                else:
+                    if user_logging < 0:
+                        if repo_data['outdated']:
+                            msg.set_level(msg.LOG_NORMAL)
+                        else:
+                            msg.set_level(msg.LOG_MIN)
+                    show_git_status(msg, repo_data)
+                    show_git_branches(msg, repo_data)
+            else: # Use the configuration file's path to repositories and check them, if the cwd is not a repository
+                msg.debug("  <cwd> GitHub config not found", git_config_file)
+                if user_logging < 0:
+                    msg.set_level(msg.LOG_MIN)
+                msg.normal("Log Level", msg.get_level_str())
+                show_discovered_repo_status(msg, path)
+    msg.min()
 
 # Entry point
 if __name__ == "__main__":
-	signal.signal(signal.SIGINT, signal_handler)
-	config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-	msg = pd.DisplayMessages()
-	main(sys.argv)
+    signal.signal(signal.SIGINT, signal_handler)
+    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+    msg = pd.DisplayMessages()
+    main(sys.argv)
 
