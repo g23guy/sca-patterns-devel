@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Oct 19 22:11:45 UTC 2023 - jason.record@suse.com
+
+- gstat has a -b, --branches option to show git branch issue#60 (pr#63)
+- gstat shows correct git status issue#61 (pr#65)
+- gstat has -d, --diff option to show git diff issue#62 (pr#64)
+
+-------------------------------------------------------------------
 Mon Aug 28 22:13:01 UTC 2023 - jason.record@suse.com
 
 - Changes to version 2.0.9
