@@ -2,7 +2,7 @@
 r"""Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Aug 28
+ Modified:     2023 Oct 19
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ __all__ = [
 	'check_directories',
 ]
 
-__version__ = "2.0.4"
+__version__ = "2.0.5"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"
@@ -1159,7 +1159,7 @@ class GitHubRepository():
 	def __init__(self, _msg, _path):
 		self.msg = _msg
 		self.path = _path
-		self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'outdated': False, 'state': 'Current', 'content': '', 'branches': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
+		self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'outdated': False, 'state': 'Current', 'content': '', 'branches': '', 'diff': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
 		self.git_config_file = self.path + "/.git/config"
 		self.spec_file = self.path + '/spec/' + self.info['name'] + ".spec"
 		self.uncommitted_patterns = {}
@@ -1247,7 +1247,7 @@ class GitHubRepository():
 
 		# Get branch data
 		try:
-			prog = '/usr/bin/git -P branch -a'
+			prog = '/usr/bin/git --no-pager branch -a'
 			p = sp.run(prog.split(), universal_newlines=True, stdout=sp.PIPE, stderr=sp.PIPE)
 		except Exception as e:
 			self.msg.debug('  <branch> sp.run Exception: {}'.format(prog))
@@ -1267,6 +1267,29 @@ class GitHubRepository():
 			for line in data:
 				self.msg.debug("> " + line)
 			self.info['branches'] = data
+
+		# Get diff data
+		try:
+			prog = '/usr/bin/git --no-pager diff'
+			p = sp.run(prog.split(), universal_newlines=True, stdout=sp.PIPE, stderr=sp.PIPE)
+		except Exception as e:
+			self.msg.debug('  <diff> sp.run Exception: {}'.format(prog))
+
+			if( self.msg.get_level() >= self.msg.LOG_NORMAL ):
+				self.msg.normal()
+				print(str(e) + "\n")
+				separator_line('-')
+				print()
+			return self.info
+
+		if p.returncode > 0:
+			self.msg.debug("  <diff> Non-Zero return code, p.returncode > 0")
+		else:
+			data = p.stdout.splitlines()
+			self.msg.debug("<> Command Output", prog)
+			for line in data:
+				self.msg.debug("> " + line)
+			self.info['diff'] = data
 
 		if( len(self.info['origin']) == 0 ):
 			self.info['valid'] = False

@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.9'
+SVER = '2.0.10'
 ##############################################################################
 # gstat - Show the current GitHub status of the repository
 # Copyright (C) 2023 SUSE LLC
@@ -73,9 +73,17 @@ def show_git_status(_msg, data):
 
 def show_git_branches(_msg, data):
     if( _msg.get_level() >= _msg.LOG_VERBOSE ):
-        _msg.verbose("+ Output", 'git branch -a')
+        _msg.verbose("+ Output", 'git --no-pager branch -a')
         _msg.verbose()
         for line in data['branches']:
+            print(line)
+        _msg.verbose()
+
+def show_git_diff(_msg, data):
+    if( _msg.get_level() >= _msg.LOG_VERBOSE ):
+        _msg.verbose("+ Output", 'git --no-pager diff')
+        _msg.verbose()
+        for line in data['diff']:
             print(line)
         _msg.verbose()
 
@@ -138,8 +146,9 @@ def main(argv):
     "main entry point"
     global SVER
     force_all = False
-    branches_only = False
-    
+    opt_branches = False
+    opt_diff = False
+
     if( os.path.exists(pd.config_file) ):
         config.read(pd.config_file)
         config_log_level = pd.config_entry(config.get("Common", "log_level"))
@@ -156,7 +165,7 @@ def main(argv):
 
     user_logging = -1
     try:
-        (optlist, args) = getopt.gnu_getopt(argv[1:], "hal:b", ["help", "all", "log_level=", "branches"])
+        (optlist, args) = getopt.gnu_getopt(argv[1:], "habdl:", ["help", "all", "branches", "diff", "log_level="])
     except getopt.GetoptError as exc:
         pd.title(title_string, SVER)
         print("Error:", exc, file=sys.stderr)
@@ -169,7 +178,9 @@ def main(argv):
         elif opt in {"-a", "--all"}:
             force_all = True
         elif opt in {"-b", "--branches"}:
-            branches_only = True
+            opt_branches = True
+        elif opt in {"-d", "--diff"}:
+            opt_diff = True
         elif opt in {"-l", "--log_level"}:
             user_logging = msg.validate_level(arg)
             if( user_logging >= msg.LOG_QUIET ):
@@ -197,9 +208,12 @@ def main(argv):
                     msg.debug("  <args> GitHub config found", git_config_file)
                     msg.min("Repository location", path)
                     repo_data = show_repo_status(path, msg)
-                    if branches_only:
+                    if opt_branches or opt_diff:
                         msg.set_level(msg.LOG_VERBOSE)
-                        show_git_branches(msg, repo_data)
+                        if opt_branches:
+                            show_git_branches(msg, repo_data)
+                        if opt_diff:
+                            show_git_diff(msg, repo_data)
                     else:
                         if user_logging < 0:
                             if repo_data['outdated']:
@@ -223,9 +237,12 @@ def main(argv):
                 msg.normal("Log Level", msg.get_level_str())
                 msg.min("Repository location", path)
                 repo_data = show_repo_status(path, msg)
-                if branches_only:
+                if opt_branches or opt_diff:
                     msg.set_level(msg.LOG_VERBOSE)
-                    show_git_branches(msg, repo_data)
+                    if opt_branches:
+                        show_git_branches(msg, repo_data)
+                    if opt_diff:
+                        show_git_diff(msg, repo_data)
                 else:
                     if user_logging < 0:
                         if repo_data['outdated']:
