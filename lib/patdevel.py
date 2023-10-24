@@ -1208,8 +1208,6 @@ Class instance of {}
                     self.info['state'] = "Current"
                     commit_count = 0
                     for line in self.info['show_branches']:
-                        if line == "---":
-                            break
                         if self.info['branch_commit'] in line:
                             commit_count += 1
                     if commit_count < 2:
@@ -1383,9 +1381,13 @@ Class instance of {}
         else:
             data = p.stdout.splitlines()
             self.msg.debug("<> Command Output", prog)
+            self.info['show_branches'] = []
             for line in data:
-                self.msg.debug("> " + line)
-            self.info['show_branches'] = data
+                self.msg.debug("=> " + line)
+                if line == '---':
+                    break
+                else:
+                    self.info['show_branches'].append(line)
 
         # Get diff data
         try:
