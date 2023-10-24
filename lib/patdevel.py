@@ -1211,7 +1211,7 @@ Class instance of {}
                         if self.info['branch_commit'] in line:
                             commit_count += 1
                     if commit_count < 2:
-                        self.info['outdated'] = True
+                        self.info['outdated'] = False
                         self.info['state'] = "Merge"
         if not self.info['state']:
             self.msg.debug("> Commit needed")
