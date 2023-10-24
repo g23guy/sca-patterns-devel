@@ -1,5 +1,4 @@
-# set noet ci pi sts=0 sw=4 ts=4
-r"""Module for SCA Pattern Development Tools
+"""Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
  Modified:     2023 Oct 24
@@ -38,7 +37,7 @@ __all__ = [
     'check_directories',
 ]
 
-__version__ = "2.0.6"
+__version__ = "2.0.6_dev1"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"
@@ -1159,7 +1158,7 @@ class GitHubRepository():
     def __init__(self, _msg, _path):
         self.msg = _msg
         self.path = _path
-        self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'outdated': True, 'state': 'Push', 'content': '', 'branches': '', 'diff': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
+        self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'branch_commit': '', 'remote_branch': '', 'remote_branch_commit': '', 'outdated': True, 'state': 'Unknown', 'content': '', 'branches': '', 'show_branches': '', 'diff': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
         self.git_config_file = self.path + "/.git/config"
         self.spec_file = self.path + '/spec/' + self.info['name'] + ".spec"
         self.uncommitted_patterns = {}
@@ -1171,10 +1170,37 @@ class GitHubRepository():
         self.parse_local_patterns()
 
     def __str__ (self):
-        return "class %s(level=%r)" % (self.__class__.__name__,self.msg,self.path)
+        pattern = '''
+Class instance of {}
+  name = {}
+  branch = {}
+  branch_commit = {}
+  remote_branch = {}
+  remote_branch_commit = {}
+  valid = {}
+  outdated = {}
+  state = {}
+  spec_ver = {}
+  spec_ver_bumped = {}
+  content = {}\n
+  branches = {}\n
+  show_branches = {}\n
+  diff = {}\n
+'''
+        return pattern.format(self.__class__.__name__, self.info['name'], self.info['branch'], self.info['branch_commit'], self.info['remote_branch'], self.info['remote_branch_commit'], self.info['valid'], self.info['outdated'], self.info['state'], self.info['spec_ver'], self.info['spec_ver_bumped'], self.info['content'], self.info['branches'], self.info['show_branches'], self.info['diff'])
+
+    def __evaluate_state(self):
+        self.msg.verbose("Evaluating repository state")
+        this_status = re.compile("nothing to commit, working tree clean", re.IGNORECASE)
+        for line in self.info['content']:
+            if this_status.search(line):
+                self.info['outdated'] = False
+                self.info['state'] = "Current"
 
     def __probe_repo_info(self):
         self.msg.normal("Probing repository", self.info['name'])
+        IDX_FIRST = 0
+        IDX_LAST = -1
         # Remote origin
         if not os.path.exists(self.path):
             self.info['valid'] = False
@@ -1233,19 +1259,16 @@ class GitHubRepository():
             self.msg.debug("  <status> Non-Zero return code, p.returncode > 0")
         else:
             this_branch = re.compile("On branch", re.IGNORECASE)
-            this_status = re.compile("nothing to commit, working tree clean", re.IGNORECASE)
             data = p.stdout.splitlines()
             self.msg.debug("<> Command Output", prog)
             for line in data:
                 self.msg.debug("> " + line)
                 if this_branch.search(line):
                     self.info['branch'] = line.split()[-1]
-                elif this_status.search(line):
-                    self.info['outdated'] = False
-                    self.info['state'] = "Current"
             self.info['content'] = data
 
-        # Get branch data
+        # git branch -a
+        remote_branch = "remotes/origin/" + self.info['branch']
         try:
             prog = '/usr/bin/git --no-pager branch -a'
             p = sp.run(prog.split(), universal_newlines=True, stdout=sp.PIPE, stderr=sp.PIPE)
@@ -1266,7 +1289,80 @@ class GitHubRepository():
             self.msg.debug("<> Command Output", prog)
             for line in data:
                 self.msg.debug("> " + line)
+                if remote_branch in line:
+                    self.info['remote_branch'] = remote_branch
             self.info['branches'] = data
+
+        # git show-branch self.info['branch']
+        try:
+            prog = '/usr/bin/git show-branch ' + self.info['branch']
+            p = sp.run(prog.split(), universal_newlines=True, stdout=sp.PIPE, stderr=sp.PIPE)
+        except Exception as e:
+            self.msg.debug('  <show-branch local> sp.run Exception: {}'.format(prog))
+
+            if( self.msg.get_level() >= self.msg.LOG_NORMAL ):
+                self.msg.normal()
+                print(str(e) + "\n")
+                separator_line('-')
+                print()
+            return self.info
+
+        if p.returncode > 0:
+            self.msg.debug("  <show-branch local> Non-Zero return code, p.returncode > 0")
+        else:
+            data = p.stdout.splitlines()
+            self.msg.debug("<> Command Output", prog)
+            for line in data:
+                self.msg.debug("> " + line)
+            self.info['branch_commit'] = data[IDX_FIRST].split(']')[IDX_LAST].strip()
+
+        # git show-branch self.info['remote_branch'] if present
+        if self.info['remote_branch']:
+            try:
+                prog = '/usr/bin/git show-branch ' + self.info['remote_branch']
+                p = sp.run(prog.split(), universal_newlines=True, stdout=sp.PIPE, stderr=sp.PIPE)
+            except Exception as e:
+                self.msg.debug('  <show-branch remote> sp.run Exception: {}'.format(prog))
+
+                if( self.msg.get_level() >= self.msg.LOG_NORMAL ):
+                    self.msg.normal()
+                    print(str(e) + "\n")
+                    separator_line('-')
+                    print()
+                return self.info
+
+            if p.returncode > 0:
+                self.msg.debug("  <show-branch remote> Non-Zero return code, p.returncode > 0")
+            else:
+                data = p.stdout.splitlines()
+                self.msg.debug("<> Command Output", prog)
+                for line in data:
+                    self.msg.debug("> " + line)
+                self.info['remote_branch_commit'] = data[IDX_FIRST].split(']')[IDX_LAST].strip()
+
+        
+        # git show-branches
+        try:
+            prog = '/usr/bin/git show-branch'
+            p = sp.run(prog.split(), universal_newlines=True, stdout=sp.PIPE, stderr=sp.PIPE)
+        except Exception as e:
+            self.msg.debug('  <show-branch all> sp.run Exception: {}'.format(prog))
+
+            if( self.msg.get_level() >= self.msg.LOG_NORMAL ):
+                self.msg.normal()
+                print(str(e) + "\n")
+                separator_line('-')
+                print()
+            return self.info
+
+        if p.returncode > 0:
+            self.msg.debug("  <show-branch all> Non-Zero return code, p.returncode > 0")
+        else:
+            data = p.stdout.splitlines()
+            self.msg.debug("<> Command Output", prog)
+            for line in data:
+                self.msg.debug("> " + line)
+            self.info['show_branches'] = data
 
         # Get diff data
         try:
@@ -1291,6 +1387,7 @@ class GitHubRepository():
                 self.msg.debug("> " + line)
             self.info['diff'] = data
 
+        self.__evaluate_state()
         if( len(self.info['origin']) == 0 ):
             self.info['valid'] = False
         if( len(self.info['branch']) == 0 ):

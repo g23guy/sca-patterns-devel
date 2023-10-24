@@ -96,6 +96,9 @@ def show_repo_status(_path, _msg):
     if( _msg.get_level() >= _msg.LOG_NORMAL ):
         pd.separator_line('-')
     git_repo = pd.GitHubRepository(_msg, _path)
+#%%%
+    print(git_repo)
+    sys.exit(1)
     repo_data = git_repo.get_info()
     size_state = len(repo_data['state'])
     size = size_base - size_brackets - size_state
