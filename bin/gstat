@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.11'
+SVER = '2.0.11_1'
 ##############################################################################
 # gstat - Show the current GitHub status of the repository
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Checks the status of the CWD repository or all repos if no
 #               git repo in CWD.
-# Modified:     2023 Oct 19
+# Modified:     2023 Oct 24
 #
 ##############################################################################
 #
@@ -54,6 +54,8 @@ def usage():
     print("Options:")
     print(display.format("-h, --help", "Display this help"))
     print(display.format("-a, --all", "Force checking configured reposistories"))
+    print(display.format("-b, --branches", "Show all local repository branches"))
+    print(display.format("-d, --diff", "Show the difference between local changes and the branch"))
     print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
     print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
     print()
@@ -96,9 +98,6 @@ def show_repo_status(_path, _msg):
     if( _msg.get_level() >= _msg.LOG_NORMAL ):
         pd.separator_line('-')
     git_repo = pd.GitHubRepository(_msg, _path)
-#%%%
-    print(git_repo)
-    sys.exit(1)
     repo_data = git_repo.get_info()
     size_state = len(repo_data['state'])
     size = size_base - size_brackets - size_state

@@ -1384,12 +1384,12 @@ Class instance of {}
             self.info['show_branches'] = []
             for line in data:
                 self.msg.debug("=> " + line)
-                if line == '---':
+                if line.startswith('-'):
                     break
                 else:
                     self.info['show_branches'].append(line)
 
-        # Get diff data
+        # git diff
         try:
             prog = '/usr/bin/git --no-pager diff'
             p = sp.run(prog.split(), universal_newlines=True, stdout=sp.PIPE, stderr=sp.PIPE)
@@ -1416,6 +1416,8 @@ Class instance of {}
         if( len(self.info['origin']) == 0 ):
             self.info['valid'] = False
         if( len(self.info['branch']) == 0 ):
+            self.info['valid'] = False
+        if( len(self.info['show_branches']) == 0 ):
             self.info['valid'] = False
         if( len(self.info['content']) == 0 ):
             self.info['valid'] = False
