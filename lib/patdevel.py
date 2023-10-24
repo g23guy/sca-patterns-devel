@@ -1158,7 +1158,7 @@ class GitHubRepository():
     def __init__(self, _msg, _path):
         self.msg = _msg
         self.path = _path
-        self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'branch_commit': '', 'remote_branch': '', 'remote_branch_commit': '', 'outdated': True, 'state': 'Unknown', 'content': '', 'branches': '', 'show_branches': '', 'diff': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
+        self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'branch_commit': '', 'remote_branch': '', 'remote_branch_commit': '', 'outdated': True, 'state': '', 'content': '', 'branches': '', 'show_branches': '', 'diff': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
         self.git_config_file = self.path + "/.git/config"
         self.spec_file = self.path + '/spec/' + self.info['name'] + ".spec"
         self.uncommitted_patterns = {}
@@ -1194,8 +1194,27 @@ Class instance of {}
         this_status = re.compile("nothing to commit, working tree clean", re.IGNORECASE)
         for line in self.info['content']:
             if this_status.search(line):
-                self.info['outdated'] = False
-                self.info['state'] = "Current"
+                if self.info['remote_branch']:
+                    if self.info['branch_commit'] == self.info['remote_branch_commit']:
+                        self.msg.debug("> Nothing to commit, branch_commit matches remote_branch_commit")
+                        self.info['outdated'] = False
+                        self.info['state'] = "Current"
+                    else:
+                        self.msg.debug("> Nothing to commit, branch_commit does NOT match remote_branch_commit")
+                        self.info['outdated'] = True
+                        self.info['state'] = "Push"
+                else:
+                    self.info['outdated'] = False
+                    self.info['state'] = "Current"
+                    for line in self.info['show_branches']:
+                        if self.info['branch_commit'] in line:
+                            if self.info['branch'] not in line:
+                                self.info['outdated'] = True
+                                self.info['state'] = "Merge"
+        if not self.info['state']:
+            self.msg.debug("> Commit needed")
+            self.info['outdated'] = True
+            self.info['state'] = "Commit"
 
     def __probe_repo_info(self):
         self.msg.normal("Probing repository", self.info['name'])
