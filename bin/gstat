@@ -93,7 +93,7 @@ def show_git_diff(_msg, data):
         _msg.verbose()
 
 def show_repo_status(_path, _msg):
-    size_base = 43
+    size_base = pd.SEPARATOR_LEN - 42
     size_brackets = 2
     if( _msg.get_level() >= _msg.LOG_NORMAL ):
         pd.separator_line('-')

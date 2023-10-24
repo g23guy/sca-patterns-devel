@@ -37,12 +37,12 @@ __all__ = [
     'check_directories',
 ]
 
-__version__ = "2.0.6_dev1"
+__version__ = "2.0.6_dev2"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"
 sa_main_section = "Main"
-seperator_len = 85
+SEPARATOR_LEN = 100
 config_file = "/etc/opt/patdevel/patdev.conf"
 
 def title(title_str, version_str):
@@ -55,12 +55,12 @@ def sub_title(subtitle_str):
     separator_line("-")
 
 def separator_line(use_char = '#'):
-    print("{}".format(use_char*seperator_len))
+    print("{}".format(use_char*SEPARATOR_LEN))
 
 class ProgressBar():
     """Initialize and update progress bar class"""
-    def __init__(self, prefix, total, bar_width = seperator_len):
-        self.base_len = seperator_len
+    def __init__(self, prefix, total, bar_width = SEPARATOR_LEN):
+        self.base_len = SEPARATOR_LEN
         self.bar_width_orig = bar_width
         self.bar_width = bar_width
         self.prefix = prefix
