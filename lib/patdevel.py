@@ -1208,7 +1208,8 @@ Class instance of {}
                     self.info['state'] = "Current"
                     for line in self.info['show_branches']:
                         if self.info['branch_commit'] in line:
-                            if self.info['branch'] not in line:
+                            self.msg.debug("> Found branch_commit: {}".format(line))
+                            if not self.info['branch'] in line:
                                 self.info['outdated'] = True
                                 self.info['state'] = "Merge"
         if not self.info['state']:
