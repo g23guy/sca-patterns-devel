@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '2.0.11_1'
+SVER = '2.0.12'
 ##############################################################################
 # gstat - Show the current GitHub status of the repository
 # Copyright (C) 2023 SUSE LLC
@@ -93,7 +93,8 @@ def show_git_diff(_msg, data):
         _msg.verbose()
 
 def show_repo_status(_path, _msg):
-    size_base = pd.SEPARATOR_LEN - 42
+    DISPLAY_OFFSET = 42
+    size_base = pd.SEPARATOR_LEN - DISPLAY_OFFSET
     size_brackets = 2
     if( _msg.get_level() >= _msg.LOG_NORMAL ):
         pd.separator_line('-')
