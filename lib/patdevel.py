@@ -1206,11 +1206,15 @@ Class instance of {}
                 else:
                     self.info['outdated'] = False
                     self.info['state'] = "Current"
+                    commit_count = 0
                     for line in self.info['show_branches']:
-                        if not self.info['branch'] in line:
-                            if not self.info['branch_commit'] in line:
-                                self.info['outdated'] = True
-                                self.info['state'] = "Merge"
+                        if line == "---":
+                            break
+                        if self.info['branch_commit'] in line:
+                            commit_count += 1
+                    if commit_count < 2:
+                        self.info['outdated'] = True
+                        self.info['state'] = "Merge"
         if not self.info['state']:
             self.msg.debug("> Commit needed")
             self.info['outdated'] = True
