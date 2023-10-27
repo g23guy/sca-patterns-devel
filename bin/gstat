@@ -56,6 +56,7 @@ def usage():
     print(display.format("-a, --all", "Force checking configured reposistories"))
     print(display.format("-b, --branches", "Show all local repository branches"))
     print(display.format("-s, --show-branch", "Show repository branches and their commits"))
+    print(display.format("-g, --log", "Show the commit log"))
     print(display.format("-d, --diff", "Show the difference between local changes and the branch"))
     print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
     print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
@@ -87,6 +88,21 @@ def show_git_show_branch(_msg, data):
         _msg.verbose("+ Output", 'git --no-pager show_branch # before ---')
         _msg.verbose()
         for line in data['show_branch']:
+            print(line)
+        _msg.verbose()
+
+def show_git_log(_msg, data):
+    commits_required = 4
+    commits_current = 0
+    if( _msg.get_level() >= _msg.LOG_VERBOSE ):
+        _msg.verbose("+ Output", 'git --no-pager log')
+        _msg.verbose()
+        for line in data['log']:
+            if line.startswith('commit '):
+                if commits_current < commits_required:
+                    commits_current += 1
+                else:
+                    break
             print(line)
         _msg.verbose()
 
@@ -163,6 +179,7 @@ def main(argv):
     force_all = False
     opt_branches = False
     opt_show_branches = False
+    opt_log = False
     opt_diff = False
     opt_extra = False
 
@@ -182,7 +199,7 @@ def main(argv):
 
     user_logging = -1
     try:
-        (optlist, args) = getopt.gnu_getopt(argv[1:], "habsdl:", ["help", "all", "branches", "show-branch", "diff", "log_level="])
+        (optlist, args) = getopt.gnu_getopt(argv[1:], "habsgdl:", ["help", "all", "branches", "show-branch", "log", "diff", "log_level="])
     except getopt.GetoptError as exc:
         pd.title(title_string, SVER)
         print("Error:", exc, file=sys.stderr)
@@ -199,6 +216,9 @@ def main(argv):
             opt_extra = True
         elif opt in {"-s", "--show-branch"}:
             opt_show_branches = True
+            opt_extra = True
+        elif opt in {"-g", "--log"}:
+            opt_log = True
             opt_extra = True
         elif opt in {"-d", "--diff"}:
             opt_diff = True
@@ -236,6 +256,8 @@ def main(argv):
                             show_git_branches(msg, repo_data)
                         if opt_show_branches:
                             show_git_show_branch(msg, repo_data)
+                        if opt_log:
+                            show_git_log(msg, repo_data)
                         if opt_diff:
                             show_git_diff(msg, repo_data)
                     else:
@@ -267,6 +289,8 @@ def main(argv):
                         show_git_branches(msg, repo_data)
                     if opt_show_branches:
                         show_git_show_branch(msg, repo_data)
+                    if opt_log:
+                        show_git_log(msg, repo_data)
                     if opt_diff:
                         show_git_diff(msg, repo_data)
                 else:
