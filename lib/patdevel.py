@@ -1158,7 +1158,7 @@ class GitHubRepository():
     def __init__(self, _msg, _path):
         self.msg = _msg
         self.path = _path
-        self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'branch_commit': '', 'remote_branch': '', 'remote_branch_commit': '', 'outdated': True, 'state': '', 'content': '', 'branches': '', 'show_branch': '', 'diff': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
+        self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'branch_commit': '', 'remote_branch': '', 'remote_branch_commit': '', 'outdated': True, 'state': '', 'content': '', 'branches': '', 'show_branch': '', 'log': '', 'diff': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
         self.git_config_file = self.path + "/.git/config"
         self.spec_file = self.path + '/spec/' + self.info['name'] + ".spec"
         self.uncommitted_patterns = {}
@@ -1185,9 +1185,10 @@ Class instance of {}
   content = {}\n
   branches = {}\n
   show_branch = {}\n
+  log = {}\n
   diff = {}\n
 '''
-        return pattern.format(self.__class__.__name__, self.info['name'], self.info['branch'], self.info['branch_commit'], self.info['remote_branch'], self.info['remote_branch_commit'], self.info['valid'], self.info['outdated'], self.info['state'], self.info['spec_ver'], self.info['spec_ver_bumped'], self.info['content'], self.info['branches'], self.info['show_branch'], self.info['diff'])
+        return pattern.format(self.__class__.__name__, self.info['name'], self.info['branch'], self.info['branch_commit'], self.info['remote_branch'], self.info['remote_branch_commit'], self.info['valid'], self.info['outdated'], self.info['state'], self.info['spec_ver'], self.info['spec_ver_bumped'], self.info['content'], self.info['branches'], self.info['show_branch'], self.info['log'], self.info['diff'])
 
     def __evaluate_state(self):
         self.msg.verbose("Evaluating repository state")
@@ -1388,6 +1389,29 @@ Class instance of {}
                     break
                 else:
                     self.info['show_branch'].append(line)
+
+        # git log
+        try:
+            prog = '/usr/bin/git --no-pager log'
+            p = sp.run(prog.split(), universal_newlines=True, stdout=sp.PIPE, stderr=sp.PIPE)
+        except Exception as e:
+            self.msg.debug('  <log> sp.run Exception: {}'.format(prog))
+
+            if( self.msg.get_level() >= self.msg.LOG_NORMAL ):
+                self.msg.normal()
+                print(str(e) + "\n")
+                separator_line('-')
+                print()
+            return self.info
+
+        if p.returncode > 0:
+            self.msg.debug("  <log> Non-Zero return code, p.returncode > 0")
+        else:
+            data = p.stdout.splitlines()
+            self.msg.debug("<> Command Output", prog)
+            for line in data:
+                self.msg.debug("> " + line)
+            self.info['log'] = data
 
         # git diff
         try:
