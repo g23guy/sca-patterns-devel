@@ -1,7 +1,7 @@
 """Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Oct 24
+ Modified:     2023 Oct 27
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ __all__ = [
     'check_directories',
 ]
 
-__version__ = "2.0.8"
+__version__ = "2.0.9"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"
@@ -1158,7 +1158,7 @@ class GitHubRepository():
     def __init__(self, _msg, _path):
         self.msg = _msg
         self.path = _path
-        self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'branch_commit': '', 'remote_branch': '', 'remote_branch_commit': '', 'outdated': True, 'state': '', 'content': '', 'branches': '', 'show_branches': '', 'diff': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
+        self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'branch_commit': '', 'remote_branch': '', 'remote_branch_commit': '', 'outdated': True, 'state': '', 'content': '', 'branches': '', 'show_branch': '', 'diff': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
         self.git_config_file = self.path + "/.git/config"
         self.spec_file = self.path + '/spec/' + self.info['name'] + ".spec"
         self.uncommitted_patterns = {}
@@ -1184,10 +1184,10 @@ Class instance of {}
   spec_ver_bumped = {}
   content = {}\n
   branches = {}\n
-  show_branches = {}\n
+  show_branch = {}\n
   diff = {}\n
 '''
-        return pattern.format(self.__class__.__name__, self.info['name'], self.info['branch'], self.info['branch_commit'], self.info['remote_branch'], self.info['remote_branch_commit'], self.info['valid'], self.info['outdated'], self.info['state'], self.info['spec_ver'], self.info['spec_ver_bumped'], self.info['content'], self.info['branches'], self.info['show_branches'], self.info['diff'])
+        return pattern.format(self.__class__.__name__, self.info['name'], self.info['branch'], self.info['branch_commit'], self.info['remote_branch'], self.info['remote_branch_commit'], self.info['valid'], self.info['outdated'], self.info['state'], self.info['spec_ver'], self.info['spec_ver_bumped'], self.info['content'], self.info['branches'], self.info['show_branch'], self.info['diff'])
 
     def __evaluate_state(self):
         self.msg.verbose("Evaluating repository state")
@@ -1207,7 +1207,7 @@ Class instance of {}
                     self.info['outdated'] = False
                     self.info['state'] = "Current"
                     commit_count = 0
-                    for line in self.info['show_branches']:
+                    for line in self.info['show_branch']:
                         if self.info['branch_commit'] in line:
                             commit_count += 1
                     if commit_count < 2:
@@ -1381,13 +1381,13 @@ Class instance of {}
         else:
             data = p.stdout.splitlines()
             self.msg.debug("<> Command Output", prog)
-            self.info['show_branches'] = []
+            self.info['show_branch'] = []
             for line in data:
                 self.msg.debug("=> " + line)
                 if line.startswith('-'):
                     break
                 else:
-                    self.info['show_branches'].append(line)
+                    self.info['show_branch'].append(line)
 
         # git diff
         try:
@@ -1417,7 +1417,7 @@ Class instance of {}
             self.info['valid'] = False
         if( len(self.info['branch']) == 0 ):
             self.info['valid'] = False
-        if( len(self.info['show_branches']) == 0 ):
+        if( len(self.info['show_branch']) == 0 ):
             self.info['valid'] = False
         if( len(self.info['content']) == 0 ):
             self.info['valid'] = False
