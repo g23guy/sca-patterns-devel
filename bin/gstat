@@ -53,7 +53,8 @@ def usage():
     print()
     print("Options:")
     print(display.format("-h, --help", "Display this help"))
-    print(display.format("-a, --all", "Force checking configured reposistories"))
+    print(display.format("-a, --all", "Check all extra options, same as -bsgd"))
+    print(display.format("-r, --repos", "Force checking configured reposistories"))
     print(display.format("-b, --branches", "Show all local repository branches"))
     print(display.format("-s, --show-branch", "Show repository branches and their commits"))
     print(display.format("-g, --log", "Show the commit log"))
@@ -199,7 +200,7 @@ def main(argv):
 
     user_logging = -1
     try:
-        (optlist, args) = getopt.gnu_getopt(argv[1:], "habsgdl:", ["help", "all", "branches", "show-branch", "log", "diff", "log_level="])
+        (optlist, args) = getopt.gnu_getopt(argv[1:], "habsgdrl:", ["help", "all", "branches", "show-branch", "log", "diff", "repos", "log_level="])
     except getopt.GetoptError as exc:
         pd.title(title_string, SVER)
         print("Error:", exc, file=sys.stderr)
@@ -210,6 +211,12 @@ def main(argv):
             usage()
             sys.exit(0)
         elif opt in {"-a", "--all"}:
+            opt_branches = True
+            opt_show_branches = True
+            opt_log = True
+            opt_diff = True
+            opt_extra = True
+        elif opt in {"-r", "--repos"}:
             force_all = True
         elif opt in {"-b", "--branches"}:
             opt_branches = True
