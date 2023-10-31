@@ -138,11 +138,7 @@ def show_repo_status(_msg, _repo_data, details = False):
         for key, value in _repo_data.items():
             _msg.debug("  <show_repo_status> " + key, str(value))
 
-def show_all_repo_status(_msg, _config):
-    repo_dir = pd.config_entry(_config.get("Common", "sca_repo_dir"), '/')
-    repo_list = pd.config_entry(_config.get("GitHub", "patdev_repos")).split(',')
-    _msg.min("Configuration repositories", repo_dir)
-    pd.check_git_repos(_config, _msg)
+def _show_repo_status_list(_msg, _repo_path_list):
     this_log_level = _msg.get_level()
     prev_log_level = this_log_level
     show_details = False
@@ -150,8 +146,7 @@ def show_all_repo_status(_msg, _config):
         show_details = True
         this_log_level = _msg.LOG_MIN
         _msg.set_level(this_log_level)
-    for repo in repo_list:
-        path = repo_dir + repo
+    for path in _repo_path_list:
         git_repo = pd.GitHubRepository(_msg, path)
         repo_data = git_repo.get_info()
         if repo_data['valid']:
@@ -165,6 +160,16 @@ def show_all_repo_status(_msg, _config):
         else:
             _msg.min("+ Remove directory " + path)
     _msg.set_level(prev_log_level)
+
+def show_all_repo_status(_msg, _config):
+    repo_dir = pd.config_entry(_config.get("Common", "sca_repo_dir"), '/')
+    repo_list = pd.config_entry(_config.get("GitHub", "patdev_repos")).split(',')
+    repo_paths = []
+    _msg.min("Configuration repositories", repo_dir)
+    pd.check_git_repos(_config, _msg)
+    for this_repo in repo_list:
+        repo_paths.append(repo_dir + this_repo)
+    _show_repo_status_list(_msg, repo_paths)
 
 def show_discovered_repo_status(_msg, _path):
     _msg.min("Discover GitHub repos in", _path)
@@ -180,26 +185,7 @@ def show_discovered_repo_status(_msg, _path):
     count = len(git_repos_found)
     _msg.min("+ GitHub repositories", str(count))
     if count > 0:
-        this_log_level = _msg.get_level()
-        prev_log_level = this_log_level
-        show_details = False
-        if this_log_level == _msg.LOG_NORMAL:
-            show_details = True
-            this_log_level = _msg.LOG_MIN
-            _msg.set_level(this_log_level)
-        for path in git_repos_found:
-            git_repo = pd.GitHubRepository(_msg, path)
-            repo_data = git_repo.get_info()
-            if this_log_level == _msg.LOG_MIN:
-                if repo_data['outdated']:
-                    show_repo_status(_msg, repo_data, show_details)
-                else:
-                    show_repo_status(_msg, repo_data, details=False)
-            elif this_log_level > _msg.LOG_NORMAL:
-                show_repo_status(_msg, repo_data, details=True)
-            else:
-                print("<punt>")
-        _msg.set_level(prev_log_level)
+        _show_repo_status_list(_msg, git_repos_found)
 
 ##############################################################################
 # Main
