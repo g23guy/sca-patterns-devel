@@ -37,7 +37,7 @@ __all__ = [
     'check_directories',
 ]
 
-__version__ = "2.0.10"
+__version__ = "2.0.12"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"
@@ -107,10 +107,11 @@ class PatternTemplate():
     content_package = ''
     content_service = ''
 
-    def __init__(self, script_name, script_version, _config, _msg):
+    def __init__(self, script_name, script_version, _config, _msg, gen=2):
         if not _config.has_option("Common", "author"):
             print("ERROR: Add 'author' option to [Common] section in the configuration file\n")
             sys.exit(5)
+        self.gen = gen
         self.meta_class = ''
         self.meta_category = ''
         self.meta_component = ''
@@ -274,7 +275,7 @@ self.title
         self.content = "#!/usr/bin/python3\n#\n"
         self.content += "# Title:       " + self.title + "\n"
         self.content += "# Description: Pattern for TID" + self.tid_number + "\n"
-        self.content += "# Template:    " + self.script_name + " v" + str(self.script_version) + "\n"
+        self.content += "# Template:    " + self.script_name + " v" + str(self.script_version) + ", Generation " + str(self.gen) + "\n"
         self.content += "# Modified:    " + str(today.strftime("%Y %b %d")) + "\n"
         self.content += "#\n##############################################################################\n"
         self.content += "# Copyright (C) " + str(today.year) + " SUSE LLC\n"
@@ -293,23 +294,42 @@ self.title
         if( self.conditions > 0 ):
             self.content += "import re\n"
         self.content += "import os\n"
-        self.content += "import Core\n"
-        if( len(self.kernel_version) > 1 or len(self.service_name) > 0 or len(self.package_name) > 0 ):
-            self.content += "import SUSE\n"
-        self.content += "\nmeta_class = \"" + self.meta_class + "\"\n"
-        self.content += "meta_category = \"" + self.meta_category + "\"\n"
-        self.content += "meta_component = \"" + self.meta_component + "\"\n"
-        self.content += "pattern_id = os.path.basename(__file__)\n"
-        self.content += "primary_link = \"" + self.primary_link + "\"\n"
-        self.content += "overall = Core.TEMP\n"
-        self.content += "overall_info = \"NOT SET\"\n"
-        self.content += "other_links = \"" + self.links + "\"\n"
-        self.content += "Core.init(meta_class, meta_category, meta_component, pattern_id, primary_link, overall, overall_info, other_links)\n\n"
+        if self.gen == 1:
+            self.content += "import Core\n"
+            if( len(self.kernel_version) > 1 or len(self.service_name) > 0 or len(self.package_name) > 0 ):
+                self.content += "import SUSE\n"
+            self.content += "\nmeta_class = \"" + self.meta_class + "\"\n"
+            self.content += "meta_category = \"" + self.meta_category + "\"\n"
+            self.content += "meta_component = \"" + self.meta_component + "\"\n"
+            self.content += "pattern_id = os.path.basename(__file__)\n"
+            self.content += "primary_link = \"" + self.primary_link + "\"\n"
+            self.content += "overall = Core.TEMP\n"
+            self.content += "overall_info = \"NOT SET\"\n"
+            self.content += "other_links = \"" + self.links + "\"\n"
+            self.content += "Core.init(meta_class, meta_category, meta_component, pattern_id, primary_link, overall, overall_info, other_links)\n\n"
+        elif self.gen == 2:
+            self.content += "import suse_core2 as core\n"
+            if( len(self.kernel_version) > 1 or len(self.service_name) > 0 or len(self.package_name) > 0 ):
+                self.content += "import suse_base2 as suse\n"
+            self.content += "\n"
 
     def __create_footer(self):
-        self.content += "\tCore.printPatternResults()\n\n"
-        self.content += "if __name__ == \"__main__\":\n"
-        self.content += "\tmain()\n\n"
+        if self.gen == 1:
+            self.content += "\tCore.printPatternResults()\n\n"
+            self.content += "if __name__ == \"__main__\":\n"
+            self.content += "\tmain()\n\n"
+        elif self.gen == 2:
+            self.content += "\tpat.print_results()\n\n"
+            self.content += "if __name__ == \"__main__\":\n"
+            self.content += "\tpat = suse.SCAPattern('{0}', '{1}', '{2}')\n".format(self.meta_class, self.meta_category, self.meta_component)
+            self.content += "\tpat.set_id(os.path.basename(__file__))\n"
+            self.content += "\tpat.set_tid('{0}')\n".format(self.tid_number)
+            if self.bug_number != "0":
+                self.content += "\tpat.set_bug('{0}')\n".format(self.bug_number)
+            if len(self.other_url) > 0:
+                this_tag, this_url = self.other_url.split('=', 1)
+                self.content += "\tpat.add_solution_link('{0}', '{1}')\n".format(this_tag.replace("META_LINK_", ""), this_url)
+            self.content += "\tmain(sys.argv)\n\n"
 
     def __create_condition_functions(self):
         if( self.conditions > 0 ):
@@ -614,7 +634,7 @@ self.title
             self.basic = False
 
     def set_other_url(self, other_url):
-        url_parts = other_url.split("=")
+        url_parts = other_url.split("=", 1)
         if( len(url_parts) > 1 ):
             url_tag = "META_LINK_" + str(url_parts[0])
             url_body = url_parts[1]
