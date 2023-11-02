@@ -1,4 +1,14 @@
 -------------------------------------------------------------------
+Thu Nov  2 11:09:34 UTC 2023 - jason.record@suse.com
+
+- Changes to version 2.0.10
+  + Added show-branch output to gstat (pr#71)
+  + Added git log to gstat (pr#72)
+  + The repos and all sets extra options added (pr#74)
+  + The opt flags bypass git status as needed (pr#75)
+  + Replace tabs with 4 spaces in patdevel.py (issue#67)
+
+-------------------------------------------------------------------
 Thu Oct 19 22:11:45 UTC 2023 - jason.record@suse.com
 
 - gstat has a -b, --branches option to show git branch issue#60 (pr#63)
