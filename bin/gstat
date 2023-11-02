@@ -6,7 +6,7 @@ SVER = '2.0.13'
 #
 # Description:  Checks the status of the CWD repository or all repos if no
 #               git repo in CWD.
-# Modified:     2023 Oct 27
+# Modified:     2023 Oct 31
 #
 ##############################################################################
 #
@@ -68,36 +68,28 @@ def signal_handler(sig, frame):
     show_summary()
     sys.exit(1)
 
-def show_git_status(_msg, data):
-    if( _msg.get_level() >= _msg.LOG_NORMAL ):
-        _msg.normal("+ Output", 'git status')
-        _msg.normal()
-        for line in data['content']:
-            print(line)
-        _msg.normal()
-
 def show_git_branches(_msg, data):
-    if( _msg.get_level() >= _msg.LOG_VERBOSE ):
-        _msg.verbose("+ Output", 'git --no-pager branch -a')
-        _msg.verbose()
-        for line in data['branches']:
-            print(line)
-        _msg.verbose()
+    _msg.min("+ Output", 'git --no-pager branch -a')
+    _msg.min()
+    for line in data['branches']:
+        print(line)
+    _msg.min()
 
 def show_git_show_branch(_msg, data):
-    if( _msg.get_level() >= _msg.LOG_VERBOSE ):
-        _msg.verbose("+ Output", 'git --no-pager show_branch # before ---')
-        _msg.verbose()
-        for line in data['show_branch']:
-            print(line)
-        _msg.verbose()
+    _msg.min("+ Output", 'git --no-pager show_branch # before ---')
+    _msg.min()
+    for line in data['show_branch']:
+        print(line)
+    _msg.min()
 
 def show_git_log(_msg, data):
-    commits_required = 4
+    commits_required = 4 # if set to 0, get all commits
     commits_current = 0
-    if( _msg.get_level() >= _msg.LOG_VERBOSE ):
-        _msg.verbose("+ Output", 'git --no-pager log')
-        _msg.verbose()
+    _msg.min("+ Output", 'git --no-pager log')
+    _msg.min()
+    if( _msg.get_level() > _msg.LOG_MIN ):
+        commits_required = 0
+    if commits_required > 0:
         for line in data['log']:
             if line.startswith('commit '):
                 if commits_current < commits_required:
@@ -105,51 +97,79 @@ def show_git_log(_msg, data):
                 else:
                     break
             print(line)
-        _msg.verbose()
+    else:
+        for line in data['log']:
+            print(line)
+
+    _msg.min()
 
 def show_git_diff(_msg, data):
-    if( _msg.get_level() >= _msg.LOG_VERBOSE ):
-        _msg.verbose("+ Output", 'git --no-pager diff')
-        if len(data['diff']) > 0:
-            _msg.verbose()
-            for line in data['diff']:
-                print(line)
-        else:
-            _msg.verbose('  No differences found')
-        _msg.verbose()
+    _msg.min("+ Output", 'git --no-pager diff')
+    if len(data['diff']) > 0:
+        _msg.min()
+        for line in data['diff']:
+            print(line)
+    else:
+        _msg.min('  No differences found')
+    _msg.min()
 
-def show_repo_status(_path, _msg):
+def show_git_status(_msg, data):
+    _msg.min("+ Output", 'git status')
+    _msg.min()
+    for line in data['content']:
+        _msg.min(line)
+    _msg.min()
+
+def show_repo_status(_msg, _repo_data, details = False):
     DISPLAY_OFFSET = 42
     size_base = pd.SEPARATOR_LEN - DISPLAY_OFFSET
     size_brackets = 2
-    if( _msg.get_level() >= _msg.LOG_NORMAL ):
+    if details:
         pd.separator_line('-')
-    git_repo = pd.GitHubRepository(_msg, _path)
-    repo_data = git_repo.get_info()
-    size_state = len(repo_data['state'])
+    size_state = len(_repo_data['state'])
     size = size_base - size_brackets - size_state
     state_display = "Branch: {:" + str(size) + "} [{}]"
+    _msg.min("Status " + _repo_data['name'], state_display.format(_repo_data['branch'], _repo_data['state']))
 
-    _msg.min("Status " + repo_data['name'], state_display.format(repo_data['branch'], repo_data['state']))
-    if not repo_data['valid']:
-        _msg.min("+ Remove directory " + _path)
-    _msg.verbose("+ Remote Origin", repo_data['origin'])
+    if details:
+        show_git_status(_msg, _repo_data)
 
     if( _msg.get_level() >= _msg.LOG_DEBUG ):
-        for key, value in repo_data.items():
-            _msg.debug("  <> " + key, str(value))
-    return repo_data
+        for key, value in _repo_data.items():
+            _msg.debug("  <show_repo_status> " + key, str(value))
+
+def _show_repo_status_list(_msg, _repo_path_list):
+    this_log_level = _msg.get_level()
+    prev_log_level = this_log_level
+    show_details = False
+    if this_log_level == _msg.LOG_NORMAL:
+        show_details = True
+        this_log_level = _msg.LOG_MIN
+        _msg.set_level(this_log_level)
+    for path in _repo_path_list:
+        git_repo = pd.GitHubRepository(_msg, path)
+        repo_data = git_repo.get_info()
+        if repo_data['valid']:
+            if this_log_level == _msg.LOG_MIN:
+                if repo_data['outdated']:
+                    show_repo_status(_msg, repo_data, show_details)
+                else:
+                    show_repo_status(_msg, repo_data, details=False)
+            elif this_log_level > _msg.LOG_NORMAL:
+                show_repo_status(_msg, repo_data, details=True)
+        else:
+            _msg.min("+ Remove directory " + path)
+    _msg.set_level(prev_log_level)
 
 def show_all_repo_status(_msg, _config):
     repo_dir = pd.config_entry(_config.get("Common", "sca_repo_dir"), '/')
     repo_list = pd.config_entry(_config.get("GitHub", "patdev_repos")).split(',')
+    repo_paths = []
     _msg.min("Configuration repositories", repo_dir)
     pd.check_git_repos(_config, _msg)
-    for repo in repo_list:
-        path = repo_dir + repo
-        repo_data = show_repo_status(path, _msg)
-        show_git_status(_msg, repo_data)
-        show_git_branches(_msg, repo_data)
+    for this_repo in repo_list:
+        repo_paths.append(repo_dir + this_repo)
+    _show_repo_status_list(_msg, repo_paths)
 
 def show_discovered_repo_status(_msg, _path):
     _msg.min("Discover GitHub repos in", _path)
@@ -165,10 +185,7 @@ def show_discovered_repo_status(_msg, _path):
     count = len(git_repos_found)
     _msg.min("+ GitHub repositories", str(count))
     if count > 0:
-        for path in git_repos_found:
-            repo_data = show_repo_status(path, _msg)
-            show_git_status(_msg, repo_data)
-            show_git_branches(_msg, repo_data)
+        _show_repo_status_list(_msg, git_repos_found)
 
 ##############################################################################
 # Main
@@ -183,6 +200,7 @@ def main(argv):
     opt_log = False
     opt_diff = False
     opt_extra = False
+    user_logging = -1
 
     if( os.path.exists(pd.config_file) ):
         config.read(pd.config_file)
@@ -198,7 +216,6 @@ def main(argv):
         print()
         sys.exit(1)
 
-    user_logging = -1
     try:
         (optlist, args) = getopt.gnu_getopt(argv[1:], "habsgdrl:", ["help", "all", "branches", "show-branch", "log", "diff", "repos", "log_level="])
     except getopt.GetoptError as exc:
@@ -240,9 +257,10 @@ def main(argv):
     if( msg.get_level() > msg.LOG_QUIET ):
         pd.title(title_string, SVER)
 
+    if user_logging < 0:
+        msg.set_level(msg.LOG_MIN)
+
     if force_all:
-        if user_logging < 0:
-            msg.set_level(msg.LOG_MIN)
         msg.normal("Log Level", msg.get_level_str())
         show_all_repo_status(msg, config)
     else:
@@ -252,46 +270,16 @@ def main(argv):
             msg.normal("Log Level", msg.get_level_str())
             if os.path.isdir(given_dir):
                 path = os.path.abspath(given_dir)
-                git_config_file = path + "/.git/config"
-                if( os.path.isfile(git_config_file) ):
-                    msg.debug("  <args> GitHub config found", git_config_file)
-                    msg.min("Repository location", path)
-                    repo_data = show_repo_status(path, msg)
-                    if opt_extra:
-                        msg.set_level(msg.LOG_VERBOSE)
-                        if opt_branches:
-                            show_git_branches(msg, repo_data)
-                        if opt_show_branches:
-                            show_git_show_branch(msg, repo_data)
-                        if opt_log:
-                            show_git_log(msg, repo_data)
-                        if opt_diff:
-                            show_git_diff(msg, repo_data)
+                git_repo = pd.GitHubRepository(msg, path)
+                repo_data = git_repo.get_info()
+                if repo_data['valid']:
+                    if repo_data['outdated']:
+                        show_repo_status(msg, repo_data, details=True)
                     else:
-                        if user_logging < 0:
-                            if repo_data['outdated']:
-                                msg.set_level(msg.LOG_NORMAL)
-                            else:
-                                msg.set_level(msg.LOG_MIN)
-                        show_git_status(msg, repo_data)
-                        show_git_branches(msg, repo_data)
-                else:
-                    if user_logging < 0:
-                        msg.set_level(msg.LOG_MIN)
-                    show_discovered_repo_status(msg, path)
-            else:
-                print("Error: Invalid file or path - " + given_dir)
-                sys.exit(5)
-        else: # No repository path given on the command line
-            path = os.getcwd()
-            git_config_file = path + "/.git/config"
-            if( os.path.isfile(git_config_file) ): # Check the current working directory for a GitHib repository
-                msg.debug("  <cwd> GitHub config found", git_config_file)
-                msg.normal("Log Level", msg.get_level_str())
-                msg.min("Repository location", path)
-                repo_data = show_repo_status(path, msg)
-                if opt_extra:
-                    msg.set_level(msg.LOG_VERBOSE)
+                        if msg.get_level() > msg.LOG_MIN:
+                            show_repo_status(msg, repo_data, details=True)
+                        else:
+                            show_repo_status(msg, repo_data, details=False)
                     if opt_branches:
                         show_git_branches(msg, repo_data)
                     if opt_show_branches:
@@ -301,18 +289,32 @@ def main(argv):
                     if opt_diff:
                         show_git_diff(msg, repo_data)
                 else:
-                    if user_logging < 0:
-                        if repo_data['outdated']:
-                            msg.set_level(msg.LOG_NORMAL)
-                        else:
-                            msg.set_level(msg.LOG_MIN)
-                    show_git_status(msg, repo_data)
+                    show_discovered_repo_status(msg, path)
+            else:
+                print("Error: Invalid directory - " + given_dir)
+                sys.exit(5)
+        else: # No repository path given on the command line
+            path = os.getcwd()
+            msg.normal("Log Level", msg.get_level_str())
+            git_repo = pd.GitHubRepository(msg, path)
+            repo_data = git_repo.get_info()
+            if repo_data['valid']:
+                if repo_data['outdated']:
+                    show_repo_status(msg, repo_data, details=True)
+                else:
+                    if msg.get_level() > msg.LOG_MIN:
+                        show_repo_status(msg, repo_data, details=True)
+                    else:
+                        show_repo_status(msg, repo_data, details=False)
+                if opt_branches:
                     show_git_branches(msg, repo_data)
-            else: # Use the configuration file's path to repositories and check them, if the cwd is not a repository
-                msg.debug("  <cwd> GitHub config not found", git_config_file)
-                if user_logging < 0:
-                    msg.set_level(msg.LOG_MIN)
-                msg.normal("Log Level", msg.get_level_str())
+                if opt_show_branches:
+                    show_git_show_branch(msg, repo_data)
+                if opt_log:
+                    show_git_log(msg, repo_data)
+                if opt_diff:
+                    show_git_diff(msg, repo_data)
+            else:
                 show_discovered_repo_status(msg, path)
     msg.min()
 
