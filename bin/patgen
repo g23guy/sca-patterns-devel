@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.2'
+SVER = '2.0.3'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2023 Aug 04
+# Modified:     2023 Nov 02
 #
 ##############################################################################
 #
@@ -58,15 +58,16 @@ def usage():
 	print()
 	print("OPTIONS")
 	print(display.format("-h, --help", "Display this help"))
+	print(display.format("-o, --no-validation", "Ignore invalid solution links"))
+	print(display.format("-d, --no-duplicates", "Don't check for duplicate patterns"))
+	print(display.format("-g, --gen", "Selet pattern template generation. Default: 2, Valid: 1 or 2"))
 	print(display.format("-c <0-3>, --conditions=<0-3>", "Number of conditional functions to include, default=0"))
 	print(display.format("-k <ver>, --kernel-version=<ver>", "The kernel's version where the issue is fixed"))
 	print(display.format("-r <name>, --rpm=<name>", "The affected RPM package name"))
-	print(display.format("-o, --no-validation", "Ignore invalid solution links"))
 	print(display.format("-p <ver>, --package-version=<ver>", "The package's version where the issue is fixed"))
 	print(display.format("-s <name>, --service=<name>", "The systemd service name affected"))
 	print(display.format("-u <[tag=]url>, --url=<[tag=]url>", "Additional solution link URL. You can also enter a CVE number like \"CVE-2022-23303\""))
 	print(display.format("-f, --flat", "All requested conditions are tested independently and not included in stacked order"))
-	print(display.format("-d, --no-duplicates", "Don't check for duplicate patterns"))
 	print(display.format('-l <level>, --log_level <level>', "Set log level, default: Minimal"))
 	print(display.format('', "0 Quiet, 1 Minimal, 2 Normal, 3 Verbose, 4 Debug"))
 	print()
@@ -118,7 +119,7 @@ def main(argv):
 	pat = pd.PatternTemplate(title_string, SVER, config, msg)
 
 	try:
-		(optlist, args) = getopt.gnu_getopt(argv[1:], "hc:dfk:r:p:s:u:ol:", ["help", "conditions=", "no-duplicates", "flat", "kernel-version=", "rpm=", "package-version=", "service=", "url=", "no-validation", "log_level="])
+		(optlist, args) = getopt.gnu_getopt(argv[1:], "hc:dg:fk:r:p:s:u:ol:", ["help", "conditions=", "no-duplicates", "gen=", "flat", "kernel-version=", "rpm=", "package-version=", "service=", "url=", "no-validation", "log_level="])
 	except getopt.GetoptError as exc:
 		pd.title(title_string, SVER)
 		print("Error:", exc, file=sys.stderr)
@@ -141,6 +142,8 @@ def main(argv):
 				opt_error("Error: Integer required for conditions, range is 0-3")
 		elif opt in {"-d", "--no-duplicates"}:
 			pat.set_check_duplicates(False)
+		elif opt in {"-g", "--gen"}:
+			pat.set_generation(arg)
 		elif opt in {"-f", "--flat"}:
 			pat.set_flat(True)
 		elif opt in {"-k", "--kernel-version"}:

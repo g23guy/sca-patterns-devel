@@ -106,6 +106,8 @@ class PatternTemplate():
     content_kernel = ''
     content_package = ''
     content_service = ''
+    GEN_MAX = 2
+    GEN_MIN = 1
 
     def __init__(self, script_name, script_version, _config, _msg, gen=2):
         if not _config.has_option("Common", "author"):
@@ -294,7 +296,12 @@ self.title
         if( self.conditions > 0 ):
             self.content += "import re\n"
         self.content += "import os\n"
-        if self.gen == 1:
+        if self.gen == 2:
+            self.content += "import suse_core2 as core\n"
+            if( len(self.kernel_version) > 1 or len(self.service_name) > 0 or len(self.package_name) > 0 ):
+                self.content += "import suse_base2 as suse\n"
+            self.content += "\n"
+        elif self.gen == 1:
             self.content += "import Core\n"
             if( len(self.kernel_version) > 1 or len(self.service_name) > 0 or len(self.package_name) > 0 ):
                 self.content += "import SUSE\n"
@@ -307,18 +314,9 @@ self.title
             self.content += "overall_info = \"NOT SET\"\n"
             self.content += "other_links = \"" + self.links + "\"\n"
             self.content += "Core.init(meta_class, meta_category, meta_component, pattern_id, primary_link, overall, overall_info, other_links)\n\n"
-        elif self.gen == 2:
-            self.content += "import suse_core2 as core\n"
-            if( len(self.kernel_version) > 1 or len(self.service_name) > 0 or len(self.package_name) > 0 ):
-                self.content += "import suse_base2 as suse\n"
-            self.content += "\n"
 
     def __create_footer(self):
-        if self.gen == 1:
-            self.content += "\tCore.printPatternResults()\n\n"
-            self.content += "if __name__ == \"__main__\":\n"
-            self.content += "\tmain()\n\n"
-        elif self.gen == 2:
+        if self.gen == 2:
             self.content += "\tpat.print_results()\n\n"
             self.content += "if __name__ == \"__main__\":\n"
             self.content += "\tpat = suse.SCAPattern('{0}', '{1}', '{2}')\n".format(self.meta_class, self.meta_category, self.meta_component)
@@ -330,6 +328,10 @@ self.title
                 this_tag, this_url = self.other_url.split('=', 1)
                 self.content += "\tpat.add_solution_link('{0}', '{1}')\n".format(this_tag.replace("META_LINK_", ""), this_url)
             self.content += "\tmain(sys.argv)\n\n"
+        elif self.gen == 1:
+            self.content += "\tCore.printPatternResults()\n\n"
+            self.content += "if __name__ == \"__main__\":\n"
+            self.content += "\tmain()\n\n"
 
     def __create_condition_functions(self):
         if( self.conditions > 0 ):
@@ -338,18 +340,31 @@ self.title
             self.content += "# Local Function Definitions\n"
             self.content += "##############################################################################\n\n"
 
-            for condition in range(1, limit):
-                self.content += "def condition" + str(condition) + "():\n"
-                self.content += "\tfile_open = \"filename.txt\"\n"
-                self.content += "\tsection = \"CommandToIdentifyFileSection\"\n"
-                self.content += "\tcontent = []\n"
-                self.content += "\tconfirmed = re.compile(\"\", re.IGNORECASE)\n"
-                self.content += "\tif Core.isFileActive(file_open):\n"
-                self.content += "\t\tif Core.getRegExSection(file_open, section, content):\n"
-                self.content += "\t\t\tfor line in content:\n"
-                self.content += "\t\t\t\tif confirmed.search(line):\n"
-                self.content += "\t\t\t\t\treturn True\n"
-                self.content += "\treturn False\n\n"
+            if self.gen == 2:
+                for condition in range(1, limit):
+                    self.content += "def condition" + str(condition) + "():\n"
+                    self.content += "\tfile_open = pat.get_supportconfig_path('filename.txt')\n"
+                    self.content += "\tsection = 'name'\n"
+                    self.content += "\tconfirmed = re.compile(\"\", re.IGNORECASE)\n"
+                    self.content += "\tcontent = core.get_section_re(file_open, section)\n"
+                    self.content += "\tif len(content) > 0:\n"
+                    self.content += "\t\tfor line in content:\n"
+                    self.content += "\t\t\tif confirmed.search(line):\n"
+                    self.content += "\t\t\t\treturn True\n"
+                    self.content += "\treturn False\n\n"
+            elif self.gen == 1:
+                for condition in range(1, limit):
+                    self.content += "def condition" + str(condition) + "():\n"
+                    self.content += "\tfile_open = \"filename.txt\"\n"
+                    self.content += "\tsection = \"CommandToIdentifyFileSection\"\n"
+                    self.content += "\tcontent = []\n"
+                    self.content += "\tconfirmed = re.compile(\"\", re.IGNORECASE)\n"
+                    self.content += "\tif Core.isFileActive(file_open):\n"
+                    self.content += "\t\tif Core.getRegExSection(file_open, section, content):\n"
+                    self.content += "\t\t\tfor line in content:\n"
+                    self.content += "\t\t\t\tif confirmed.search(line):\n"
+                    self.content += "\t\t\t\t\treturn True\n"
+                    self.content += "\treturn False\n\n"
 
     def __create_conditions_indented(self, indent_to_level, condition_count):
         indent = ''
@@ -358,32 +373,60 @@ self.title
         for i in range(int(indent_to_level)):
             indent += '\t'
 
-        if( condition_count == 0 ):
-            these_conditions += str(indent) + "Core.updateStatus(Core.WARN, \"No conditions required\")\n"
-        elif( condition_count == 1 ):
-            these_conditions += str(indent) + "if( condition1() ):\n"
-            these_conditions += str(indent) + "\tCore.updateStatus(Core.CRIT, \"Condition1 Met\")\n"
-            these_conditions += str(indent) + "else:\n"
-            these_conditions += str(indent) + "\tCore.updateStatus(Core.WARN, \"Condition1 not found\")\n"
-        elif( condition_count == 2 ):
-            these_conditions += str(indent) + "if( condition1() ):\n"
-            these_conditions += str(indent) + "\tif( condition2() ):\n"
-            these_conditions += str(indent) + "\t\tCore.updateStatus(Core.CRIT, \"Condition2 Met\")\n"
-            these_conditions += str(indent) + "\telse:\n"
-            these_conditions += str(indent) + "\t\tCore.updateStatus(Core.WARN, \"Condition2 not found\")\n"
-            these_conditions += str(indent) + "else:\n"
-            these_conditions += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Condition1 not found\")\n"
-        elif( condition_count == 3 ):
-            these_conditions += str(indent) + "if( condition1() ):\n"
-            these_conditions += str(indent) + "\tif( condition2() ):\n"
-            these_conditions += str(indent) + "\t\tif( condition3() ):\n"
-            these_conditions += str(indent) + "\t\t\tCore.updateStatus(Core.CRIT, \"Condition3 Met\")\n"
-            these_conditions += str(indent) + "\t\telse:\n"
-            these_conditions += str(indent) + "\t\t\tCore.updateStatus(Core.WARN, \"Condition3 not found\")\n"
-            these_conditions += str(indent) + "\telse:\n"
-            these_conditions += str(indent) + "\t\tCore.updateStatus(Core.ERROR, \"Condition2 not found\")\n"
-            these_conditions += str(indent) + "else:\n"
-            these_conditions += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Condition1 not found\")\n"
+        if self.gen == 2:
+            if( condition_count == 0 ):
+                these_conditions += str(indent) + "pat.update_status(core.WARN, \"No conditions required\")\n"
+            elif( condition_count == 1 ):
+                these_conditions += str(indent) + "if( condition1() ):\n"
+                these_conditions += str(indent) + "\tpat.update_status(core.CRIT, \"Condition1 Met\")\n"
+                these_conditions += str(indent) + "else:\n"
+                these_conditions += str(indent) + "\tpat.update_status(core.WARN, \"Condition1 not found\")\n"
+            elif( condition_count == 2 ):
+                these_conditions += str(indent) + "if( condition1() ):\n"
+                these_conditions += str(indent) + "\tif( condition2() ):\n"
+                these_conditions += str(indent) + "\t\tpat.update_status(core.CRIT, \"Condition2 Met\")\n"
+                these_conditions += str(indent) + "\telse:\n"
+                these_conditions += str(indent) + "\t\tpat.update_status(core.WARN, \"Condition2 not found\")\n"
+                these_conditions += str(indent) + "else:\n"
+                these_conditions += str(indent) + "\tpat.update_status(core.ERROR, \"Condition1 not found\")\n"
+            elif( condition_count == 3 ):
+                these_conditions += str(indent) + "if( condition1() ):\n"
+                these_conditions += str(indent) + "\tif( condition2() ):\n"
+                these_conditions += str(indent) + "\t\tif( condition3() ):\n"
+                these_conditions += str(indent) + "\t\t\tpat.update_status(core.CRIT, \"Condition3 Met\")\n"
+                these_conditions += str(indent) + "\t\telse:\n"
+                these_conditions += str(indent) + "\t\t\tpat.update_status(core.WARN, \"Condition3 not found\")\n"
+                these_conditions += str(indent) + "\telse:\n"
+                these_conditions += str(indent) + "\t\tpat.update_status(core.ERROR, \"Condition2 not found\")\n"
+                these_conditions += str(indent) + "else:\n"
+                these_conditions += str(indent) + "\tpat.update_status(core.ERROR, \"Condition1 not found\")\n"
+        elif self.gen == 1:
+            if( condition_count == 0 ):
+                these_conditions += str(indent) + "Core.updateStatus(Core.WARN, \"No conditions required\")\n"
+            elif( condition_count == 1 ):
+                these_conditions += str(indent) + "if( condition1() ):\n"
+                these_conditions += str(indent) + "\tCore.updateStatus(Core.CRIT, \"Condition1 Met\")\n"
+                these_conditions += str(indent) + "else:\n"
+                these_conditions += str(indent) + "\tCore.updateStatus(Core.WARN, \"Condition1 not found\")\n"
+            elif( condition_count == 2 ):
+                these_conditions += str(indent) + "if( condition1() ):\n"
+                these_conditions += str(indent) + "\tif( condition2() ):\n"
+                these_conditions += str(indent) + "\t\tCore.updateStatus(Core.CRIT, \"Condition2 Met\")\n"
+                these_conditions += str(indent) + "\telse:\n"
+                these_conditions += str(indent) + "\t\tCore.updateStatus(Core.WARN, \"Condition2 not found\")\n"
+                these_conditions += str(indent) + "else:\n"
+                these_conditions += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Condition1 not found\")\n"
+            elif( condition_count == 3 ):
+                these_conditions += str(indent) + "if( condition1() ):\n"
+                these_conditions += str(indent) + "\tif( condition2() ):\n"
+                these_conditions += str(indent) + "\t\tif( condition3() ):\n"
+                these_conditions += str(indent) + "\t\t\tCore.updateStatus(Core.CRIT, \"Condition3 Met\")\n"
+                these_conditions += str(indent) + "\t\telse:\n"
+                these_conditions += str(indent) + "\t\t\tCore.updateStatus(Core.WARN, \"Condition3 not found\")\n"
+                these_conditions += str(indent) + "\telse:\n"
+                these_conditions += str(indent) + "\t\tCore.updateStatus(Core.ERROR, \"Condition2 not found\")\n"
+                these_conditions += str(indent) + "else:\n"
+                these_conditions += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Condition1 not found\")\n"
 
         return these_conditions
 
@@ -567,6 +610,17 @@ self.title
         except OSError:
             print((" ERROR: Cannot create " + str(self.pattern_filename) + ": " + str(error)))
 
+    def set_generation(self, value):
+        if value.isdigit():
+            this_gen = int(value)
+            if this_gen >= self.GEN_MIN and this_gen <= self.GEN_MAX:
+                self.gen = this_gen
+            else:
+                self.gen = self.GEN_MAX
+        else:
+            self.gen = self.GEN_MAX
+
+
     def set_metadata(self, mdlist):
         "Set the metadata values from the ordered list mdlist"
         IDX_CLASS = 0
@@ -678,7 +732,8 @@ self.title
             separator_line('-')
         self.msg.min("Title", self.title)
         self.msg.min("Pattern", self.pattern_filename)
-        self.msg.min("Basic", self.basic)
+        self.msg.min("Basic", str(self.basic))
+        self.msg.min("Generation", str(self.gen))
         self.msg.min("Solution Links", len(self.link_results))
         for this_link in self.link_results:
             if not this_link['valid']:
