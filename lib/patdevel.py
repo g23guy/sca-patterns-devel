@@ -1,7 +1,7 @@
 """Module for SCA Pattern Development Tools
 Copyright (C) 2023 SUSE LLC
 
- Modified:     2023 Oct 27
+ Modified:     2023 Nov 02
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ __all__ = [
     'check_directories',
 ]
 
-__version__ = "2.0.9"
+__version__ = "2.0.10"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"
@@ -507,7 +507,7 @@ self.title
                     self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
                     self.__test_service_finish(indent_service)
                 else:
-                    self.content += self.__create_conditions_indented(1, self.conditions)
+                    self.content += self.__create_conditions_indented(indent_conditions, self.conditions)
             elif( self.package_name != ''):
                 indent_package = 1
                 self.__test_package_start(indent_package)
