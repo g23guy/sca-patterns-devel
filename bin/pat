@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.19'
+SVER = '2.0.20'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Runs a pattern or patterns against supportconfig directories to
 #               check the pattern's output based on the supportconfig directory.
-# Modified:     2023 Aug 07
+# Modified:     2023 Nov 02
 #
 ##############################################################################
 #
@@ -211,7 +211,7 @@ def validate_pattern(this_pattern):
 	data = bindata.splitlines()
 	hashpling = re.compile('^#!/')
 	validhpls = re.compile('python3$|perl$')
-	scapattern = re.compile('^Core.init\(META_CLASS|^\@PATTERN_RESULTS = \(', re.IGNORECASE)
+	scapattern = re.compile('^Core.init\(META_CLASS|^\@PATTERN_RESULTS = \(|SCAPattern\(', re.IGNORECASE)
 	hpl = ''
 	hplmissing = True
 	scafile = False
