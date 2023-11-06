@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.20'
+SVER = '2.0.21'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Runs a pattern or patterns against supportconfig directories to
 #               check the pattern's output based on the supportconfig directory.
-# Modified:     2023 Nov 02
+# Modified:     2023 Nov 06
 #
 ##############################################################################
 #
@@ -56,6 +56,7 @@ failed_pattern_shortlist = {}
 skipped_pattern_shortlist = {}
 elapsed = -1
 title_string = "SCA Pattern Checker"
+gen_value = -1
 
 
 ##############################################################################
@@ -131,8 +132,9 @@ def show_summary():
 	msg.min()
 
 def set_environment():
-	os.environ['PERL5LIB'] = usepath['scalib'] + '/perl'
 	os.environ['PYTHONPATH'] = usepath['scalib'] + '/python'
+	os.environ['PERL5LIB'] = usepath['scalib'] + '/perl'
+	os.environ['BASHLIB'] = usepath['scalib'] + '/bash'
 
 def get_archive_list(this_path):
 	scadir = re.compile("^scc_|^nts_", re.IGNORECASE)
@@ -193,6 +195,7 @@ def prepare_patterns():
 	return these_patterns
 
 def validate_pattern(this_pattern):
+	global gen_value
 	# Validate pattern mode
 	if not os.access(this_pattern, os.X_OK):
 		meta_error['any'] = True
@@ -211,7 +214,8 @@ def validate_pattern(this_pattern):
 	data = bindata.splitlines()
 	hashpling = re.compile('^#!/')
 	validhpls = re.compile('python3$|perl$')
-	scapattern = re.compile('^Core.init\(META_CLASS|^\@PATTERN_RESULTS = \(|SCAPattern\(', re.IGNORECASE)
+	scapattern_gen1 = re.compile('^Core.init\(META_CLASS|^\@PATTERN_RESULTS = \(', re.IGNORECASE)
+	scapattern_gen2 = re.compile('SCAPattern\(')
 	hpl = ''
 	hplmissing = True
 	scafile = False
@@ -219,7 +223,12 @@ def validate_pattern(this_pattern):
 		line = binline.decode('ascii')
 		if hashpling.search(line):
 			hpl = line[2:].split()[0] #drop the #!, keep the path
-		if scapattern.search(line):
+		if scapattern_gen1.search(line):
+			gen_value = 1
+			scafile = True
+			break
+		if scapattern_gen2.search(line):
+			gen_value = 2
 			scafile = True
 			break
 
@@ -286,7 +295,13 @@ def run_pattern(this_pattern, this_archive):
 		c_['Fatal'] += 1
 
 	try:
-		p = subprocess.run([this_pattern, '-p', this_archive], universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		if gen_value == 2:
+			p = subprocess.run([this_pattern, this_archive], universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		elif gen_value == 1:
+			p = subprocess.run([this_pattern, '-p', this_archive], universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		else:
+			print("Error: Invalid generation value {0}".format(gen_value))
+			sys.exit(5)
 	except Exception as e:
 		msg.debug('  <> subprocess.run Exception')
 		meta_error['bin'] = True # not working
@@ -371,7 +386,7 @@ def run_pattern(this_pattern, this_archive):
 def main(argv):
 	"main entry point"
 	global SVER, pattern_list, archive_list, recurse_archives, recurse_patterns, c
-	global invalid_patterns, invalid_pattern_shortlist, elapsed, defpath, usepath, meta_error
+	global invalid_patterns, invalid_pattern_shortlist, elapsed, defpath, usepath, meta_error, gen_value
 	start = timer()
 	
 	if( os.path.exists(pd.config_file) ):
