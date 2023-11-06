@@ -358,8 +358,16 @@ def run_pattern(this_pattern, this_archive):
 				status = overall_dict[overall]
 			if( msg.get_level() >= msg.LOG_VERBOSE ):
 				msg.verbose("+ Archive Used", this_archive)
-				msg.verbose()			
-				print(p.stdout)
+				msg.verbose()
+				msg.verbose(p.stdout)
+				for this_out in output:
+					(key, value) = this_out.split("=", 1)
+					if key.startswith('OTHER_LINKS'):
+						(nextkey, nextvalue) = value.split("=", 1)
+						msg.verbose(key)
+						msg.verbose(nextkey, nextvalue)
+					else:
+						msg.verbose(key, value)
 		else:
 			msg.debug('  <> Valid Execution, Output MISSING')
 			if not meta_error['any']:
