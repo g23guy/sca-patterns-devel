@@ -319,7 +319,7 @@ self.title
         if self.gen == 2:
             self.content += "\tpat.print_results()\n\n"
             self.content += "if __name__ == \"__main__\":\n"
-            self.content += "\tpat = suse.SCAPattern('{0}', '{1}', '{2}')\n".format(self.meta_class, self.meta_category, self.meta_component)
+            self.content += "\tpat = suse.SCAPatternGen2('{0}', '{1}', '{2}')\n".format(self.meta_class, self.meta_category, self.meta_component)
             self.content += "\tpat.set_id(os.path.basename(__file__))\n"
             self.content += "\tpat.set_tid('{0}')\n".format(self.tid_number)
             if self.bug_number != "0":
