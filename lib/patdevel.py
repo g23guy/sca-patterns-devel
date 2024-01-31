@@ -1,7 +1,7 @@
 """Module for SCA Pattern Development Tools
-Copyright (C) 2023 SUSE LLC
+Copyright (C) 2024 SUSE LLC
 
- Modified:     2023 Nov 03
+ Modified:     2024 Jan 31
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ __all__ = [
     'check_directories',
 ]
 
-__version__ = "2.0.13"
+__version__ = "2.0.16"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"
@@ -297,7 +297,9 @@ self.title
             self.content += "import re\n"
         self.content += "import os\n"
         if self.gen == 2:
+            self.content += "import sys\n"
             self.content += "import suse_core2 as core\n"
+            self.content += "import suse_base2 as suse\n"
             if( len(self.kernel_version) > 1 or len(self.service_name) > 0 or len(self.package_name) > 0 ):
                 self.content += "import suse_base2 as suse\n"
             self.content += "\n"
@@ -527,6 +529,14 @@ self.title
             self.content += str(indent) + "else:\n"
             self.content += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Service details not found: \" + str(service_name))\n"
 
+    def __archive_prep(self):
+        base_indent = '\t'
+        self.content += base_indent + "try:\n"
+        self.content += base_indent + "\tpat.set_supportconfig_path(argv[1])\n"
+        self.content += base_indent + "except IndexError:\n"
+        self.content += base_indent + "\tprint('Error: Supportconfig directory not found')\n"
+        self.content += base_indent + "\tsys.exit(1)\n\n"
+
     def __create_pattern_main(self):
         indent_kernel = 1
         indent_package = 1
@@ -537,6 +547,8 @@ self.title
         self.content += "# Main\n"
         self.content += "##############################################################################\n\n"
         self.content += "def main(argv):\n"
+        self.content += "\t'''main entry point'''\n"
+        self.__archive_prep()
         self.__test_prep()
 
         if( self.flat ):
