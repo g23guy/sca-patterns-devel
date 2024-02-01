@@ -19,7 +19,7 @@
 
 Name:         sca-patterns-devel
 Version:      2.0.10
-Release:      test.240131.1101
+Release:      test.240201.0844
 Summary:      Supportconf Analysis Pattern Development Tools
 License:      GPL-2.0-only
 URL:          https://github.com/g23guy/sca-patterns-devel
