@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.3'
+SVER = '2.0.4'
 ##############################################################################
 # patgen.py - SCA Tool Python3 Pattern Generator
 # Copyright (C) 2023 SUSE LLC
 #
 # Description:  Creates a pattern template for TIDs based on commandline
 #               conditions.
-# Modified:     2023 Nov 02
+# Modified:     2024 Feb 01
 #
 ##############################################################################
 #

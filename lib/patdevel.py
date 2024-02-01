@@ -1,7 +1,7 @@
 """Module for SCA Pattern Development Tools
 Copyright (C) 2024 SUSE LLC
 
- Modified:     2024 Jan 31
+ Modified:     2024 Feb 01
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ __all__ = [
     'check_directories',
 ]
 
-__version__ = "2.0.16"
+__version__ = "2.0.17"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"
@@ -319,21 +319,21 @@ self.title
 
     def __create_footer(self):
         if self.gen == 2:
-            self.content += "\tpat.print_results()\n\n"
+            self.content += "    pat.print_results()\n\n"
             self.content += "if __name__ == \"__main__\":\n"
-            self.content += "\tpat = suse.SCAPatternGen2('{0}', '{1}', '{2}')\n".format(self.meta_class, self.meta_category, self.meta_component)
-            self.content += "\tpat.set_id(os.path.basename(__file__))\n"
-            self.content += "\tpat.set_tid('{0}')\n".format(self.tid_number)
+            self.content += "    pat = suse.SCAPatternGen2('{0}', '{1}', '{2}')\n".format(self.meta_class, self.meta_category, self.meta_component)
+            self.content += "    pat.set_id(os.path.basename(__file__))\n"
+            self.content += "    pat.set_tid('{0}')\n".format(self.tid_number)
             if self.bug_number != "0":
-                self.content += "\tpat.set_bug('{0}')\n".format(self.bug_number)
+                self.content += "    pat.set_bug('{0}')\n".format(self.bug_number)
             if len(self.other_url) > 0:
                 this_tag, this_url = self.other_url.split('=', 1)
-                self.content += "\tpat.add_solution_link('{0}', '{1}')\n".format(this_tag.replace("META_LINK_", ""), this_url)
-            self.content += "\tmain(sys.argv)\n\n"
+                self.content += "    pat.add_solution_link('{0}', '{1}')\n".format(this_tag.replace("META_LINK_", ""), this_url)
+            self.content += "    main(sys.argv)\n\n"
         elif self.gen == 1:
-            self.content += "\tCore.printPatternResults()\n\n"
+            self.content += "    Core.printPatternResults()\n\n"
             self.content += "if __name__ == \"__main__\":\n"
-            self.content += "\tmain()\n\n"
+            self.content += "    main()\n\n"
 
     def __create_condition_functions(self):
         if( self.conditions > 0 ):
@@ -345,93 +345,93 @@ self.title
             if self.gen == 2:
                 for condition in range(1, limit):
                     self.content += "def condition" + str(condition) + "():\n"
-                    self.content += "\tconfirmed = re.compile(\"\", re.IGNORECASE)\n"
-                    self.content += "\tcontent = core.get_file_section(pat.get_supportconfig_path('filename.txt'), 'section_name')\n"
-                    self.content += "\tif len(content) > 0:\n"
-                    self.content += "\t\tfor line in content:\n"
-                    self.content += "\t\t\tif confirmed.search(line):\n"
-                    self.content += "\t\t\t\treturn True\n"
-                    self.content += "\treturn False\n\n"
+                    self.content += "    confirmed = re.compile(\"\", re.IGNORECASE)\n"
+                    self.content += "    content = core.get_file_section(pat.get_supportconfig_path('filename.txt'), 'section_name')\n"
+                    self.content += "    if len(content) > 0:\n"
+                    self.content += "        for line in content:\n"
+                    self.content += "            if confirmed.search(line):\n"
+                    self.content += "                return True\n"
+                    self.content += "    return False\n\n"
             elif self.gen == 1:
                 for condition in range(1, limit):
                     self.content += "def condition" + str(condition) + "():\n"
-                    self.content += "\tfile_open = \"filename.txt\"\n"
-                    self.content += "\tsection = \"CommandToIdentifyFileSection\"\n"
-                    self.content += "\tcontent = []\n"
-                    self.content += "\tconfirmed = re.compile(\"\", re.IGNORECASE)\n"
-                    self.content += "\tif Core.isFileActive(file_open):\n"
-                    self.content += "\t\tif Core.getRegExSection(file_open, section, content):\n"
-                    self.content += "\t\t\tfor line in content:\n"
-                    self.content += "\t\t\t\tif confirmed.search(line):\n"
-                    self.content += "\t\t\t\t\treturn True\n"
-                    self.content += "\treturn False\n\n"
+                    self.content += "    file_open = \"filename.txt\"\n"
+                    self.content += "    section = \"CommandToIdentifyFileSection\"\n"
+                    self.content += "    content = []\n"
+                    self.content += "    confirmed = re.compile(\"\", re.IGNORECASE)\n"
+                    self.content += "    if Core.isFileActive(file_open):\n"
+                    self.content += "        if Core.getRegExSection(file_open, section, content):\n"
+                    self.content += "            for line in content:\n"
+                    self.content += "                if confirmed.search(line):\n"
+                    self.content += "                    return True\n"
+                    self.content += "    return False\n\n"
 
     def __create_conditions_indented(self, indent_to_level, condition_count):
         indent = ''
         these_conditions = ''
 
         for i in range(int(indent_to_level)):
-            indent += '\t'
+            indent += '    '
 
         if self.gen == 2:
             if( condition_count == 0 ):
                 these_conditions += str(indent) + "pat.update_status(core.WARN, \"No conditions required\")\n"
             elif( condition_count == 1 ):
                 these_conditions += str(indent) + "if( condition1() ):\n"
-                these_conditions += str(indent) + "\tpat.update_status(core.CRIT, \"Condition1 met\")\n"
+                these_conditions += str(indent) + "    pat.update_status(core.CRIT, \"Condition1 met\")\n"
                 these_conditions += str(indent) + "else:\n"
-                these_conditions += str(indent) + "\tpat.update_status(core.WARN, \"Condition1 not found\")\n"
+                these_conditions += str(indent) + "    pat.update_status(core.WARN, \"Condition1 not found\")\n"
             elif( condition_count == 2 ):
                 these_conditions += str(indent) + "if( condition1() ):\n"
-                these_conditions += str(indent) + "\tif( condition2() ):\n"
-                these_conditions += str(indent) + "\t\tpat.update_status(core.CRIT, \"Condition2 met\")\n"
-                these_conditions += str(indent) + "\telse:\n"
-                these_conditions += str(indent) + "\t\tpat.update_status(core.WARN, \"Condition2 not found\")\n"
+                these_conditions += str(indent) + "    if( condition2() ):\n"
+                these_conditions += str(indent) + "        pat.update_status(core.CRIT, \"Condition2 met\")\n"
+                these_conditions += str(indent) + "    else:\n"
+                these_conditions += str(indent) + "        pat.update_status(core.WARN, \"Condition2 not found\")\n"
                 these_conditions += str(indent) + "else:\n"
-                these_conditions += str(indent) + "\tpat.update_status(core.ERROR, \"Condition1 not found\")\n"
+                these_conditions += str(indent) + "    pat.update_status(core.ERROR, \"Condition1 not found\")\n"
             elif( condition_count == 3 ):
                 these_conditions += str(indent) + "if( condition1() ):\n"
-                these_conditions += str(indent) + "\tif( condition2() ):\n"
-                these_conditions += str(indent) + "\t\tif( condition3() ):\n"
-                these_conditions += str(indent) + "\t\t\tpat.update_status(core.CRIT, \"Condition3 met\")\n"
-                these_conditions += str(indent) + "\t\telse:\n"
-                these_conditions += str(indent) + "\t\t\tpat.update_status(core.WARN, \"Condition3 not found\")\n"
-                these_conditions += str(indent) + "\telse:\n"
-                these_conditions += str(indent) + "\t\tpat.update_status(core.ERROR, \"Condition2 not found\")\n"
+                these_conditions += str(indent) + "    if( condition2() ):\n"
+                these_conditions += str(indent) + "        if( condition3() ):\n"
+                these_conditions += str(indent) + "            pat.update_status(core.CRIT, \"Condition3 met\")\n"
+                these_conditions += str(indent) + "        else:\n"
+                these_conditions += str(indent) + "            pat.update_status(core.WARN, \"Condition3 not found\")\n"
+                these_conditions += str(indent) + "    else:\n"
+                these_conditions += str(indent) + "        pat.update_status(core.ERROR, \"Condition2 not found\")\n"
                 these_conditions += str(indent) + "else:\n"
-                these_conditions += str(indent) + "\tpat.update_status(core.ERROR, \"Condition1 not found\")\n"
+                these_conditions += str(indent) + "    pat.update_status(core.ERROR, \"Condition1 not found\")\n"
         elif self.gen == 1:
             if( condition_count == 0 ):
                 these_conditions += str(indent) + "Core.updateStatus(Core.WARN, \"No conditions required\")\n"
             elif( condition_count == 1 ):
                 these_conditions += str(indent) + "if( condition1() ):\n"
-                these_conditions += str(indent) + "\tCore.updateStatus(Core.CRIT, \"Condition1 met\")\n"
+                these_conditions += str(indent) + "    Core.updateStatus(Core.CRIT, \"Condition1 met\")\n"
                 these_conditions += str(indent) + "else:\n"
-                these_conditions += str(indent) + "\tCore.updateStatus(Core.WARN, \"Condition1 not found\")\n"
+                these_conditions += str(indent) + "    Core.updateStatus(Core.WARN, \"Condition1 not found\")\n"
             elif( condition_count == 2 ):
                 these_conditions += str(indent) + "if( condition1() ):\n"
-                these_conditions += str(indent) + "\tif( condition2() ):\n"
-                these_conditions += str(indent) + "\t\tCore.updateStatus(Core.CRIT, \"Condition2 met\")\n"
-                these_conditions += str(indent) + "\telse:\n"
-                these_conditions += str(indent) + "\t\tCore.updateStatus(Core.WARN, \"Condition2 not found\")\n"
+                these_conditions += str(indent) + "    if( condition2() ):\n"
+                these_conditions += str(indent) + "        Core.updateStatus(Core.CRIT, \"Condition2 met\")\n"
+                these_conditions += str(indent) + "    else:\n"
+                these_conditions += str(indent) + "        Core.updateStatus(Core.WARN, \"Condition2 not found\")\n"
                 these_conditions += str(indent) + "else:\n"
-                these_conditions += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Condition1 not found\")\n"
+                these_conditions += str(indent) + "    Core.updateStatus(Core.ERROR, \"Condition1 not found\")\n"
             elif( condition_count == 3 ):
                 these_conditions += str(indent) + "if( condition1() ):\n"
-                these_conditions += str(indent) + "\tif( condition2() ):\n"
-                these_conditions += str(indent) + "\t\tif( condition3() ):\n"
-                these_conditions += str(indent) + "\t\t\tCore.updateStatus(Core.CRIT, \"Condition3 met\")\n"
-                these_conditions += str(indent) + "\t\telse:\n"
-                these_conditions += str(indent) + "\t\t\tCore.updateStatus(Core.WARN, \"Condition3 not found\")\n"
-                these_conditions += str(indent) + "\telse:\n"
-                these_conditions += str(indent) + "\t\tCore.updateStatus(Core.ERROR, \"Condition2 not found\")\n"
+                these_conditions += str(indent) + "    if( condition2() ):\n"
+                these_conditions += str(indent) + "        if( condition3() ):\n"
+                these_conditions += str(indent) + "            Core.updateStatus(Core.CRIT, \"Condition3 met\")\n"
+                these_conditions += str(indent) + "        else:\n"
+                these_conditions += str(indent) + "            Core.updateStatus(Core.WARN, \"Condition3 not found\")\n"
+                these_conditions += str(indent) + "    else:\n"
+                these_conditions += str(indent) + "        Core.updateStatus(Core.ERROR, \"Condition2 not found\")\n"
                 these_conditions += str(indent) + "else:\n"
-                these_conditions += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Condition1 not found\")\n"
+                these_conditions += str(indent) + "    Core.updateStatus(Core.ERROR, \"Condition1 not found\")\n"
 
         return these_conditions
 
     def __test_prep(self):
-        base_indent = "\t"
+        base_indent = "    "
         if( self.kernel_version != "0" ):
             self.content += base_indent + "kernel_version_fixed = '" + self.kernel_version + "'\n"
         if( self.package_name != ''):
@@ -447,57 +447,57 @@ self.title
         indent = ''
 
         for i in range(int(indent_to_level)):
-            indent += '\t'
+            indent += '    '
 
         if self.gen == 2:
             self.content += str(indent) + "kernel_version_installed = suse.compare_kernel(kernel_version_fixed, pat)\n"
             self.content += str(indent) + "if( kernel_version_installed >= 0 ):\n"
-            self.content += str(indent) + "\tpat.update_status(core.IGNORE, \"Bug fixes applied in kernel version {0} or higher\".format(kernel_version_fixed))\n"
+            self.content += str(indent) + "    pat.update_status(core.IGNORE, \"Bug fixes applied in kernel version {0} or higher\".format(kernel_version_fixed))\n"
             self.content += str(indent) + "else:\n"
         elif self.gen == 1:
             self.content += str(indent) + "kernel_version_installed = SUSE.compareKernel(kernel_version_fixed)\n"
             self.content += str(indent) + "if( kernel_version_installed >= 0 ):\n"
-            self.content += str(indent) + "\tCore.updateStatus(Core.IGNORE, \"Bug fixes applied in kernel version \" + kernel_version_fixed + \" or higher\")\n"
+            self.content += str(indent) + "    Core.updateStatus(Core.IGNORE, \"Bug fixes applied in kernel version \" + kernel_version_fixed + \" or higher\")\n"
             self.content += str(indent) + "else:\n"
 
     def __test_package_start(self, indent_to_level):
         indent = ''
 
         for i in range(int(indent_to_level)):
-            indent += '\t'
+            indent += '    '
 
         if self.gen == 2:
             self.content += str(indent) + "if( suse.package_is_installed(package, pat) ):\n"
             if( self.package_version != "0" ):
-                self.content += str(indent) + "\tpackage_version_installed = suse.compare_rpm(package, package_version_fixed, pat)\n"
-                self.content += str(indent) + "\tif( package_version_installed >= 0 ):\n"
-                self.content += str(indent) + "\t\tpat.update_status(core.IGNORE, \"Bug fixes applied in {0} version {1} or higher\".format(package, package_version_installed))\n"
-                self.content += str(indent) + "\telse:\n"
+                self.content += str(indent) + "    package_version_installed = suse.compare_rpm(package, package_version_fixed, pat)\n"
+                self.content += str(indent) + "    if( package_version_installed >= 0 ):\n"
+                self.content += str(indent) + "        pat.update_status(core.IGNORE, \"Bug fixes applied in {0} version {1} or higher\".format(package, package_version_installed))\n"
+                self.content += str(indent) + "    else:\n"
         elif self.gen == 1:
             self.content += str(indent) + "if( SUSE.packageInstalled(package) ):\n"
             if( self.package_version != "0" ):
-                self.content += str(indent) + "\tpackage_version_installed = SUSE.compareRPM(package, package_version_fixed)\n"
-                self.content += str(indent) + "\tif( package_version_installed >= 0 ):\n"
-                self.content += str(indent) + "\t\tCore.updateStatus(Core.IGNORE, \"Bug fixes applied for \" + package + \"\")\n"
-                self.content += str(indent) + "\telse:\n"
+                self.content += str(indent) + "    package_version_installed = SUSE.compareRPM(package, package_version_fixed)\n"
+                self.content += str(indent) + "    if( package_version_installed >= 0 ):\n"
+                self.content += str(indent) + "        Core.updateStatus(Core.IGNORE, \"Bug fixes applied for \" + package + \"\")\n"
+                self.content += str(indent) + "    else:\n"
 
     def __test_package_finish(self, indent_to_level):
         indent = ''
 
         for i in range(int(indent_to_level)):
-            indent += '\t'
+            indent += '    '
 
         self.content += str(indent) + "else:\n"
         if self.gen == 2:
-            self.content += str(indent) + "\tpat.update_status(core.ERROR, \"ERROR: RPM package {0} not installed\".format(package))\n"
+            self.content += str(indent) + "    pat.update_status(core.ERROR, \"ERROR: RPM package {0} not installed\".format(package))\n"
         elif self.gen == 1:
-            self.content += str(indent) + "\tCore.updateStatus(Core.ERROR, \"ERROR: RPM package \" + package + \" not installed\")\n"
+            self.content += str(indent) + "    Core.updateStatus(Core.ERROR, \"ERROR: RPM package \" + package + \" not installed\")\n"
 
     def __test_service_start(self, indent_to_level):
         indent = ''
 
         for i in range(int(indent_to_level)):
-            indent += '\t'
+            indent += '    '
 
         if self.gen == 2:
             self.content += str(indent) + "service_info = suse.get_systemd_service_data(service_name, pat)\n"
@@ -505,37 +505,37 @@ self.title
             self.content += str(indent) + "service_info = SUSE.getServiceDInfo(service_name)\n"
 
         self.content += str(indent) + "if( service_info ):\n"
-        self.content += str(indent) + "\tif( service_info['UnitFileState'] == 'enabled' ):\n"
-        self.content += str(indent) + "\t\tif( service_info['SubState'] == 'failed' ):\n"
+        self.content += str(indent) + "    if( service_info['UnitFileState'] == 'enabled' ):\n"
+        self.content += str(indent) + "        if( service_info['SubState'] == 'failed' ):\n"
 
     def __test_service_finish(self, indent_to_level):
         indent = ''
 
         for i in range(int(indent_to_level)):
-            indent += '\t'
+            indent += '    '
 
         if self.gen == 2:
-            self.content += str(indent) + "\t\telse:\n"
-            self.content += str(indent) + "\t\t\tpat.update_status(core.IGNORE, \"Service did not fail: {0}\".format(service_name))\n"
-            self.content += str(indent) + "\telse:\n"
-            self.content += str(indent) + "\t\tpat.update_status(core.ERROR, \"Service is disabled: {0}\".format(service_name))\n"
+            self.content += str(indent) + "        else:\n"
+            self.content += str(indent) + "            pat.update_status(core.IGNORE, \"Service did not fail: {0}\".format(service_name))\n"
+            self.content += str(indent) + "    else:\n"
+            self.content += str(indent) + "        pat.update_status(core.ERROR, \"Service is disabled: {0}\".format(service_name))\n"
             self.content += str(indent) + "else:\n"
-            self.content += str(indent) + "\tpat.update_status(core.ERROR, \"Service details not found: {0}\".format(service_name))\n"
+            self.content += str(indent) + "    pat.update_status(core.ERROR, \"Service details not found: {0}\".format(service_name))\n"
         elif self.gen == 1:
-            self.content += str(indent) + "\t\telse:\n"
-            self.content += str(indent) + "\t\t\tCore.updateStatus(Core.IGNORE, \"Service did not fail: \" + str(service_name))\n"
-            self.content += str(indent) + "\telse:\n"
-            self.content += str(indent) + "\t\tCore.updateStatus(Core.ERROR, \"Service is disabled: \" + str(service_name))\n"
+            self.content += str(indent) + "        else:\n"
+            self.content += str(indent) + "            Core.updateStatus(Core.IGNORE, \"Service did not fail: \" + str(service_name))\n"
+            self.content += str(indent) + "    else:\n"
+            self.content += str(indent) + "        Core.updateStatus(Core.ERROR, \"Service is disabled: \" + str(service_name))\n"
             self.content += str(indent) + "else:\n"
-            self.content += str(indent) + "\tCore.updateStatus(Core.ERROR, \"Service details not found: \" + str(service_name))\n"
+            self.content += str(indent) + "    Core.updateStatus(Core.ERROR, \"Service details not found: \" + str(service_name))\n"
 
     def __archive_prep(self):
-        base_indent = '\t'
+        base_indent = '    '
         self.content += base_indent + "try:\n"
-        self.content += base_indent + "\tpat.set_supportconfig_path(argv[1])\n"
+        self.content += base_indent + "    pat.set_supportconfig_path(argv[1])\n"
         self.content += base_indent + "except IndexError:\n"
-        self.content += base_indent + "\tprint('Error: Supportconfig directory not found')\n"
-        self.content += base_indent + "\tsys.exit(1)\n\n"
+        self.content += base_indent + "    print('Error: Supportconfig directory not found')\n"
+        self.content += base_indent + "    sys.exit(1)\n\n"
 
     def __create_pattern_main(self):
         indent_kernel = 1
@@ -547,7 +547,7 @@ self.title
         self.content += "# Main\n"
         self.content += "##############################################################################\n\n"
         self.content += "def main(argv):\n"
-        self.content += "\t'''main entry point'''\n"
+        self.content += "    '''main entry point'''\n"
         self.__archive_prep()
         self.__test_prep()
 
@@ -1141,7 +1141,7 @@ class SecurityAnnouncement():
 
     def __create_pattern(self, distro_index, pattern_tag):
         TODAY = datetime.date.today()
-        base_indent = '\t'
+        base_indent = '    '
         if( len(pattern_tag) > 0 ):
             tag = "_" + str(pattern_tag) + "_"
         else:
@@ -1202,22 +1202,22 @@ class SecurityAnnouncement():
         CONTENT += base_indent + "packages = {}\n"
         CONTENT += base_indent + "server = SUSE.getHostInfo()\n\n"
         CONTENT += base_indent + "if ( server['DistroVersion'] == " + str(self.package_lists[distro_index]['major']) + "):\n"
-        CONTENT += base_indent + "\tif ( server['DistroPatchLevel'] == " +  str(self.package_lists[distro_index]['minor']) + " ):\n"
-        CONTENT += base_indent + "\t\tpackages = {\n"
+        CONTENT += base_indent + "    if ( server['DistroPatchLevel'] == " +  str(self.package_lists[distro_index]['minor']) + " ):\n"
+        CONTENT += base_indent + "        packages = {\n"
 
         for key in sorted(self.package_lists[distro_index]['packages'].keys()):
-            CONTENT += base_indent + "\t\t\t'" + str(key) + "': '" + str(self.package_lists[distro_index]['packages'][key]) + "',\n"
+            CONTENT += base_indent + "            '" + str(key) + "': '" + str(self.package_lists[distro_index]['packages'][key]) + "',\n"
 
-        CONTENT += base_indent + "\t\t}\n"
-        CONTENT += base_indent + "\t\tSUSE.securityAnnouncementPackageCheck(name, main, ltss, severity, tag, packages)\n"
-        CONTENT += base_indent + "\telse:\n"
-        CONTENT += base_indent + "\t\tCore.updateStatus(Core.ERROR, \"ERROR: \" + name + \" Security Announcement: Outside the service pack scope\")\n"
+        CONTENT += base_indent + "        }\n"
+        CONTENT += base_indent + "        SUSE.securityAnnouncementPackageCheck(name, main, ltss, severity, tag, packages)\n"
+        CONTENT += base_indent + "    else:\n"
+        CONTENT += base_indent + "        Core.updateStatus(Core.ERROR, \"ERROR: \" + name + \" Security Announcement: Outside the service pack scope\")\n"
         CONTENT += base_indent + "else:\n"
-        CONTENT += base_indent + "\tCore.updateStatus(Core.ERROR, \"ERROR: \" + name + \" Security Announcement: Outside the distribution scope\")\n\n"
+        CONTENT += base_indent + "    Core.updateStatus(Core.ERROR, \"ERROR: \" + name + \" Security Announcement: Outside the distribution scope\")\n\n"
         CONTENT += base_indent + "Core.printPatternResults()\n\n"
 
         CONTENT += "if __name__ == \"__main__\":\n"
-        CONTENT += "\tmain()\n\n"
+        CONTENT += "    main()\n\n"
 
 
         # Write the content to a pattern on disk
