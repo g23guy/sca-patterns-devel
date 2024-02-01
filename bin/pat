@@ -374,6 +374,9 @@ def run_pattern(this_pattern, this_archive):
             else:
                 this_sev = str(json_object['severity'])
                 c_[overall_dict[this_sev]] += 1
+                msg.normal("+ Result", str(json_object['description']))
+                msg.verbose("+ Archive Used", this_archive)
+                msg.verbose("+ Output", p.stdout)
                 status = overall_dict[this_sev]
         elif valid_gen1_output.search(p.stdout):
             msg.debug('  <> Valid Execution, Output Found')
