@@ -267,7 +267,6 @@ def run_pattern(this_pattern, this_archive):
     IDX_LAST = -1
     output = []
     status = ''
-    status_display = "Status: {}"
     valid_gen1_output = re.compile("^META_CLASS=.*|META_CATEGORY=.*|META_COMPONENT=.*|PATTERN_ID=.*|PRIMARY_LINK=META_LINK_.*|OVERALL=.*|OVERALL_INFO=.*|META_LINK_")
     meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False, 'notsca': False}
 
@@ -284,7 +283,7 @@ def run_pattern(this_pattern, this_archive):
         if( msg.get_level() >= msg.LOG_NORMAL ):
             msg.normal("+ Archive Used", this_archive)
             show_meta_errors()
-            msg.normal(status_display.format(status))
+            msg.normal("+ Status", status)
             pd.separator_line('-')
             print()
         return
@@ -316,7 +315,7 @@ def run_pattern(this_pattern, this_archive):
             show_meta_errors()
             msg.normal()
             print(str(e) + "\n")
-            print(status_display.format(status))
+            msg.normal("+ Status", status)
             pd.separator_line('-')
             print()
         if meta_error['any']:
@@ -339,8 +338,7 @@ def run_pattern(this_pattern, this_archive):
             msg.normal()
             print(p.stdout)
             print(p.stderr)
-            msg.normal()
-            print(status_display.format(status))
+            msg.normal("+ Status", status)
             pd.separator_line('-')
             print()
     else:
@@ -367,8 +365,7 @@ def run_pattern(this_pattern, this_archive):
                     msg.normal()
                     print(p.stdout)
                     print(p.stderr)
-                    msg.normal()
-                    print(status_display.format(status))
+                    msg.normal("+ Status", status)
                     pd.separator_line('-')
                     print()
             else:
@@ -418,9 +415,12 @@ def run_pattern(this_pattern, this_archive):
     else:
         if( msg.get_level() >= msg.LOG_VERBOSE ):
             show_meta_errors()
-            print(status_display.format(status))
+            msg.normal("+ Status", status)
             pd.separator_line('-')
             print()
+        elif( msg.get_level() >= msg.LOG_NORMAL ):
+            show_meta_errors()
+            msg.normal("+ Status", status)
 
 ##############################################################################
 # Main
