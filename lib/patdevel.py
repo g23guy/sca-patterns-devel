@@ -37,7 +37,7 @@ __all__ = [
     'check_directories',
 ]
 
-__version__ = "3.0.1"
+__version__ = "3.0.2"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"
@@ -323,13 +323,14 @@ self.title
             self.content += "if __name__ == \"__main__\":\n"
             self.content += "    pat = suse.SCAPatternGen2('{0}', '{1}', '{2}')\n".format(self.meta_class, self.meta_category, self.meta_component)
             self.content += "    pat.set_id(os.path.basename(__file__))\n"
+            self.content += "    pat.set_supportconfig_path(sys.argv[1])\n"
             self.content += "    pat.set_tid('{0}')\n".format(self.tid_number)
             if self.bug_number != "0":
                 self.content += "    pat.set_bug('{0}')\n".format(self.bug_number)
             if len(self.other_url) > 0:
                 this_tag, this_url = self.other_url.split('=', 1)
                 self.content += "    pat.add_solution_link('{0}', '{1}')\n".format(this_tag.replace("META_LINK_", ""), this_url)
-            self.content += "    main(sys.argv)\n\n"
+            self.content += "    main()\n\n"
         elif self.gen == 1:
             self.content += "    Core.printPatternResults()\n\n"
             self.content += "if __name__ == \"__main__\":\n"
@@ -538,9 +539,8 @@ self.title
         self.content += "##############################################################################\n"
         self.content += "# Main\n"
         self.content += "##############################################################################\n\n"
-        self.content += "def main(argv):\n"
-        self.content += "    '''main entry point'''\n"
-        self.content += "    pat.set_supportconfig_path(argv[1])\n\n"
+        self.content += "def main():\n"
+        self.content += "    '''main entry point'''\n\n"
         self.__test_prep()
 
         if( self.flat ):
