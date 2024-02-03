@@ -37,7 +37,7 @@ __all__ = [
     'check_directories',
 ]
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"
@@ -529,14 +529,6 @@ self.title
             self.content += str(indent) + "else:\n"
             self.content += str(indent) + "    Core.updateStatus(Core.ERROR, \"Service details not found: \" + str(service_name))\n"
 
-    def __archive_prep(self):
-        base_indent = '    '
-        self.content += base_indent + "try:\n"
-        self.content += base_indent + "    pat.set_supportconfig_path(argv[1])\n"
-        self.content += base_indent + "except IndexError:\n"
-        self.content += base_indent + "    print('Error: Supportconfig directory not found')\n"
-        self.content += base_indent + "    sys.exit(1)\n\n"
-
     def __create_pattern_main(self):
         indent_kernel = 1
         indent_package = 1
@@ -548,7 +540,7 @@ self.title
         self.content += "##############################################################################\n\n"
         self.content += "def main(argv):\n"
         self.content += "    '''main entry point'''\n"
-        self.__archive_prep()
+        self.content += "    pat.set_supportconfig_path(argv[1])\n\n"
         self.__test_prep()
 
         if( self.flat ):
