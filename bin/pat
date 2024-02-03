@@ -50,7 +50,7 @@ archive_list = []
 usepath = {'archives': '', 'patterns': '', 'scalib': '', 'log_dir': '', 'log_file': 'pattern-check.log'}
 overall_dict = {"-2": "Temporary", "-1": "Partial", "0": "Success", "1": "Recommend", "2": "Promotion", "3": "Warning", "4": "Critical", "5": "Error", "6": "Ignore"}
 c_ = {'current': 0, 'total': 0, 'total_pat': 0, 'total_fails': 0, 'total_skipped': 0, 'total_arch': 0, "active_pattern": '', "active_archive": '', 'checks_skipped': 0, 'Fatal': 0, 'Temporary': 0, 'Partial': 0, 'Success': 0, 'Recommend': 0, 'Promotion': 0, 'Warning': 0, 'Critical': 0, 'Error': 0, 'Ignore': 0}
-meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False, 'notsca': False}
+meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'out1': False, 'out2': False, 'hpl': False, 'dos': False, 'notsca': False}
 invalid_patterns = []
 invalid_pattern_shortlist = {}
 failed_pattern_shortlist = {}
@@ -255,6 +255,10 @@ def show_meta_errors():
             msg.normal("  + Missing or invalid hash pling")
         if meta_error['out']:
             msg.normal("  + Invalid pattern output string, review Pattern Requirements")
+        if meta_error['out1']:
+            msg.normal("  + Invalid generation 1 pattern output string, review Pattern Requirements")
+        if meta_error['out2']:
+            msg.normal("  + Invalid generation 2 JSON output string, review Pattern Requirements")
         if meta_error['bin']:
             msg.normal("  + Pattern execution error, pattern returned non-zero")
         if meta_error['notsca']:
@@ -268,7 +272,6 @@ def run_pattern(this_pattern, this_archive):
     output = []
     status = ''
     valid_gen1_output = re.compile("^META_CLASS=.*|META_CATEGORY=.*|META_COMPONENT=.*|PATTERN_ID=.*|PRIMARY_LINK=META_LINK_.*|OVERALL=.*|OVERALL_INFO=.*|META_LINK_")
-    meta_error = {'any': False, 'mode': False, 'bin': False, 'out': False, 'hpl': False, 'dos': False, 'notsca': False}
 
     msg.normal("Evaluating Pattern [{}/{}]".format(c_['current'], c_['total']), this_pattern)
     validate_pattern(this_pattern)
@@ -348,6 +351,20 @@ def run_pattern(this_pattern, this_archive):
             json_object = json.loads(p.stdout)
         except ValueError as e:
             json_data = False
+            meta_error['any'] = True
+            meta_error['out2'] = True
+            status = 'Fatal'
+            c_['Fatal'] += 1
+            if( msg.get_level() >= msg.LOG_NORMAL ):
+                msg.normal("+ Archive Used", this_archive)
+                show_meta_errors()
+                msg.normal()
+                print(p.stdout)
+                print(p.stderr)
+                msg.normal("+ Status", status)
+                pd.separator_line('-')
+                print()
+            return
 
         missing_json_keys = []
         if json_data:
@@ -356,7 +373,7 @@ def run_pattern(this_pattern, this_archive):
                     missing_json_keys.append(key)
             if len(missing_json_keys) > 0:
                 meta_error['any'] = True
-                meta_error['out'] = True
+                meta_error['out2'] = True
                 status = 'Fatal'
                 c_['Fatal'] += 1
                 if( msg.get_level() >= msg.LOG_NORMAL ):
@@ -380,7 +397,7 @@ def run_pattern(this_pattern, this_archive):
             lines = p.stdout.splitlines()
             if len(lines) > 1:
                 meta_error['any'] = True
-                meta_error['out'] = True
+                meta_error['out1'] = True
                 status = 'Fatal'
                 c_['Fatal'] += 1
             else:
