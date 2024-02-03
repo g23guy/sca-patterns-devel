@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-SVER = '3.0.0'
+SVER = '3.0.1'
 ##############################################################################
 # pat - SCA Pattern Checker Tool
 # Copyright (C) 2023-2024 SUSE LLC

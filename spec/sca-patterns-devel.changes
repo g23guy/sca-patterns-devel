@@ -1,8 +1,16 @@
 -------------------------------------------------------------------
+Sat Feb  3 19:56:45 UTC 2024 - jason.record@suse.com
+
+- Changes to version 3.0.1
+  + Simplified set_supportconfig_path in patdevel.py issue#78
+  + Moved status to tier format issue#80
+  + Fixed JSON output string error issue#83
+
+-------------------------------------------------------------------
 Sat Feb  3 11:25:35 UTC 2024 - jason.record@suse.com
 
-+ Changes to version 3.0.0
-- Initial commit for generation 2 support in pat and patgen (issue#77)
+- Changes to version 3.0.0
+  + Initial commit for generation 2 support in pat and patgen (issue#77)
 
 -------------------------------------------------------------------
 Thu Nov  2 11:59:40 UTC 2023 - jason.record@suse.com
