@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.13'
+SVER = '2.0.14'
 ##############################################################################
 # gstat - Show the current GitHub status of the repository
-# Copyright (C) 2023 SUSE LLC
+# Copyright (C) 2024 SUSE LLC
 #
 # Description:  Checks the status of the CWD repository or all repos if no
 #               git repo in CWD.
-# Modified:     2023 Oct 31
+# Modified:     2024 Nov 04
 #
 ##############################################################################
 #
@@ -129,7 +129,8 @@ def show_repo_status(_msg, _repo_data, details = False):
     size_state = len(_repo_data['state'])
     size = size_base - size_brackets - size_state
     state_display = "Branch: {:" + str(size) + "} [{}]"
-    _msg.min("Status " + _repo_data['name'], state_display.format(_repo_data['branch'], _repo_data['state']))
+    branch_display = _repo_data['origin_id'] + "/" + _repo_data['branch']
+    _msg.min("Status " + _repo_data['name'], state_display.format(branch_display, _repo_data['state']))
 
     if details:
         show_git_status(_msg, _repo_data)

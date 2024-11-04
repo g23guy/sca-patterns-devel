@@ -1,7 +1,7 @@
 """Module for SCA Pattern Development Tools
 Copyright (C) 2024 SUSE LLC
 
- Modified:     2024 Feb 03
+ Modified:     2024 Nov 04
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ __all__ = [
     'check_directories',
 ]
 
-__version__ = "3.0.2"
+__version__ = "3.0.3"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"
@@ -1264,7 +1264,7 @@ class GitHubRepository():
     def __init__(self, _msg, _path):
         self.msg = _msg
         self.path = _path
-        self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'branch': '', 'branch_commit': '', 'remote_branch': '', 'remote_branch_commit': '', 'outdated': True, 'state': '', 'content': '', 'branches': '', 'show_branch': '', 'log': '', 'diff': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
+        self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'origin_id': '', 'branch': '', 'branch_commit': '', 'remote_branch': '', 'remote_branch_commit': '', 'outdated': True, 'state': '', 'content': '', 'branches': '', 'show_branch': '', 'log': '', 'diff': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
         self.git_config_file = self.path + "/.git/config"
         self.spec_file = self.path + '/spec/' + self.info['name'] + ".spec"
         self.uncommitted_patterns = {}
@@ -1329,6 +1329,7 @@ Class instance of {}
         self.msg.normal("Probing repository", self.info['name'])
         IDX_FIRST = 0
         IDX_LAST = -1
+        IDX_ID = 3
         # Remote origin
         if not os.path.exists(self.path):
             self.info['valid'] = False
@@ -1341,8 +1342,10 @@ Class instance of {}
         git_config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
         git_config.read(self.git_config_file)
         self.info['origin'] = config_entry(git_config.get('remote "origin"', "url"))
+        self.info['origin_id'] = self.info['origin'].split('/')[IDX_ID]
         del git_config
         self.msg.verbose("+ Remote Origin", self.info['origin'])
+        self.msg.verbose("+ Remote Origin ID", self.info['origin_id'])
 
         if os.path.exists(self.spec_file):
             # Spec file version
