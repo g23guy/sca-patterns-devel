@@ -89,7 +89,7 @@ install -m 644 docs/index.html %{buildroot}%{patdocs}
 %config %attr(664,root,users) %{patdevconfdir}/*
 
 %post
-ln -s -f %{_bindir}/gstat %{_bindir}gg
+ln -s -f %{_bindir}/gstat %{_bindir}/gg
 
 %postun
 

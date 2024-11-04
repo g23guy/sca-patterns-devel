@@ -1,8 +1,9 @@
 -------------------------------------------------------------------
-Mon Nov  4 18:12:46 UTC 2024 - jason.record@suse.com
+Mon Nov  4 18:29:21 UTC 2024 - jason.record@suse.com
 
 - Changes to version 3.0.3
   + Add origin ID string issue#87
+  + Added symlink to gg issue#88
 
 -------------------------------------------------------------------
 Sat Feb  3 21:14:57 UTC 2024 - jason.record@suse.com
