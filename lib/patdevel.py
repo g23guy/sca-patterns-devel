@@ -44,6 +44,7 @@ sa_distribution_log_filename = "distribution.log"
 sa_main_section = "Main"
 SEPARATOR_LEN = 100
 config_file = "/etc/opt/patdevel/patdev.conf"
+VALID_PRIMARY_BRANCHES = ['master', 'main']
 
 def title(title_str, version_str):
     separator_line("#")
@@ -1264,7 +1265,7 @@ class GitHubRepository():
     def __init__(self, _msg, _path):
         self.msg = _msg
         self.path = _path
-        self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'origin_id': '', 'branch': '', 'branch_commit': '', 'remote_branch': '', 'remote_branch_commit': '', 'outdated': True, 'state': '', 'content': '', 'branches': '', 'show_branch': '', 'log': '', 'diff': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
+        self.info = {'name': os.path.basename(self.path), 'valid': True, 'origin': '', 'origin_id': '', 'branch': '', 'branch_primary': '', 'branch_commit': '', 'remote_branch': '', 'remote_branch_commit': '', 'outdated': True, 'state': '', 'content': '', 'branches': '', 'show_branch': '', 'log': '', 'diff': '', 'diff_primary': '', 'spec_ver': 'Unknown', 'spec_ver_bumped': 'Unknown'}
         self.git_config_file = self.path + "/.git/config"
         self.spec_file = self.path + '/spec/' + self.info['name'] + ".spec"
         self.uncommitted_patterns = {}
@@ -1304,22 +1305,38 @@ Class instance of {}
                 if self.info['remote_branch']:
                     if self.info['branch_commit'] == self.info['remote_branch_commit']:
                         self.msg.debug("> Nothing to commit, branch_commit matches remote_branch_commit")
-                        self.info['outdated'] = False
-                        self.info['state'] = "Current"
+                        if( self.info['branch'] == "dev" ):
+                            self.info['outdated'] = False
+                            if( len(self.info['diff_primary']) > 0 ):
+                                self.msg.debug("> Branch 'dev' has changes")
+                                self.info['state'] = "Pull Request"
+                            else:
+                                self.info['state'] = "Current"
+                        else:
+                            self.info['outdated'] = False
+                            self.info['state'] = "Current"
                     else:
                         self.msg.debug("> Nothing to commit, branch_commit does NOT match remote_branch_commit")
                         self.info['outdated'] = True
                         self.info['state'] = "Push"
                 else:
-                    self.info['outdated'] = False
-                    self.info['state'] = "Current"
-                    commit_count = 0
-                    for line in self.info['show_branch']:
-                        if self.info['branch_commit'] in line:
-                            commit_count += 1
-                    if commit_count < 2:
+                    if( self.info['branch'] == "dev" ):
                         self.info['outdated'] = False
-                        self.info['state'] = "Merge"
+                        if( len(self.info['diff_primary']) > 0 ):
+                            self.msg.debug("> Branch 'dev' has changes")
+                            self.info['state'] = "Pull Request"
+                        else:
+                            self.info['state'] = "Current"
+                    else:
+                        self.info['outdated'] = False
+                        self.info['state'] = "Current"
+                        commit_count = 0
+                        for line in self.info['show_branch']:
+                            if self.info['branch_commit'] in line:
+                                commit_count += 1
+                        if commit_count < 2:
+                            self.info['outdated'] = False
+                            self.info['state'] = "Merge"
         if not self.info['state']:
             self.msg.debug("> Commit needed")
             self.info['outdated'] = True
@@ -1393,7 +1410,7 @@ Class instance of {}
             data = p.stdout.splitlines()
             self.msg.debug("<> Command Output", prog)
             for line in data:
-                self.msg.debug("> " + line)
+                self.msg.debug("status > " + line)
                 if this_branch.search(line):
                     self.info['branch'] = line.split()[-1]
             self.info['content'] = data
@@ -1419,7 +1436,11 @@ Class instance of {}
             data = p.stdout.splitlines()
             self.msg.debug("<> Command Output", prog)
             for line in data:
-                self.msg.debug("> " + line)
+                self.msg.debug("list   > " + line)
+                primary_branch_check = line.replace('*','').strip()
+                for valid_branch in VALID_PRIMARY_BRANCHES:
+                    if( primary_branch_check == valid_branch ):
+                        self.info['branch_primary'] = primary_branch_check
                 if remote_branch in line:
                     self.info['remote_branch'] = remote_branch
             self.info['branches'] = data
@@ -1444,7 +1465,7 @@ Class instance of {}
             data = p.stdout.splitlines()
             self.msg.debug("<> Command Output", prog)
             for line in data:
-                self.msg.debug("> " + line)
+                self.msg.debug("showb  > " + line)
             self.info['branch_commit'] = data[IDX_FIRST].split(']')[IDX_LAST].strip()
 
         # git show-branch self.info['remote_branch'] if present
@@ -1468,7 +1489,7 @@ Class instance of {}
                 data = p.stdout.splitlines()
                 self.msg.debug("<> Command Output", prog)
                 for line in data:
-                    self.msg.debug("> " + line)
+                    self.msg.debug("showr  > " + line)
                 self.info['remote_branch_commit'] = data[IDX_FIRST].split(']')[IDX_LAST].strip()
 
         
@@ -1493,7 +1514,7 @@ Class instance of {}
             self.msg.debug("<> Command Output", prog)
             self.info['show_branch'] = []
             for line in data:
-                self.msg.debug("=> " + line)
+                self.msg.debug("show   > " + line)
                 if line.startswith('-'):
                     break
                 else:
@@ -1519,7 +1540,7 @@ Class instance of {}
             data = p.stdout.splitlines()
             self.msg.debug("<> Command Output", prog)
             for line in data:
-                self.msg.debug("> " + line)
+                self.msg.debug("log    > " + line)
             self.info['log'] = data
 
         # git diff
@@ -1542,8 +1563,31 @@ Class instance of {}
             data = p.stdout.splitlines()
             self.msg.debug("<> Command Output", prog)
             for line in data:
-                self.msg.debug("> " + line)
+                self.msg.debug("diff   > " + line)
             self.info['diff'] = data
+
+        # git diff self.info['branch_primary']..dev
+        try:
+            prog = "/usr/bin/git --no-pager diff " + self.info['branch_primary'] + "..dev"
+            p = sp.run(prog.split(), universal_newlines=True, stdout=sp.PIPE, stderr=sp.PIPE)
+        except Exception as e:
+            self.msg.debug('  <diff> sp.run Exception: {}'.format(prog))
+
+            if( self.msg.get_level() >= self.msg.LOG_NORMAL ):
+                self.msg.normal()
+                print(str(e) + "\n")
+                separator_line('-')
+                print()
+            return self.info
+
+        if p.returncode > 0:
+            self.msg.debug("  <diff> Non-Zero return code, p.returncode > 0")
+        else:
+            data = p.stdout.splitlines()
+            self.msg.debug("<> Command Output", prog)
+            for line in data:
+                self.msg.debug("diffp  > " + line)
+            self.info['diff_primary'] = data
 
         self.__evaluate_state()
         if( len(self.info['origin']) == 0 ):
