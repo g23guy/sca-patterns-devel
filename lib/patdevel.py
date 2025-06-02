@@ -1,7 +1,7 @@
 """Module for SCA Pattern Development Tools
-Copyright (C) 2024 SUSE LLC
+Copyright (C) 2025 SUSE LLC
 
- Modified:     2024 Nov 04
+ Modified:     2025 Jun 02
 -------------------------------------------------------------------------------
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ __all__ = [
     'check_directories',
 ]
 
-__version__ = "3.0.3"
+__version__ = "3.0.4"
 
 SUMMARY_FMT = "{0:30} {1:g}"
 sa_distribution_log_filename = "distribution.log"

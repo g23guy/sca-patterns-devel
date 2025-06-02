@@ -1,6 +1,6 @@
 # spec file for package sca-patterns-devel
 #
-# Copyright (c) 2024 SUSE LINUX GmbH, Nuernberg, Germany.
+# Copyright (c) 2025 SUSE LINUX GmbH, Nuernberg, Germany.
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -18,7 +18,7 @@
 %define pythondir %{_libexecdir}/python3.6/site-packages
 
 Name:         sca-patterns-devel
-Version:      3.0.3
+Version:      3.0.4
 Release:      0
 Summary:      Supportconf Analysis Pattern Development Tools
 License:      GPL-2.0-only
