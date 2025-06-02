@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Jun  2 16:08:58 UTC 2025 - jason.record@suse.com
+
+- Changes to version 3.0.4
+  + Compares primary branch with dev issue#90
+
+-------------------------------------------------------------------
 Mon Nov  4 18:29:21 UTC 2024 - jason.record@suse.com
 
 - Changes to version 3.0.3

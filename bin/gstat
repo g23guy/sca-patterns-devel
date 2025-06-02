@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-SVER = '2.0.14'
+SVER = '2.0.15'
 ##############################################################################
 # gstat - Show the current GitHub status of the repository
-# Copyright (C) 2024 SUSE LLC
+# Copyright (C) 2025 SUSE LLC
 #
 # Description:  Checks the status of the CWD repository or all repos if no
 #               git repo in CWD.
-# Modified:     2024 Nov 04
+# Modified:     2025 Jun 02
 #
 ##############################################################################
 #
